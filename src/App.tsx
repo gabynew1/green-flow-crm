@@ -26,6 +26,7 @@ import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
 import ClientVisits from "./pages/client/ClientVisits";
 import ClientVisitDetail from "./pages/client/ClientVisitDetail";
 import ClientFeedback from "./pages/client/ClientFeedback";
+import ClientProfile from "./pages/client/ClientProfile";
 
 import AdminInvites from "./pages/admin/AdminInvites";
 import ResetPassword from "./pages/ResetPassword";
