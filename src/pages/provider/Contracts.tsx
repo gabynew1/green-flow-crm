@@ -336,11 +336,11 @@ export default function Contracts() {
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="PENDING_NEW">Pending Approval</SelectItem>
+            <SelectItem value="DRAFT">Draft</SelectItem>
+            <SelectItem value="SENT_TO_CLIENT">Sent to Client</SelectItem>
+            <SelectItem value="SIGNED">Signed</SelectItem>
             <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="PAUSED">Paused</SelectItem>
-            <SelectItem value="REJECTED">Rejected</SelectItem>
-            <SelectItem value="TERMINATED">Terminated</SelectItem>
+            <SelectItem value="CLOSED">Closed</SelectItem>
           </SelectContent>
         </Select>
       </div>
