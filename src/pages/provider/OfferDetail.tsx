@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
