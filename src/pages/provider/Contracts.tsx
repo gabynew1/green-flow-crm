@@ -97,6 +97,8 @@ export default function Contracts() {
     setOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
+    setVisitCount(1);
+    setVisitType("WEEK");
     load();
   };
 
