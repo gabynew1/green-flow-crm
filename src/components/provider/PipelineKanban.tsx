@@ -64,12 +64,7 @@ export default function PipelineKanban() {
     setLoading(false);
   };
 
-  const handleCompleteInspection = async (id: string) => {
-    const { error } = await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Inspection marked as completed");
-    load();
-  };
+  // Opportunities now navigate to detail page for scheduling
 
   const handleGenerateOffer = async (inspection: any) => {
     const { error: offerErr } = await supabase.from("offers").insert({
@@ -179,8 +174,8 @@ export default function PipelineKanban() {
                       </Badge>
 
                       {col.type === "opportunity" && status === "DRAFT" && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleCompleteInspection(item.id)}>
-                          Complete <ArrowRight className="h-3 w-3" />
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/inspections/${item.id}`)}>
+                          Schedule <ArrowRight className="h-3 w-3" />
                         </Button>
                       )}
                       {col.type === "inspection" && status === "COMPLETED" && (

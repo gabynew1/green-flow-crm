@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,22 +9,27 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, CheckCircle, FileOutput, Save } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { ArrowLeft, CalendarDays, CheckCircle, FileOutput, Save } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 
 const statusLabels: Record<string, string> = {
-  DRAFT: "Draft",
-  COMPLETED: "Completed",
+  DRAFT: "Opportunity",
+  COMPLETED: "Scheduled",
   OFFER_GENERATED: "Offer Generated",
 };
 
 export default function InspectionDetail() {
   const { inspectionId } = useParams();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [inspection, setInspection] = useState<any>(null);
   const [title, setTitle] = useState("");
@@ -31,12 +37,15 @@ export default function InspectionDetail() {
   const [findings, setFindings] = useState("");
   const [inspectedDate, setInspectedDate] = useState("");
 
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
   useEffect(() => { load(); }, [inspectionId]);
 
   const load = async () => {
     const { data } = await supabase
       .from("inspections")
-      .select("*, properties(name, customers(name))")
+      .select("*, properties(name, address, city, customers(name))")
       .eq("id", inspectionId!)
       .single();
     if (data) {
@@ -57,12 +66,19 @@ export default function InspectionDetail() {
     load();
   };
 
-  const complete = async () => {
-    await supabase.from("inspections").update({
-      status: "COMPLETED", title, notes: notes || null, findings: findings || null,
-      inspected_date: inspectedDate || new Date().toISOString().split("T")[0],
+  const scheduleInspection = async () => {
+    if (!selectedDate) return;
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const { error } = await supabase.from("inspections").update({
+      status: "COMPLETED",
+      inspected_date: dateStr,
+      title,
+      notes: notes || null,
+      findings: findings || null,
     }).eq("id", inspectionId!);
-    toast.success("Inspection completed!");
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
+    setScheduleOpen(false);
     load();
   };
 
@@ -89,81 +105,138 @@ export default function InspectionDetail() {
 
   const isDraft = inspection.status === "DRAFT";
   const isCompleted = inspection.status === "COMPLETED";
+  const property = inspection.properties as any;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link to="/provider/inspections"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
+        <Link to="/provider/pipeline"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{inspection.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {(inspection.properties as any)?.customers?.name} · {(inspection.properties as any)?.name}
+            {property?.customers?.name} · {property?.name}
           </p>
         </div>
-        <Badge variant="secondary">{statusLabels[inspection.status]}</Badge>
+        <Badge variant={isDraft ? "secondary" : "default"}>{statusLabels[inspection.status]}</Badge>
       </div>
 
+      {/* Property info */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Inspection Details</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Property</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Name:</span>
+              <p className="font-medium">{property?.name}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Customer:</span>
+              <p className="font-medium">{property?.customers?.name}</p>
+            </div>
+            {property?.address && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Address:</span>
+                <p className="font-medium">{[property.address, property.city].filter(Boolean).join(", ")}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Details */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">{isDraft ? "Opportunity Details" : "Inspection Details"}</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} disabled={!isDraft} />
           </div>
-          <div className="space-y-2">
-            <Label>Inspection Date</Label>
-            <Input type="date" value={inspectedDate} onChange={e => setInspectedDate(e.target.value)} disabled={!isDraft} />
-          </div>
+          {!isDraft && inspectedDate && (
+            <div className="space-y-2">
+              <Label>Scheduled Date</Label>
+              <Input type="date" value={inspectedDate} disabled />
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Notes</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} disabled={!isDraft} placeholder="General notes…" />
           </div>
           <div className="space-y-2">
             <Label>Findings</Label>
-            <Textarea value={findings} onChange={e => setFindings(e.target.value)} rows={5} disabled={!isDraft} placeholder="Detailed findings from the inspection…" />
+            <Textarea value={findings} onChange={e => setFindings(e.target.value)} rows={5} disabled={!isDraft && !isCompleted} placeholder="Detailed findings from the inspection…" />
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
+      {/* Actions */}
+      <div className="flex gap-3 flex-wrap">
         {isDraft && (
           <>
             <Button variant="secondary" onClick={save}><Save className="h-4 w-4 mr-2" /> Save Draft</Button>
+            <Button onClick={() => { setSelectedDate(undefined); setScheduleOpen(true); }}>
+              <CalendarDays className="h-4 w-4 mr-2" /> Schedule Inspection
+            </Button>
+          </>
+        )}
+        {isCompleted && (
+          <>
+            <Button variant="secondary" onClick={async () => {
+              await supabase.from("inspections").update({ findings: findings || null }).eq("id", inspectionId!);
+              toast.success("Findings saved!");
+              load();
+            }}>
+              <Save className="h-4 w-4 mr-2" /> Save Findings
+            </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button><CheckCircle className="h-4 w-4 mr-2" /> Complete Inspection</Button>
+                <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Complete this inspection?</AlertDialogTitle>
-                  <AlertDialogDescription>Once completed, you can generate an offer from the findings.</AlertDialogDescription>
+                  <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
+                  <AlertDialogDescription>An offer will be created with the inspection findings. You can add line items and pricing before sending to the client.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={complete}>Complete</AlertDialogAction>
+                  <AlertDialogAction onClick={generateOffer}>Generate</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </>
         )}
-        {isCompleted && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
-                <AlertDialogDescription>An offer will be created with the inspection findings. You can add line items and pricing before sending to the client.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={generateOffer}>Generate</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
       </div>
+
+      {/* Schedule Inspection Dialog */}
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule Inspection</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Pick a date for the on-site inspection at <span className="font-medium text-foreground">{property?.name}</span>
+            </p>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              className={cn("p-3 pointer-events-auto rounded-md border")}
+            />
+            {selectedDate && (
+              <p className="text-sm font-medium">
+                Selected: {format(selectedDate, "PPPP")}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleOpen(false)}>Cancel</Button>
+            <Button onClick={scheduleInspection} disabled={!selectedDate}>
+              <CalendarDays className="h-4 w-4 mr-2" /> Confirm Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
