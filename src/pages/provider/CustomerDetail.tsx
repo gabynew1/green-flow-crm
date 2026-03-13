@@ -48,6 +48,8 @@ export default function CustomerDetail() {
   const [contractOpen, setContractOpen] = useState(false);
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [visitCount, setVisitCount] = useState(1);
+  const [visitType, setVisitType] = useState("WEEK");
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -110,8 +112,10 @@ export default function CustomerDetail() {
       start_date: startDate,
       end_date: endDate,
       billing_cycle: billingCycle,
+      visit_frequency_count: visitCount,
+      visit_frequency_type: visitType,
       status: "ACTIVE" as const,
-    }));
+    } as any));
 
     const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
@@ -119,6 +123,8 @@ export default function CustomerDetail() {
     setContractOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
+    setVisitCount(1);
+    setVisitType("WEEK");
     load();
   };
 
@@ -245,7 +251,28 @@ export default function CustomerDetail() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Billing Cycle</Label>
+                <Label>Visit Frequency</Label>
+                <div className="flex gap-2">
+                  <Select value={String(visitCount)} onValueChange={(v) => setVisitCount(Number(v))}>
+                    <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={visitType} onValueChange={setVisitType}>
+                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WEEK">per Week</SelectItem>
+                      <SelectItem value="MONTH">per Month</SelectItem>
+                      <SelectItem value="YEAR">per Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Billing Frequency</Label>
                 <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
