@@ -37,6 +37,7 @@ export default function InspectionDetail() {
   const [notes, setNotes] = useState("");
   const [customer, setCustomer] = useState<any>(null);
   const [inspectedDate, setInspectedDate] = useState("");
+  const [lastSavedBy, setLastSavedBy] = useState<string | null>(null);
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
