@@ -289,7 +289,7 @@ export default function CustomerDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full">Create & Activate</Button>
+              <Button type="submit" className="w-full">Create Contract</Button>
             </form>
           </DialogContent>
         </Dialog>
