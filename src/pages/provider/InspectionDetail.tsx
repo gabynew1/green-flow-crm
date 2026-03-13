@@ -200,7 +200,14 @@ export default function InspectionDetail() {
             </div>
           )}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label>Notes</Label>
+              {inspection?.updated_at && (
+                <span className="text-[11px] text-muted-foreground">
+                  Last saved: {format(new Date(inspection.updated_at), "PPp")}{lastSavedBy ? ` by ${lastSavedBy}` : ""}
+                </span>
+              )}
+            </div>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="General notes…" />
           </div>
         </CardContent>
