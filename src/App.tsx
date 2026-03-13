@@ -26,6 +26,7 @@ import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
 import ClientVisits from "./pages/client/ClientVisits";
 import ClientVisitDetail from "./pages/client/ClientVisitDetail";
 import ClientFeedback from "./pages/client/ClientFeedback";
+import ClientContracts from "./pages/client/ClientContracts";
 import ClientProfile from "./pages/client/ClientProfile";
 
 import AdminInvites from "./pages/admin/AdminInvites";
@@ -79,6 +80,7 @@ function AppRoutes(): JSX.Element {
       {/* Client routes */}
       <Route path="/client" element={<ClientLayout />}>
         <Route index element={<ClientDashboard />} />
+        <Route path="contracts" element={<ClientContracts />} />
         <Route path="properties/:propertyId" element={<ClientPropertyDetail />} />
         <Route path="visits" element={<ClientVisits />} />
         <Route path="visits/:visitId" element={<ClientVisitDetail />} />

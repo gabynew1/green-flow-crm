@@ -158,6 +158,7 @@ export type Database = {
           end_date: string | null
           id: string
           property_id: string
+          rejection_comment: string | null
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
           updated_at: string
@@ -171,6 +172,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           property_id: string
+          rejection_comment?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
           updated_at?: string
@@ -184,6 +186,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           property_id?: string
+          rejection_comment?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
           updated_at?: string
@@ -815,7 +818,13 @@ export type Database = {
       app_role: "PROVIDER_ADMIN" | "PROVIDER_STAFF" | "CLIENT_USER"
       billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME"
       connection_status: "PENDING" | "APPROVED" | "DENIED"
-      contract_status: "DRAFT" | "ACTIVE" | "PAUSED" | "TERMINATED"
+      contract_status:
+        | "DRAFT"
+        | "ACTIVE"
+        | "PAUSED"
+        | "TERMINATED"
+        | "PENDING_NEW"
+        | "REJECTED"
       frequency_type: "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME"
       inventory_category: "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER"
       inventory_source: "MANUAL" | "AI_ASSISTED"
@@ -958,7 +967,14 @@ export const Constants = {
       app_role: ["PROVIDER_ADMIN", "PROVIDER_STAFF", "CLIENT_USER"],
       billing_cycle: ["WEEKLY", "MONTHLY", "ONE_TIME"],
       connection_status: ["PENDING", "APPROVED", "DENIED"],
-      contract_status: ["DRAFT", "ACTIVE", "PAUSED", "TERMINATED"],
+      contract_status: [
+        "DRAFT",
+        "ACTIVE",
+        "PAUSED",
+        "TERMINATED",
+        "PENDING_NEW",
+        "REJECTED",
+      ],
       frequency_type: ["PER_VISIT", "PER_WEEK", "PER_MONTH", "ONE_TIME"],
       inventory_category: ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"],
       inventory_source: ["MANUAL", "AI_ASSISTED"],

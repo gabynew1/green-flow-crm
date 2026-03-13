@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, Pause, XCircle, Clock, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, Pause, XCircle, Clock, Pencil, Save, X, Archive, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -34,9 +34,16 @@ const billingCycleLabels: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   DRAFT: "secondary",
+  PENDING_NEW: "outline",
   ACTIVE: "default",
   PAUSED: "outline",
   TERMINATED: "destructive",
+  REJECTED: "destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING_NEW: "Pending Approval",
+  REJECTED: "Rejected",
 };
 
 export default function CustomerDetail() {
@@ -114,12 +121,12 @@ export default function CustomerDetail() {
       billing_cycle: billingCycle,
       visit_frequency_count: visitCount,
       visit_frequency_type: visitType,
-      status: "ACTIVE" as const,
+      status: "PENDING_NEW" as const,
     } as any));
 
     const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
-    toast.success(`${inserts.length} contract(s) created & client activated!`);
+    toast.success(`${inserts.length} contract(s) created — pending client approval`);
     setContractOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
@@ -282,7 +289,7 @@ export default function CustomerDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full">Create & Activate</Button>
+              <Button type="submit" className="w-full">Create Contract</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -376,11 +383,19 @@ export default function CustomerDetail() {
                             </span>
                           )}
                           <Badge variant={statusColors[c.status] as any || "secondary"} className="text-[10px] px-1.5 py-0">
-                            {c.status}
+                            {statusLabels[c.status] || c.status}
                           </Badge>
+                          {c.rejection_comment && c.status === "REJECTED" && (
+                            <span className="text-xs text-destructive italic max-w-[200px] truncate" title={c.rejection_comment}>
+                              "{c.rejection_comment}"
+                            </span>
+                          )}
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
+                          {c.status === "PENDING_NEW" && (
+                            <span className="text-xs text-muted-foreground">Awaiting client</span>
+                          )}
                           {c.status === "DRAFT" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
                               <Play className="h-3 w-3 mr-1" /> Activate
@@ -400,6 +415,11 @@ export default function CustomerDetail() {
                                 <XCircle className="h-3 w-3 mr-1" /> End
                               </Button>
                             </>
+                          )}
+                          {(c.status === "REJECTED" || c.status === "TERMINATED") && (
+                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "TERMINATED")}>
+                              <Archive className="h-3 w-3 mr-1" /> Archive
+                            </Button>
                           )}
                         </div>
                       </div>

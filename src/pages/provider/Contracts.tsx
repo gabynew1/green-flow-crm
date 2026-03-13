@@ -15,9 +15,16 @@ import { format } from "date-fns";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
+  PENDING_NEW: "outline",
   ACTIVE: "default",
   PAUSED: "outline",
   TERMINATED: "destructive",
+  REJECTED: "destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING_NEW: "Pending Approval",
+  REJECTED: "Rejected",
 };
 
 const billingLabels: Record<string, string> = {
@@ -88,12 +95,12 @@ export default function Contracts() {
       billing_cycle: billingCycle,
       visit_frequency_count: visitCount,
       visit_frequency_type: visitType,
-      status: "ACTIVE" as const,
+      status: "PENDING_NEW" as const,
     } as any));
 
     const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
-    toast.success(`${inserts.length} contract(s) created!`);
+    toast.success(`${inserts.length} contract(s) created — pending client approval`);
     setOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
@@ -197,9 +204,10 @@ export default function Contracts() {
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
+            <SelectItem value="PENDING_NEW">Pending Approval</SelectItem>
             <SelectItem value="ACTIVE">Active</SelectItem>
             <SelectItem value="PAUSED">Paused</SelectItem>
+            <SelectItem value="REJECTED">Rejected</SelectItem>
             <SelectItem value="TERMINATED">Terminated</SelectItem>
           </SelectContent>
         </Select>
@@ -239,7 +247,7 @@ export default function Contracts() {
                   <TableCell>{c.end_date ? format(new Date(c.end_date), "MMM d, yyyy") : "—"}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[c.status] || "secondary"} className="text-[10px]">
-                      {c.status}
+                      {statusLabels[c.status] || c.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono">
