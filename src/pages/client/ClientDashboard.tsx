@@ -120,7 +120,7 @@ export default function ClientDashboard() {
       address: form.address.trim() || null,
       city: form.city.trim() || null,
       description: form.description.trim() || null,
-      customer_id: profile.customer_id,
+      customer_id: customerId,
     });
     setSaving(false);
 
