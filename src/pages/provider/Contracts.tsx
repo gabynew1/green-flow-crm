@@ -151,7 +151,28 @@ export default function Contracts() {
                 <div className="space-y-2"><Label>End Date *</Label><Input name="end_date" type="date" required /></div>
               </div>
               <div className="space-y-2">
-                <Label>Billing Cycle</Label>
+                <Label>Visit Frequency</Label>
+                <div className="flex gap-2">
+                  <Select value={String(visitCount)} onValueChange={(v) => setVisitCount(Number(v))}>
+                    <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={visitType} onValueChange={setVisitType}>
+                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WEEK">per Week</SelectItem>
+                      <SelectItem value="MONTH">per Month</SelectItem>
+                      <SelectItem value="YEAR">per Year</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Billing Frequency</Label>
                 <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
