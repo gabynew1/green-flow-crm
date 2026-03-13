@@ -298,10 +298,10 @@ export default function OfferDetail() {
                 return (
                   <TableRow key={li.id}>
                     <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name || "—"}</TableCell>
+                    <TableCell>{li.notes ? li.notes.replace(/_/g, " ") : "—"}</TableCell>
                     <TableCell>{li.quantity} {li.unit}</TableCell>
                     <TableCell>${Number(price).toFixed(2)}</TableCell>
                     <TableCell className="font-mono">${(li.quantity * price).toFixed(2)}</TableCell>
-                    <TableCell className="text-muted-foreground">{li.notes || "—"}</TableCell>
                     {editable && (
                       <TableCell>
                         <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
