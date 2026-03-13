@@ -33,7 +33,7 @@ export default function OfferDetail() {
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
-  const [selectedServices, setSelectedServices] = useState<Record<string, { checked: boolean; frequency: string }>>({});
+  const [selectedServices, setSelectedServices] = useState<Record<string, { checked: boolean; frequency: string; visitCount: number }>>({});
 
   useEffect(() => { load(); }, [offerId]);
 
@@ -51,14 +51,21 @@ export default function OfferDetail() {
   const toggleService = (id: string, checked: boolean) => {
     setSelectedServices(prev => ({
       ...prev,
-      [id]: { checked, frequency: prev[id]?.frequency || "PER_VISIT" },
+      [id]: { checked, frequency: prev[id]?.frequency || "PER_VISIT", visitCount: prev[id]?.visitCount || 1 },
     }));
   };
 
   const setServiceFrequency = (id: string, frequency: string) => {
     setSelectedServices(prev => ({
       ...prev,
-      [id]: { ...prev[id], checked: true, frequency },
+      [id]: { ...prev[id], checked: true, frequency, visitCount: prev[id]?.visitCount || 1 },
+    }));
+  };
+
+  const setServiceVisitCount = (id: string, visitCount: number) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [id]: { ...prev[id], checked: true, visitCount },
     }));
   };
 
@@ -74,7 +81,7 @@ export default function OfferDetail() {
           quantity: 1,
           unit_price: svc?.default_price || null,
           unit: svc?.default_unit || null,
-          notes: v.frequency,
+          notes: `${v.visitCount}x ${v.frequency.replace(/_/g, " ")}`,
         };
       });
     if (toAdd.length === 0) { toast.error("Select at least one service"); return; }
@@ -237,6 +244,7 @@ export default function OfferDetail() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Service</TableHead>
+                        <TableHead>Visits</TableHead>
                         <TableHead>Frequency</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -248,6 +256,15 @@ export default function OfferDetail() {
                           return (
                             <TableRow key={id}>
                               <TableCell className="font-medium text-sm">{svc?.name}</TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={v.visitCount}
+                                  onChange={(e) => setServiceVisitCount(id, Number(e.target.value) || 1)}
+                                  className="h-8 w-[70px]"
+                                />
+                              </TableCell>
                               <TableCell>
                                 <Select value={v.frequency} onValueChange={(val) => setServiceFrequency(id, val)}>
                                   <SelectTrigger className="h-8 w-[140px]">
