@@ -427,6 +427,7 @@ export type Database = {
           id: string
           name: string
           status: Database["public"]["Enums"]["property_status"]
+          unique_property_id: string | null
           updated_at: string
         }
         Insert: {
@@ -440,6 +441,7 @@ export type Database = {
           id?: string
           name: string
           status?: Database["public"]["Enums"]["property_status"]
+          unique_property_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -453,6 +455,7 @@ export type Database = {
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["property_status"]
+          unique_property_id?: string | null
           updated_at?: string
         }
         Relationships: [
