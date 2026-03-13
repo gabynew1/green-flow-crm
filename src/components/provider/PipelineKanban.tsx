@@ -15,7 +15,8 @@ import {
 
 const statusVariantInspection: Record<string, "default" | "secondary" | "outline"> = {
   DRAFT: "secondary",
-  COMPLETED: "default",
+  SCHEDULED: "default",
+  COMPLETED: "outline",
   OFFER_GENERATED: "outline",
 };
 

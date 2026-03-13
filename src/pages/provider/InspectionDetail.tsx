@@ -207,7 +207,7 @@ export default function InspectionDetail() {
             </Button>
           </>
         )}
-        {isCompleted && (
+        {isScheduled && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
