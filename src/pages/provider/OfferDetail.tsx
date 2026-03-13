@@ -89,6 +89,17 @@ export default function OfferDetail() {
     load();
   };
 
+  const updateStatus = async (status: string) => {
+    await supabase.from("offers").update({ status } as any).eq("id", offerId!);
+    toast.success(`Offer ${statusLabels[status]?.toLowerCase() || status}`);
+    load();
+  };
+
+  const updateTotal = async (items: any[]) => {
+    const total = items.reduce((s, li) => s + (li.quantity * (li.unit_price || (li.service_catalog as any)?.default_price || 0)), 0);
+    await supabase.from("offers").update({ total_value: total }).eq("id", offerId!);
+  };
+
   const deleteLine = async (id: string) => {
     await supabase.from("offer_line_items").delete().eq("id", id);
     const remaining = lineItems.filter(li => li.id !== id);
