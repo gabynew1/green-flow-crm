@@ -323,7 +323,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context } = await req.json();
+    const { messages, context, user, properties } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -332,7 +332,7 @@ serve(async (req) => {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const role = context?.role || "provider";
-    const systemPrompt = getSystemPrompt(role, context || {});
+    const systemPrompt = getSystemPrompt(role, context || {}, user, properties);
 
     // Filter tools based on role
     const availableTools =
