@@ -95,7 +95,7 @@ export default function Contracts() {
       billing_cycle: billingCycle,
       visit_frequency_count: visitCount,
       visit_frequency_type: visitType,
-      status: "ACTIVE" as const,
+      status: "PENDING_NEW" as const,
     } as any));
 
     const { error } = await supabase.from("contracts").insert(inserts);
