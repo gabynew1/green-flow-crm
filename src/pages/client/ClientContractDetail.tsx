@@ -5,9 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, CalendarDays, DollarSign, ClipboardList } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, CalendarDays, DollarSign, ClipboardList, Check, X } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const statusColors: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
@@ -15,14 +18,16 @@ const statusColors: Record<string, "default" | "secondary" | "outline" | "destru
   SIGNED: "default",
   ACTIVE: "default",
   CLOSED: "destructive",
+  REJECTED: "destructive",
 };
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Draft",
-  SENT_TO_CLIENT: "Sent to Client",
+  SENT_TO_CLIENT: "Pending Review",
   SIGNED: "Signed",
   ACTIVE: "Active",
   CLOSED: "Closed",
+  REJECTED: "Rejected",
 };
 
 const billingLabels: Record<string, string> = {
@@ -39,6 +44,8 @@ export default function ClientContractDetail() {
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
 
   useEffect(() => { if (user && contractId) load(); }, [user, contractId]);
 
@@ -46,7 +53,7 @@ export default function ClientContractDetail() {
     setLoading(true);
     const [contractRes, itemsRes, visitsRes] = await Promise.all([
       supabase.from("contracts").select("*, properties(name, address, city)").eq("id", contractId!).single(),
-      supabase.from("contract_line_items").select("*, service_catalog(name, code)").eq("contract_id", contractId!),
+      supabase.from("contract_line_items").select("*, service_catalog(name, code, default_price)").eq("contract_id", contractId!),
       supabase.from("service_orders").select("id, scheduled_date, status, period_label").eq("contract_id", contractId!)
         .gte("scheduled_date", new Date().toISOString().split("T")[0]).order("scheduled_date").limit(10),
     ]);
@@ -54,6 +61,23 @@ export default function ClientContractDetail() {
     setLineItems(itemsRes.data ?? []);
     setUpcomingVisits(visitsRes.data ?? []);
     setLoading(false);
+  };
+
+  const handleAccept = async () => {
+    const { error } = await supabase.from("contracts").update({ status: "SIGNED" } as any).eq("id", contractId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Contract signed!");
+    load();
+  };
+
+  const handleReject = async () => {
+    const { error } = await supabase.from("contracts").update({
+      status: "REJECTED", rejection_comment: rejectComment.trim() || null,
+    } as any).eq("id", contractId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Contract rejected");
+    setRejectOpen(false);
+    load();
   };
 
   if (loading) {
@@ -80,6 +104,29 @@ export default function ClientContractDetail() {
           {statusLabels[contract.status] || contract.status}
         </Badge>
       </div>
+
+      {contract.status === "SENT_TO_CLIENT" && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4 flex items-center justify-between">
+            <p className="text-sm font-medium">This contract is awaiting your decision. Review the details below.</p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleAccept}><Check className="h-4 w-4 mr-1" /> Sign</Button>
+              <Button size="sm" variant="destructive" onClick={() => { setRejectOpen(true); setRejectComment(""); }}>
+                <X className="h-4 w-4 mr-1" /> Reject
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {contract.rejection_comment && contract.status === "REJECTED" && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-destructive font-medium">Rejection reason:</p>
+            <p className="text-sm text-muted-foreground mt-1 italic">"{contract.rejection_comment}"</p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -159,6 +206,20 @@ export default function ClientContractDetail() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reject Contract</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Provide a reason for rejecting this contract (optional).</p>
+            <Textarea value={rejectComment} onChange={e => setRejectComment(e.target.value)} placeholder="Reason…" rows={4} />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleReject}>Confirm Rejection</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

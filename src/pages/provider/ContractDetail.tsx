@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Play, XCircle, Send, Check } from "lucide-react";
+import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function ContractDetail() {
   const { contractId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -43,9 +48,9 @@ export default function ContractDetail() {
     setCatalog(cat ?? []);
   };
 
-  const updateStatus = async (status: "DRAFT" | "SENT_TO_CLIENT" | "SIGNED" | "ACTIVE" | "CLOSED") => {
-    await supabase.from("contracts").update({ status }).eq("id", contractId!);
-    toast.success(`Contract ${status.toLowerCase()}`);
+  const updateStatus = async (status: string) => {
+    await supabase.from("contracts").update({ status, rejection_comment: null } as any).eq("id", contractId!);
+    toast.success(`Contract ${status.replace(/_/g, " ").toLowerCase()}`);
     load();
   };
 
@@ -64,6 +69,37 @@ export default function ContractDetail() {
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
     setAddOpen(false);
+    load();
+  };
+
+  const deleteLine = async (id: string) => {
+    await supabase.from("contract_line_items").delete().eq("id", id);
+    setLineItems(prev => prev.filter(li => li.id !== id));
+    toast.success("Line item removed");
+  };
+
+  const recreateFromOffer = async () => {
+    if (!contract?.offer_id) return;
+    // Delete existing contract line items
+    await supabase.from("contract_line_items").delete().eq("contract_id", contractId!);
+    // Fetch offer line items
+    const { data: offerLines } = await supabase
+      .from("offer_line_items")
+      .select("*, service_catalog(name, code)")
+      .eq("offer_id", contract.offer_id);
+    if (offerLines && offerLines.length > 0) {
+      const newLines = offerLines.map(li => ({
+        contract_id: contractId!,
+        service_catalog_id: li.service_catalog_id,
+        custom_name: li.custom_name,
+        quantity: li.quantity,
+        unit: li.unit,
+        notes: li.notes,
+      }));
+      await supabase.from("contract_line_items").insert(newLines);
+    }
+    await supabase.from("contracts").update({ status: "DRAFT", rejection_comment: null } as any).eq("id", contractId!);
+    toast.success("Contract recreated from offer");
     load();
   };
 
@@ -103,6 +139,9 @@ export default function ContractDetail() {
 
   if (!contract) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
+  const editable = contract.status === "DRAFT";
+  const canRevert = ["SENT_TO_CLIENT", "SIGNED", "REJECTED"].includes(contract.status);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -113,14 +152,47 @@ export default function ContractDetail() {
             {(contract.properties as any)?.customers?.name} · {(contract.properties as any)?.name}
           </p>
         </div>
-        <Badge variant="secondary">{contract.status}</Badge>
+        <Badge variant={contract.status === "REJECTED" ? "destructive" : "secondary"}>{contract.status.replace(/_/g, " ")}</Badge>
       </div>
+
+      {contract.rejection_comment && contract.status === "REJECTED" && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-destructive font-medium">Client rejection reason:</p>
+            <p className="text-sm text-muted-foreground mt-1 italic">"{contract.rejection_comment}"</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-6 flex flex-wrap gap-4 text-sm">
           <div><span className="text-muted-foreground">Period:</span> {contract.start_date} → {contract.end_date || "Ongoing"}</div>
           <div><span className="text-muted-foreground">Billing:</span> {contract.billing_cycle}</div>
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-2 ml-auto flex-wrap">
+            {canRevert && (
+              <Button size="sm" variant="ghost" onClick={() => updateStatus("DRAFT")}>
+                <Undo2 className="h-3 w-3 mr-1" /> Revert to Draft
+              </Button>
+            )}
+            {contract.status === "REJECTED" && contract.offer_id && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm" variant="outline"><RefreshCw className="h-3 w-3 mr-1" /> Recreate from Offer</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Recreate contract from offer?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete existing line items and re-copy them from the original offer, then reset the contract to Draft.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={recreateFromOffer}>Recreate</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("SENT_TO_CLIENT")}><Send className="h-3 w-3 mr-1" /> Send to Client</Button>}
             {contract.status === "SENT_TO_CLIENT" && <Button size="sm" onClick={() => updateStatus("SIGNED")}><Check className="h-3 w-3 mr-1" /> Mark Signed</Button>}
             {contract.status === "SIGNED" && <Button size="sm" onClick={() => updateStatus("ACTIVE")}><Play className="h-3 w-3 mr-1" /> Activate</Button>}
@@ -136,42 +208,44 @@ export default function ContractDetail() {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Line Items</h2>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add Line Item</DialogTitle></DialogHeader>
-            <form onSubmit={handleAddLine} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Service *</Label>
-                <Select name="service_id" required>
-                  <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
-                  <SelectContent>
-                    {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
-              <div className="space-y-2">
-                <Label>Frequency</Label>
-                <Select name="frequency" defaultValue="PER_VISIT">
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PER_VISIT">Per Visit</SelectItem>
-                    <SelectItem value="PER_WEEK">Per Week</SelectItem>
-                    <SelectItem value="PER_MONTH">Per Month</SelectItem>
-                    <SelectItem value="ONE_TIME">One-time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
-                <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
-              </div>
-              <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
-              <Button type="submit" className="w-full">Add</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        {editable && (
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add Line Item</DialogTitle></DialogHeader>
+              <form onSubmit={handleAddLine} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Service *</Label>
+                  <Select name="service_id" required>
+                    <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
+                    <SelectContent>
+                      {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
+                <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Select name="frequency" defaultValue="PER_VISIT">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PER_VISIT">Per Visit</SelectItem>
+                      <SelectItem value="PER_WEEK">Per Week</SelectItem>
+                      <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                      <SelectItem value="ONE_TIME">One-time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
+                  <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+                </div>
+                <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
+                <Button type="submit" className="w-full">Add</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {lineItems.length === 0 ? (
@@ -186,6 +260,7 @@ export default function ContractDetail() {
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead>Notes</TableHead>
+                {editable && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -196,6 +271,11 @@ export default function ContractDetail() {
                   <TableCell>{li.quantity}</TableCell>
                   <TableCell>{li.unit}</TableCell>
                   <TableCell className="text-muted-foreground">{li.notes || "—"}</TableCell>
+                  {editable && (
+                    <TableCell>
+                      <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
