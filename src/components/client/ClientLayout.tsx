@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Leaf, Home, ClipboardList, MessageSquare, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AIChatBox } from "@/components/AIChatBox";
 
 const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
