@@ -101,7 +101,7 @@ export default function PipelineKanban() {
     {
       title: "Inspections",
       icon: ClipboardCheck,
-      items: inspections.filter(i => ["COMPLETED", "OFFER_GENERATED"].includes(i.status)),
+      items: inspections.filter(i => i.status === "SCHEDULED"),
       type: "inspection",
       color: "bg-info/10 border-info/30",
     },
