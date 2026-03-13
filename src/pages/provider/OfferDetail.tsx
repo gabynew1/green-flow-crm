@@ -33,7 +33,7 @@ export default function OfferDetail() {
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
-  const [selectedServices, setSelectedServices] = useState<Record<string, { checked: boolean; frequency: string }>>({});
+  const [selectedServices, setSelectedServices] = useState<Record<string, { checked: boolean; frequency: string; visitCount: number }>>({});
 
   useEffect(() => { load(); }, [offerId]);
 
