@@ -193,10 +193,6 @@ export default function InspectionDetail() {
             <Label>Notes</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} disabled={!isDraft} placeholder="General notes…" />
           </div>
-          <div className="space-y-2">
-            <Label>Findings</Label>
-            <Textarea value={findings} onChange={e => setFindings(e.target.value)} rows={5} disabled={!isDraft && !isCompleted} placeholder="Detailed findings from the inspection…" />
-          </div>
         </CardContent>
       </Card>
 
