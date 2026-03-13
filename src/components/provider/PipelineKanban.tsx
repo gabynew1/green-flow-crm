@@ -189,7 +189,7 @@ export default function PipelineKanban() {
                             Schedule <ArrowRight className="h-3 w-3" />
                           </Button>
                         )}
-                        {col.type === "inspection" && status === "COMPLETED" && (
+                        {col.type === "inspection" && status === "SCHEDULED" && (
                           <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleGenerateOffer(item)}>
                             Gen. Offer <ArrowRight className="h-3 w-3" />
                           </Button>
