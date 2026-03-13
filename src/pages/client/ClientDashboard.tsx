@@ -291,8 +291,8 @@ export default function ClientDashboard() {
         </div>
       )}
 
-      {/* Upcoming Inspections */}
-      <UpcomingInspections user={user} loading={loading} />
+      {/* Planned Inspections */}
+      <PlannedInspections user={user} loading={loading} />
 
       {/* Upcoming Visits */}
       <Card>

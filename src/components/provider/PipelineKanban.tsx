@@ -179,8 +179,8 @@ export default function PipelineKanban() {
                       </Badge>
 
                       {col.type === "opportunity" && status === "DRAFT" && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleCompleteInspection(item.id)}>
-                          Complete <ArrowRight className="h-3 w-3" />
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/inspections/${item.id}`)}>
+                          Schedule <ArrowRight className="h-3 w-3" />
                         </Button>
                       )}
                       {col.type === "inspection" && status === "COMPLETED" && (
