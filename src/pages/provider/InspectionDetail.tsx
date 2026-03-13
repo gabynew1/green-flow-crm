@@ -182,17 +182,17 @@ export default function InspectionDetail() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} disabled={!isDraft} />
+            <Input value={title} onChange={e => setTitle(e.target.value)} />
           </div>
-          {(isScheduled || inspection.status === "COMPLETED" || inspection.status === "OFFER_GENERATED") && inspectedDate && (
+          {(isScheduled || inspection.status === "COMPLETED" || inspection.status === "OFFER_GENERATED") && (
             <div className="space-y-2">
               <Label>Scheduled Date</Label>
-              <Input type="date" value={inspectedDate} disabled />
+              <Input type="date" value={inspectedDate} onChange={e => setInspectedDate(e.target.value)} />
             </div>
           )}
           <div className="space-y-2">
             <Label>Notes</Label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} disabled={!isDraft} placeholder="General notes…" />
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="General notes…" />
           </div>
         </CardContent>
       </Card>
