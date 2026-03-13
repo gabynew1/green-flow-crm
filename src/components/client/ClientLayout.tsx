@@ -21,6 +21,7 @@ import {
 
 const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
+  { title: "Contracts", url: "/client/contracts", icon: FileText },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
   { title: "My Profile", url: "/client/profile", icon: UserCircle },
