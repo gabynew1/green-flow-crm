@@ -33,7 +33,7 @@ const statusLabels: Record<string, string> = {
   CANCELED: "Canceled",
 };
 
-export default function Offers() {
+export default function Offers({ embedded }: { embedded?: boolean } = {}) {
   const { user, profile } = useAuth();
   const [offers, setOffers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
