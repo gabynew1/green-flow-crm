@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText } from "lucide-react";
+import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText, FileOutput } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
@@ -22,6 +22,7 @@ import {
 
 const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
+  { title: "Offers", url: "/client/offers", icon: FileOutput, badgeKey: "offers" as const },
   { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
@@ -39,7 +40,7 @@ export function ClientLayout() {
       supabase
         .from("contracts")
         .select("id", { count: "exact", head: true })
-        .eq("status", "PENDING_NEW")
+        .eq("status", "SENT_TO_CLIENT")
         .then(({ count }) => setPendingContracts(count ?? 0));
     }
   }, [user, location.pathname]);

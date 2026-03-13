@@ -20,6 +20,10 @@ import ContractDetail from "./pages/provider/ContractDetail";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
 import FeedbackPage from "./pages/provider/Feedback";
+import Inspections from "./pages/provider/Inspections";
+import InspectionDetail from "./pages/provider/InspectionDetail";
+import Offers from "./pages/provider/Offers";
+import OfferDetail from "./pages/provider/OfferDetail";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
@@ -28,6 +32,8 @@ import ClientVisitDetail from "./pages/client/ClientVisitDetail";
 import ClientFeedback from "./pages/client/ClientFeedback";
 import ClientContracts from "./pages/client/ClientContracts";
 import ClientContractDetail from "./pages/client/ClientContractDetail";
+import ClientOffers from "./pages/client/ClientOffers";
+import ClientOfferDetail from "./pages/client/ClientOfferDetail";
 import ClientProfile from "./pages/client/ClientProfile";
 
 import AdminInvites from "./pages/admin/AdminInvites";
@@ -71,6 +77,10 @@ function AppRoutes(): JSX.Element {
         <Route path="customers/:customerId" element={<CustomerDetail />} />
         <Route path="properties/:propertyId" element={<PropertyDetail />} />
         <Route path="catalog" element={<ServiceCatalog />} />
+        <Route path="inspections" element={<Inspections />} />
+        <Route path="inspections/:inspectionId" element={<InspectionDetail />} />
+        <Route path="offers" element={<Offers />} />
+        <Route path="offers/:offerId" element={<OfferDetail />} />
         <Route path="contracts" element={<Contracts />} />
         <Route path="contracts/:contractId" element={<ContractDetail />} />
         <Route path="visits" element={<ServiceVisits />} />
@@ -81,6 +91,8 @@ function AppRoutes(): JSX.Element {
       {/* Client routes */}
       <Route path="/client" element={<ClientLayout />}>
         <Route index element={<ClientDashboard />} />
+        <Route path="offers" element={<ClientOffers />} />
+        <Route path="offers/:offerId" element={<ClientOfferDetail />} />
         <Route path="contracts" element={<ClientContracts />} />
         <Route path="contracts/:contractId" element={<ClientContractDetail />} />
         <Route path="properties/:propertyId" element={<ClientPropertyDetail />} />

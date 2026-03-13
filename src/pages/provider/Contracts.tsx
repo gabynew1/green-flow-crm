@@ -15,16 +15,18 @@ import { format } from "date-fns";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
-  PENDING_NEW: "outline",
+  SENT_TO_CLIENT: "outline",
+  SIGNED: "default",
   ACTIVE: "default",
-  PAUSED: "outline",
-  TERMINATED: "destructive",
-  REJECTED: "destructive",
+  CLOSED: "destructive",
 };
 
 const statusLabels: Record<string, string> = {
-  PENDING_NEW: "Pending Approval",
-  REJECTED: "Rejected",
+  DRAFT: "Draft",
+  SENT_TO_CLIENT: "Sent to Client",
+  SIGNED: "Signed",
+  ACTIVE: "Active",
+  CLOSED: "Closed",
 };
 
 const billingLabels: Record<string, string> = {
@@ -37,8 +39,8 @@ type FilterTab = "ALL" | "ACTIVE" | "INACTIVE";
 type SortKey = "customer" | "property" | "contract" | "start_date" | "end_date" | "status" | "total" | "visit_freq" | "billing";
 type SortDir = "asc" | "desc";
 
-const ACTIVE_STATUSES = ["ACTIVE", "PENDING_NEW"];
-const INACTIVE_STATUSES = ["PAUSED", "TERMINATED", "REJECTED", "DRAFT"];
+const ACTIVE_STATUSES = ["ACTIVE", "SIGNED", "SENT_TO_CLIENT"];
+const INACTIVE_STATUSES = ["CLOSED", "DRAFT"];
 
 export default function Contracts() {
   const [contracts, setContracts] = useState<any[]>([]);
@@ -104,12 +106,12 @@ export default function Contracts() {
       billing_cycle: billingCycle,
       visit_frequency_count: visitCount,
       visit_frequency_type: visitType,
-      status: "PENDING_NEW" as const,
+      status: "DRAFT" as const,
     } as any));
 
     const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
-    toast.success(`${inserts.length} contract(s) created — pending client approval`);
+    toast.success(`${inserts.length} contract(s) created`);
     setOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
@@ -334,11 +336,11 @@ export default function Contracts() {
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Filter status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="PENDING_NEW">Pending Approval</SelectItem>
+            <SelectItem value="DRAFT">Draft</SelectItem>
+            <SelectItem value="SENT_TO_CLIENT">Sent to Client</SelectItem>
+            <SelectItem value="SIGNED">Signed</SelectItem>
             <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="PAUSED">Paused</SelectItem>
-            <SelectItem value="REJECTED">Rejected</SelectItem>
-            <SelectItem value="TERMINATED">Terminated</SelectItem>
+            <SelectItem value="CLOSED">Closed</SelectItem>
           </SelectContent>
         </Select>
       </div>

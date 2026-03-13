@@ -11,8 +11,28 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Send, Save } from "lucide-react";
+import { ArrowLeft, Plus, Send, Save, Play, CheckCircle, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
+
+const statusColor: Record<string, string> = {
+  SCHEDULED: "bg-muted text-muted-foreground",
+  IN_PROGRESS: "bg-info/10 text-info",
+  COMPLETED: "bg-primary/10 text-primary",
+  PENDING_APPROVAL: "bg-warning/10 text-warning",
+  APPROVED: "bg-success/10 text-success",
+  SENT_TO_CLIENT: "bg-accent/10 text-accent",
+  CANCELED: "bg-destructive/10 text-destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  SCHEDULED: "Scheduled",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  PENDING_APPROVAL: "Pending Approval",
+  APPROVED: "Approved",
+  SENT_TO_CLIENT: "Sent to Client",
+  CANCELED: "Canceled",
+};
 
 export default function VisitDetail() {
   const { visitId } = useParams();
@@ -49,15 +69,22 @@ export default function VisitDetail() {
     load();
   };
 
-  const saveDraft = async () => {
-    await supabase.from("service_orders").update({ notes, performed_date: new Date().toISOString().split("T")[0] }).eq("id", visitId!);
-    toast.success("Draft saved!");
+  const updateStatus = async (status: string) => {
+    const updates: any = { status };
+    if (status === "IN_PROGRESS" || status === "COMPLETED") {
+      updates.notes = notes;
+    }
+    if (status === "COMPLETED") {
+      updates.performed_date = new Date().toISOString().split("T")[0];
+    }
+    await supabase.from("service_orders").update(updates).eq("id", visitId!);
+    toast.success(`Visit ${statusLabels[status]?.toLowerCase() || status}`);
+    load();
   };
 
-  const sendToClient = async () => {
-    await supabase.from("service_orders").update({ status: "SENT_TO_CLIENT", notes }).eq("id", visitId!);
-    toast.success("Sent to client for review!");
-    load();
+  const saveDraft = async () => {
+    await supabase.from("service_orders").update({ notes }).eq("id", visitId!);
+    toast.success("Saved!");
   };
 
   const handleAddAdHoc = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -81,12 +108,7 @@ export default function VisitDetail() {
 
   if (!order) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
-  const statusColor: Record<string, string> = {
-    DRAFT: "bg-muted text-muted-foreground",
-    SENT_TO_CLIENT: "bg-warning/10 text-warning",
-    CLIENT_APPROVED: "bg-success/10 text-success",
-    CLIENT_REJECTED: "bg-destructive/10 text-destructive",
-  };
+  const canEdit = order.status === "SCHEDULED" || order.status === "IN_PROGRESS";
 
   return (
     <div className="space-y-6">
@@ -98,7 +120,7 @@ export default function VisitDetail() {
             {(order.properties as any)?.name} · {(order.properties as any)?.customers?.name}
           </p>
         </div>
-        <Badge className={statusColor[order.status]} variant="secondary">{order.status.replace(/_/g, " ")}</Badge>
+        <Badge className={statusColor[order.status]} variant="secondary">{statusLabels[order.status] || order.status.replace(/_/g, " ")}</Badge>
       </div>
 
       <Card>
@@ -115,7 +137,7 @@ export default function VisitDetail() {
       {/* Items */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Services</h2>
-        {order.status === "DRAFT" && (
+        {canEdit && (
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Ad-hoc Service</Button></DialogTrigger>
             <DialogContent>
@@ -149,7 +171,7 @@ export default function VisitDetail() {
               <Checkbox
                 checked={item.is_completed}
                 onCheckedChange={() => toggleItem(item.id, item.is_completed)}
-                disabled={order.status !== "DRAFT"}
+                disabled={!canEdit}
               />
               <div className="flex-1">
                 <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
@@ -171,15 +193,29 @@ export default function VisitDetail() {
             onChange={e => setNotes(e.target.value)}
             placeholder="Add notes about this visit…"
             rows={4}
-            disabled={order.status !== "DRAFT"}
+            disabled={!canEdit}
           />
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      {order.status === "DRAFT" && (
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={saveDraft}><Save className="h-4 w-4 mr-2" /> Save Draft</Button>
+      {/* Workflow Actions */}
+      <div className="flex flex-wrap gap-3">
+        {canEdit && (
+          <Button variant="secondary" onClick={saveDraft}><Save className="h-4 w-4 mr-2" /> Save</Button>
+        )}
+        {order.status === "SCHEDULED" && (
+          <Button onClick={() => updateStatus("IN_PROGRESS")}><Play className="h-4 w-4 mr-2" /> Start Visit</Button>
+        )}
+        {order.status === "IN_PROGRESS" && (
+          <Button onClick={() => updateStatus("COMPLETED")}><CheckCircle className="h-4 w-4 mr-2" /> Complete</Button>
+        )}
+        {order.status === "COMPLETED" && (
+          <Button onClick={() => updateStatus("PENDING_APPROVAL")}><Clock className="h-4 w-4 mr-2" /> Submit for Approval</Button>
+        )}
+        {order.status === "PENDING_APPROVAL" && (
+          <Button onClick={() => updateStatus("APPROVED")}><CheckCircle className="h-4 w-4 mr-2" /> Approve</Button>
+        )}
+        {order.status === "APPROVED" && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button><Send className="h-4 w-4 mr-2" /> Send to Client</Button>
@@ -187,18 +223,19 @@ export default function VisitDetail() {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Send to client for review?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  The client will be able to review and approve or reject this service visit report.
-                </AlertDialogDescription>
+                <AlertDialogDescription>The client will be able to review this service visit report.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={sendToClient}>Send</AlertDialogAction>
+                <AlertDialogAction onClick={() => updateStatus("SENT_TO_CLIENT")}>Send</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </div>
-      )}
+        )}
+        {(order.status === "SCHEDULED" || order.status === "IN_PROGRESS") && (
+          <Button variant="destructive" onClick={() => updateStatus("CANCELED")}><XCircle className="h-4 w-4 mr-2" /> Cancel</Button>
+        )}
+      </div>
     </div>
   );
 }

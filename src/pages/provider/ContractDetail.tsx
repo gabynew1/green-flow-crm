@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Play, Pause, XCircle } from "lucide-react";
+import { ArrowLeft, Plus, Play, XCircle, Send, Check } from "lucide-react";
 import { toast } from "sonner";
 import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,7 +43,7 @@ export default function ContractDetail() {
     setCatalog(cat ?? []);
   };
 
-  const updateStatus = async (status: "DRAFT" | "ACTIVE" | "PAUSED" | "TERMINATED") => {
+  const updateStatus = async (status: "DRAFT" | "SENT_TO_CLIENT" | "SIGNED" | "ACTIVE" | "CLOSED") => {
     await supabase.from("contracts").update({ status }).eq("id", contractId!);
     toast.success(`Contract ${status.toLowerCase()}`);
     load();
@@ -81,7 +81,7 @@ export default function ContractDetail() {
       scheduled_date: format(now, "yyyy-MM-dd"),
       period_type: periodType,
       period_label: periodLabel,
-      status: "DRAFT",
+      status: "SCHEDULED",
       created_by_user_id: user?.id,
     }).select().single();
 
@@ -121,10 +121,11 @@ export default function ContractDetail() {
           <div><span className="text-muted-foreground">Period:</span> {contract.start_date} → {contract.end_date || "Ongoing"}</div>
           <div><span className="text-muted-foreground">Billing:</span> {contract.billing_cycle}</div>
           <div className="flex gap-2 ml-auto">
-            {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("ACTIVE")}><Play className="h-3 w-3 mr-1" /> Activate</Button>}
-            {contract.status === "ACTIVE" && <Button size="sm" variant="secondary" onClick={() => updateStatus("PAUSED")}><Pause className="h-3 w-3 mr-1" /> Pause</Button>}
-            {(contract.status === "ACTIVE" || contract.status === "PAUSED") && (
-              <Button size="sm" variant="destructive" onClick={() => updateStatus("TERMINATED")}><XCircle className="h-3 w-3 mr-1" /> Terminate</Button>
+            {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("SENT_TO_CLIENT")}><Send className="h-3 w-3 mr-1" /> Send to Client</Button>}
+            {contract.status === "SENT_TO_CLIENT" && <Button size="sm" onClick={() => updateStatus("SIGNED")}><Check className="h-3 w-3 mr-1" /> Mark Signed</Button>}
+            {contract.status === "SIGNED" && <Button size="sm" onClick={() => updateStatus("ACTIVE")}><Play className="h-3 w-3 mr-1" /> Activate</Button>}
+            {contract.status === "ACTIVE" && (
+              <Button size="sm" variant="destructive" onClick={() => updateStatus("CLOSED")}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
             )}
             {contract.status === "ACTIVE" && (
               <Button size="sm" onClick={generateVisit}>Generate Visit</Button>

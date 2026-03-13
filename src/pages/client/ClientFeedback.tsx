@@ -40,7 +40,7 @@ export default function ClientFeedback() {
       scheduled_date: (form.get("date") as string) || null,
       period_type: "ONE_TIME",
       period_label: "Ad-hoc request",
-      status: "DRAFT",
+      status: "SCHEDULED",
       notes: form.get("description") as string,
       created_by_user_id: user!.id,
     });

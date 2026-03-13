@@ -8,10 +8,23 @@ import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const statusColor: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  SENT_TO_CLIENT: "bg-warning/10 text-warning",
-  CLIENT_APPROVED: "bg-success/10 text-success",
-  CLIENT_REJECTED: "bg-destructive/10 text-destructive",
+  SCHEDULED: "bg-muted text-muted-foreground",
+  IN_PROGRESS: "bg-info/10 text-info",
+  COMPLETED: "bg-primary/10 text-primary",
+  PENDING_APPROVAL: "bg-warning/10 text-warning",
+  APPROVED: "bg-success/10 text-success",
+  SENT_TO_CLIENT: "bg-accent/10 text-accent",
+  CANCELED: "bg-destructive/10 text-destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  SCHEDULED: "Scheduled",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  PENDING_APPROVAL: "Pending Approval",
+  APPROVED: "Approved",
+  SENT_TO_CLIENT: "Sent to Client",
+  CANCELED: "Canceled",
 };
 
 export default function ServiceVisits() {
@@ -47,13 +60,16 @@ export default function ServiceVisits() {
           <Input placeholder="Search…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Status</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
+            <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+            <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+            <SelectItem value="COMPLETED">Completed</SelectItem>
+            <SelectItem value="PENDING_APPROVAL">Pending Approval</SelectItem>
+            <SelectItem value="APPROVED">Approved</SelectItem>
             <SelectItem value="SENT_TO_CLIENT">Sent to Client</SelectItem>
-            <SelectItem value="CLIENT_APPROVED">Approved</SelectItem>
-            <SelectItem value="CLIENT_REJECTED">Rejected</SelectItem>
+            <SelectItem value="CANCELED">Canceled</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -69,7 +85,7 @@ export default function ServiceVisits() {
                     {(o.properties as any)?.customers?.name} · {o.period_label || o.scheduled_date} · {o.period_type}
                   </p>
                 </div>
-                <Badge className={statusColor[o.status]} variant="secondary">{o.status.replace(/_/g, " ")}</Badge>
+                <Badge className={statusColor[o.status]} variant="secondary">{statusLabels[o.status] || o.status.replace(/_/g, " ")}</Badge>
               </CardContent>
             </Card>
           </Link>

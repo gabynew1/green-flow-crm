@@ -50,14 +50,14 @@ export default function ClientVisitDetail() {
   };
 
   const approve = async () => {
-    await supabase.from("service_orders").update({ status: "CLIENT_APPROVED" }).eq("id", visitId!);
+    await supabase.from("service_orders").update({ status: "APPROVED" }).eq("id", visitId!);
     toast.success("Visit approved!");
     load();
   };
 
   const reject = async () => {
     await supabase.from("service_orders").update({
-      status: "CLIENT_REJECTED",
+      status: "CANCELED" as any,
       notes: (order.notes ? order.notes + "\n" : "") + `Client rejection reason: ${rejectReason}`,
     }).eq("id", visitId!);
     toast.success("Visit rejected");
@@ -162,7 +162,7 @@ export default function ClientVisitDetail() {
       )}
 
       {/* Feedback */}
-      {(order.status === "CLIENT_APPROVED" || order.status === "CLIENT_REJECTED") && !existingFeedback && (
+      {(order.status === "APPROVED" || order.status === "CANCELED") && !existingFeedback && (
         <Card>
           <CardHeader><CardTitle className="text-base">Leave Feedback</CardTitle></CardHeader>
           <CardContent className="space-y-4">

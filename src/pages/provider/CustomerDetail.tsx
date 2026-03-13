@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, Pause, XCircle, Clock, Pencil, Save, X, Archive, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Archive, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -135,7 +135,7 @@ export default function CustomerDetail() {
     load();
   };
 
-  const updateContractStatus = async (contractId: string, status: "ACTIVE" | "DRAFT" | "PAUSED" | "TERMINATED") => {
+  const updateContractStatus = async (contractId: string, status: "ACTIVE" | "DRAFT" | "SENT_TO_CLIENT" | "SIGNED" | "CLOSED") => {
     const { error } = await supabase.from("contracts").update({ status }).eq("id", contractId);
     if (error) { toast.error(error.message); return; }
     toast.success(`Contract ${status.toLowerCase()}`);
@@ -393,32 +393,22 @@ export default function CustomerDetail() {
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          {c.status === "PENDING_NEW" && (
+                          {c.status === "SENT_TO_CLIENT" && (
                             <span className="text-xs text-muted-foreground">Awaiting client</span>
                           )}
                           {c.status === "DRAFT" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "SENT_TO_CLIENT")}>
+                              <Send className="h-3 w-3 mr-1" /> Send
+                            </Button>
+                          )}
+                          {c.status === "SIGNED" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
                               <Play className="h-3 w-3 mr-1" /> Activate
                             </Button>
                           )}
                           {c.status === "ACTIVE" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "PAUSED")}>
-                              <Pause className="h-3 w-3 mr-1" /> Pause
-                            </Button>
-                          )}
-                          {c.status === "PAUSED" && (
-                            <>
-                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
-                                <Play className="h-3 w-3 mr-1" /> Resume
-                              </Button>
-                              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "TERMINATED")}>
-                                <XCircle className="h-3 w-3 mr-1" /> End
-                              </Button>
-                            </>
-                          )}
-                          {(c.status === "REJECTED" || c.status === "TERMINATED") && (
-                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "TERMINATED")}>
-                              <Archive className="h-3 w-3 mr-1" /> Archive
+                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "CLOSED")}>
+                              <XCircle className="h-3 w-3 mr-1" /> Close
                             </Button>
                           )}
                         </div>
