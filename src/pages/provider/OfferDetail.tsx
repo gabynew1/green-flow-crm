@@ -189,19 +189,21 @@ export default function OfferDetail() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            {offer.status === "ACCEPTED" && (
+            {offer.status === "SENT_TO_CLIENT" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm"><FileText className="h-3 w-3 mr-1" /> Generate Contract</Button>
+                  <Button size="sm" variant="outline"><Check className="h-3 w-3 mr-1" /> Accept on Behalf</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Generate contract from this offer?</AlertDialogTitle>
-                    <AlertDialogDescription>A new contract will be created with the offer's line items.</AlertDialogDescription>
+                    <AlertDialogTitle>Accept offer on behalf of client?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will mark the offer as accepted on the client's behalf. The client will be informed that the offer was agreed offline.
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={generateContract}>Generate</AlertDialogAction>
+                    <AlertDialogAction onClick={acceptOnBehalf}>Accept & Generate Contract</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
