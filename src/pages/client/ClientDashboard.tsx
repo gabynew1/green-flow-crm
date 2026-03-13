@@ -27,7 +27,55 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function ClientDashboard() {
+function UpcomingInspections({ user, loading: parentLoading }: { user: any; loading: boolean }) {
+  const [inspections, setInspections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("inspections")
+        .select("id, title, status, inspected_date, created_at, properties(name)")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      setInspections(data ?? []);
+      setLoading(false);
+    };
+    load();
+  }, [user]);
+
+  const isLoading = parentLoading || loading;
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Upcoming Inspections</CardTitle></CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+        ) : inspections.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No inspections scheduled</p>
+        ) : (
+          <div className="space-y-2">
+            {inspections.map((ins) => (
+              <div key={ins.id} className="flex items-center justify-between text-sm py-2 px-3 border rounded-md">
+                <div>
+                  <span className="font-medium">{ins.title}</span>
+                  <span className="text-muted-foreground ml-2">— {(ins as any).properties?.name}</span>
+                </div>
+                <Badge variant={ins.status === "COMPLETED" ? "default" : "secondary"}>
+                  {ins.status.replace(/_/g, " ")}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
   const { user } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
