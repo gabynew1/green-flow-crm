@@ -43,7 +43,7 @@ export default function ContractDetail() {
     setCatalog(cat ?? []);
   };
 
-  const updateStatus = async (status: "DRAFT" | "ACTIVE" | "PAUSED" | "TERMINATED") => {
+  const updateStatus = async (status: "DRAFT" | "SENT_TO_CLIENT" | "SIGNED" | "ACTIVE" | "CLOSED") => {
     await supabase.from("contracts").update({ status }).eq("id", contractId!);
     toast.success(`Contract ${status.toLowerCase()}`);
     load();
