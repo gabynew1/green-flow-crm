@@ -45,15 +45,15 @@ export default function InspectionDetail() {
   const load = async () => {
     const { data } = await supabase
       .from("inspections")
-      .select("*, properties(name, address, city, customers(name))")
+      .select("*, properties(name, address, city, customers(name, email, phone, company_name, contact_person_name))")
       .eq("id", inspectionId!)
       .single();
     if (data) {
       setInspection(data);
       setTitle(data.title);
       setNotes(data.notes || "");
-      setFindings(data.findings || "");
       setInspectedDate(data.inspected_date || "");
+      setCustomer((data.properties as any)?.customers || null);
     }
   };
 
