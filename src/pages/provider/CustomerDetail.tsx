@@ -383,11 +383,19 @@ export default function CustomerDetail() {
                             </span>
                           )}
                           <Badge variant={statusColors[c.status] as any || "secondary"} className="text-[10px] px-1.5 py-0">
-                            {c.status}
+                            {statusLabels[c.status] || c.status}
                           </Badge>
+                          {c.rejection_comment && c.status === "REJECTED" && (
+                            <span className="text-xs text-destructive italic max-w-[200px] truncate" title={c.rejection_comment}>
+                              "{c.rejection_comment}"
+                            </span>
+                          )}
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
+                          {c.status === "PENDING_NEW" && (
+                            <span className="text-xs text-muted-foreground">Awaiting client</span>
+                          )}
                           {c.status === "DRAFT" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
                               <Play className="h-3 w-3 mr-1" /> Activate
@@ -407,6 +415,11 @@ export default function CustomerDetail() {
                                 <XCircle className="h-3 w-3 mr-1" /> End
                               </Button>
                             </>
+                          )}
+                          {(c.status === "REJECTED" || c.status === "TERMINATED") && (
+                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "TERMINATED")}>
+                              <Archive className="h-3 w-3 mr-1" /> Archive
+                            </Button>
                           )}
                         </div>
                       </div>

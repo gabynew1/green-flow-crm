@@ -247,7 +247,7 @@ export default function Contracts() {
                   <TableCell>{c.end_date ? format(new Date(c.end_date), "MMM d, yyyy") : "—"}</TableCell>
                   <TableCell>
                     <Badge variant={statusVariant[c.status] || "secondary"} className="text-[10px]">
-                      {c.status}
+                      {statusLabels[c.status] || c.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono">
