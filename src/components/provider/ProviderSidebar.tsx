@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Dashboard", url: "/provider", icon: LayoutDashboard },
-  { title: "Customers & Properties", url: "/provider/customers", icon: Users },
+  { title: "Customers", url: "/provider/customers", icon: Users },
   { title: "Contracts", url: "/provider/contracts", icon: FileText },
   { title: "Service Visits", url: "/provider/visits", icon: ClipboardList },
   { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen },
