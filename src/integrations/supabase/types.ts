@@ -55,6 +55,47 @@ export type Database = {
           },
         ]
       }
+      client_connections: {
+        Row: {
+          client_user_id: string
+          id: string
+          provider_name: string | null
+          requested_at: string
+          requested_by: string | null
+          responded_at: string | null
+          status: Database["public"]["Enums"]["connection_status"]
+          tenant_id: string
+        }
+        Insert: {
+          client_user_id: string
+          id?: string
+          provider_name?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          tenant_id: string
+        }
+        Update: {
+          client_user_id?: string
+          id?: string
+          provider_name?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["connection_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_line_items: {
         Row: {
           contract_id: string
@@ -164,6 +205,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -176,6 +218,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -188,9 +231,18 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          tenant_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -315,6 +367,8 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          tenant_id: string | null
+          unique_client_id: string | null
           updated_at: string
           user_id: string
         }
@@ -326,6 +380,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          tenant_id?: string | null
+          unique_client_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -337,6 +393,8 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          tenant_id?: string | null
+          unique_client_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -346,6 +404,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -400,6 +465,50 @@ export type Database = {
           },
         ]
       }
+      provider_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
+          token: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          tenant_id: string
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          tenant_id?: string
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_invites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_catalog: {
         Row: {
           code: string
@@ -410,6 +519,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -421,6 +531,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -432,9 +543,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          tenant_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_catalog_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_order_items: {
         Row: {
@@ -623,6 +743,30 @@ export type Database = {
           },
         ]
       }
+      tenants: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -647,6 +791,7 @@ export type Database = {
     }
     Functions: {
       get_user_customer_id: { Args: { _user_id: string }; Returns: string }
+      get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -655,10 +800,12 @@ export type Database = {
         Returns: boolean
       }
       is_provider: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "PROVIDER_ADMIN" | "PROVIDER_STAFF" | "CLIENT_USER"
       billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME"
+      connection_status: "PENDING" | "APPROVED" | "DENIED"
       contract_status: "DRAFT" | "ACTIVE" | "PAUSED" | "TERMINATED"
       frequency_type: "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME"
       inventory_category: "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER"
@@ -801,6 +948,7 @@ export const Constants = {
     Enums: {
       app_role: ["PROVIDER_ADMIN", "PROVIDER_STAFF", "CLIENT_USER"],
       billing_cycle: ["WEEKLY", "MONTHLY", "ONE_TIME"],
+      connection_status: ["PENDING", "APPROVED", "DENIED"],
       contract_status: ["DRAFT", "ACTIVE", "PAUSED", "TERMINATED"],
       frequency_type: ["PER_VISIT", "PER_WEEK", "PER_MONTH", "ONE_TIME"],
       inventory_category: ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"],
