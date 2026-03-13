@@ -8,6 +8,8 @@ import {
   Leaf,
   LogOut,
   Shield,
+  ClipboardCheck,
+  FileOutput,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,6 +31,8 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { title: "Dashboard", url: "/provider", icon: LayoutDashboard },
   { title: "Customers", url: "/provider/customers", icon: Users },
+  { title: "Inspections", url: "/provider/inspections", icon: ClipboardCheck },
+  { title: "Offers", url: "/provider/offers", icon: FileOutput },
   { title: "Contracts", url: "/provider/contracts", icon: FileText },
   { title: "Service Visits", url: "/provider/visits", icon: ClipboardList },
   { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen },
