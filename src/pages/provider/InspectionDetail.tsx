@@ -207,30 +207,21 @@ export default function InspectionDetail() {
           </>
         )}
         {isCompleted && (
-          <>
-            <Button variant="secondary" onClick={async () => {
-              await supabase.from("inspections").update({ findings: findings || null }).eq("id", inspectionId!);
-              toast.success("Findings saved!");
-              load();
-            }}>
-              <Save className="h-4 w-4 mr-2" /> Save Findings
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
-                  <AlertDialogDescription>An offer will be created with the inspection findings. You can add line items and pricing before sending to the client.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={generateOffer}>Generate</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
+                <AlertDialogDescription>An offer will be created from this inspection. You can add line items and pricing before sending to the client.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={generateOffer}>Generate</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
 
