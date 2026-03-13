@@ -196,6 +196,11 @@ export default function OfferDetail() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
+            {(offer.status === "SENT_TO_CLIENT" || offer.status === "ACCEPTED" || offer.status === "REJECTED") && (
+              <Button size="sm" variant="ghost" onClick={() => updateStatus("IN_PROGRESS")}>
+                <Undo2 className="h-3 w-3 mr-1" /> Revert to Edit
+              </Button>
+            )}
             {offer.status === "SENT_TO_CLIENT" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
