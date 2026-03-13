@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -31,6 +33,7 @@ export default function OfferDetail() {
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<Record<string, { checked: boolean; frequency: string }>>({});
 
   useEffect(() => { load(); }, [offerId]);
 
@@ -45,6 +48,47 @@ export default function OfferDetail() {
     setCatalog(catRes.data ?? []);
   };
 
+  const toggleService = (id: string, checked: boolean) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [id]: { checked, frequency: prev[id]?.frequency || "PER_VISIT" },
+    }));
+  };
+
+  const setServiceFrequency = (id: string, frequency: string) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [id]: { ...prev[id], checked: true, frequency },
+    }));
+  };
+
+  const handleAddSelected = async () => {
+    const toAdd = Object.entries(selectedServices)
+      .filter(([, v]) => v.checked)
+      .map(([id, v]) => {
+        const svc = catalog.find(c => c.id === id);
+        return {
+          offer_id: offerId!,
+          service_catalog_id: id,
+          custom_name: null,
+          quantity: 1,
+          unit_price: svc?.default_price || null,
+          unit: svc?.default_unit || null,
+          notes: v.frequency,
+        };
+      });
+    if (toAdd.length === 0) { toast.error("Select at least one service"); return; }
+    const { error } = await supabase.from("offer_line_items").insert(toAdd);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${toAdd.length} line item(s) added!`);
+    setAddOpen(false);
+    setSelectedServices({});
+    const { data: updated } = await supabase.from("offer_line_items").select("*, service_catalog(name, code, default_price)").eq("offer_id", offerId!);
+    setLineItems(updated ?? []);
+    await updateTotal(updated ?? []);
+    load();
+  };
+
   const updateStatus = async (status: string) => {
     await supabase.from("offers").update({ status } as any).eq("id", offerId!);
     toast.success(`Offer ${statusLabels[status]?.toLowerCase() || status}`);
@@ -54,29 +98,6 @@ export default function OfferDetail() {
   const updateTotal = async (items: any[]) => {
     const total = items.reduce((s, li) => s + (li.quantity * (li.unit_price || (li.service_catalog as any)?.default_price || 0)), 0);
     await supabase.from("offers").update({ total_value: total }).eq("id", offerId!);
-  };
-
-  const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const serviceId = form.get("service_id") as string;
-    const svc = catalog.find(c => c.id === serviceId);
-    const { error } = await supabase.from("offer_line_items").insert({
-      offer_id: offerId!,
-      service_catalog_id: serviceId || null,
-      custom_name: (form.get("custom_name") as string) || null,
-      quantity: Number(form.get("quantity")) || 1,
-      unit_price: Number(form.get("unit_price")) || svc?.default_price || null,
-      unit: (form.get("unit") as string) || svc?.default_unit || null,
-      notes: (form.get("notes") as string) || null,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Line item added!");
-    setAddOpen(false);
-    const { data: updated } = await supabase.from("offer_line_items").select("*, service_catalog(name, code, default_price)").eq("offer_id", offerId!);
-    setLineItems(updated ?? []);
-    await updateTotal(updated ?? []);
-    load();
   };
 
   const deleteLine = async (id: string) => {
@@ -189,29 +210,68 @@ export default function OfferDetail() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Line Items</h2>
         {editable && (
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add Line Item</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddLine} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Service</Label>
-                  <Select name="service_id">
-                    <SelectTrigger><SelectValue placeholder="Select from catalog (optional)" /></SelectTrigger>
-                    <SelectContent>
-                      {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — ${s.default_price || 0}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+          <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setSelectedServices({}); }}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Services</Button></DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Select Services</DialogTitle></DialogHeader>
+              <ScrollArea className="max-h-[300px] border rounded-md p-3">
+                <div className="space-y-3">
+                  {catalog.map(s => (
+                    <div key={s.id} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`svc-${s.id}`}
+                        checked={selectedServices[s.id]?.checked || false}
+                        onCheckedChange={(checked) => toggleService(s.id, !!checked)}
+                      />
+                      <label htmlFor={`svc-${s.id}`} className="flex-1 text-sm cursor-pointer">
+                        {s.name} {s.default_price ? `— $${s.default_price}` : ""}
+                      </label>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-2"><Label>Custom Name</Label><Input name="custom_name" placeholder="Override service name" /></div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2"><Label>Qty</Label><Input name="quantity" type="number" defaultValue="1" /></div>
-                  <div className="space-y-2"><Label>Unit Price</Label><Input name="unit_price" type="number" step="0.01" placeholder="Auto" /></div>
-                  <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+              </ScrollArea>
+
+              {Object.entries(selectedServices).filter(([, v]) => v.checked).length > 0 && (
+                <div className="border rounded-md overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Frequency</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(selectedServices)
+                        .filter(([, v]) => v.checked)
+                        .map(([id, v]) => {
+                          const svc = catalog.find(c => c.id === id);
+                          return (
+                            <TableRow key={id}>
+                              <TableCell className="font-medium text-sm">{svc?.name}</TableCell>
+                              <TableCell>
+                                <Select value={v.frequency} onValueChange={(val) => setServiceFrequency(id, val)}>
+                                  <SelectTrigger className="h-8 w-[140px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="PER_VISIT">Per Visit</SelectItem>
+                                    <SelectItem value="PER_WEEK">Per Week</SelectItem>
+                                    <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                    <SelectItem value="ONE_TIME">One Time</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
-                <Button type="submit" className="w-full">Add</Button>
-              </form>
+              )}
+
+              <Button onClick={handleAddSelected} className="w-full">
+                Add {Object.values(selectedServices).filter(v => v.checked).length} Service(s)
+              </Button>
             </DialogContent>
           </Dialog>
         )}
@@ -225,10 +285,10 @@ export default function OfferDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead>Service</TableHead>
+                <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit Price</TableHead>
                 <TableHead>Subtotal</TableHead>
-                <TableHead>Notes</TableHead>
                 {editable && <TableHead />}
               </TableRow>
             </TableHeader>
@@ -238,10 +298,10 @@ export default function OfferDetail() {
                 return (
                   <TableRow key={li.id}>
                     <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name || "—"}</TableCell>
+                    <TableCell>{li.notes ? li.notes.replace(/_/g, " ") : "—"}</TableCell>
                     <TableCell>{li.quantity} {li.unit}</TableCell>
                     <TableCell>${Number(price).toFixed(2)}</TableCell>
                     <TableCell className="font-mono">${(li.quantity * price).toFixed(2)}</TableCell>
-                    <TableCell className="text-muted-foreground">{li.notes || "—"}</TableCell>
                     {editable && (
                       <TableCell>
                         <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
