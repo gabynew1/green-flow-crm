@@ -81,7 +81,7 @@ export default function ContractDetail() {
       scheduled_date: format(now, "yyyy-MM-dd"),
       period_type: periodType,
       period_label: periodLabel,
-      status: "DRAFT",
+      status: "SCHEDULED",
       created_by_user_id: user?.id,
     }).select().single();
 
