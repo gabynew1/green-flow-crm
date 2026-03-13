@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info } from "lucide-react";
+import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
@@ -23,6 +23,7 @@ const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
+  { title: "My Profile", url: "/client/profile", icon: UserCircle },
 ];
 
 export function ClientLayout() {
