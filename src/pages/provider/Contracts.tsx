@@ -15,16 +15,18 @@ import { format } from "date-fns";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
-  PENDING_NEW: "outline",
+  SENT_TO_CLIENT: "outline",
+  SIGNED: "default",
   ACTIVE: "default",
-  PAUSED: "outline",
-  TERMINATED: "destructive",
-  REJECTED: "destructive",
+  CLOSED: "destructive",
 };
 
 const statusLabels: Record<string, string> = {
-  PENDING_NEW: "Pending Approval",
-  REJECTED: "Rejected",
+  DRAFT: "Draft",
+  SENT_TO_CLIENT: "Sent to Client",
+  SIGNED: "Signed",
+  ACTIVE: "Active",
+  CLOSED: "Closed",
 };
 
 const billingLabels: Record<string, string> = {
@@ -37,8 +39,8 @@ type FilterTab = "ALL" | "ACTIVE" | "INACTIVE";
 type SortKey = "customer" | "property" | "contract" | "start_date" | "end_date" | "status" | "total" | "visit_freq" | "billing";
 type SortDir = "asc" | "desc";
 
-const ACTIVE_STATUSES = ["ACTIVE", "PENDING_NEW"];
-const INACTIVE_STATUSES = ["PAUSED", "TERMINATED", "REJECTED", "DRAFT"];
+const ACTIVE_STATUSES = ["ACTIVE", "SIGNED", "SENT_TO_CLIENT"];
+const INACTIVE_STATUSES = ["CLOSED", "DRAFT"];
 
 export default function Contracts() {
   const [contracts, setContracts] = useState<any[]>([]);
