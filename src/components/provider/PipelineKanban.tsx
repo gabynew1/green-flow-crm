@@ -64,12 +64,7 @@ export default function PipelineKanban() {
     setLoading(false);
   };
 
-  const handleCompleteInspection = async (id: string) => {
-    const { error } = await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Inspection marked as completed");
-    load();
-  };
+  // Opportunities now navigate to detail page for scheduling
 
   const handleGenerateOffer = async (inspection: any) => {
     const { error: offerErr } = await supabase.from("offers").insert({
