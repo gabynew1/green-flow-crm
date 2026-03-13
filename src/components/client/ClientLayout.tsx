@@ -23,6 +23,7 @@ const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
+  { title: "My Profile", url: "/client/profile", icon: UserCircle },
 ];
 
 export function ClientLayout() {
