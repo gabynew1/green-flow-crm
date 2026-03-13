@@ -85,8 +85,8 @@ export default function CustomerDetail() {
       property_id: propertyId,
       start_date: startDate,
       end_date: endDate,
-      billing_cycle: (form.get("billing_cycle") as string) || "MONTHLY",
-      status: "ACTIVE",
+      billing_cycle: (form.get("billing_cycle") as "WEEKLY" | "MONTHLY" | "ONE_TIME") || "MONTHLY",
+      status: "ACTIVE" as const,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Contract created & client activated!");
