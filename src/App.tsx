@@ -21,7 +21,7 @@ import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
 import FeedbackPage from "./pages/provider/Feedback";
 
-import ClientProperties from "./pages/client/ClientProperties";
+import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
 import ClientVisits from "./pages/client/ClientVisits";
 import ClientVisitDetail from "./pages/client/ClientVisitDetail";
