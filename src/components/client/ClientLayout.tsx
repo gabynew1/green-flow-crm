@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Leaf, Home, ClipboardList, MessageSquare, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AIChatBox } from "@/components/AIChatBox";
 
 const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
@@ -63,6 +64,7 @@ export function ClientLayout() {
       <main className="flex-1 p-4 md:p-6 overflow-auto">
         <Outlet />
       </main>
+      <AIChatBox />
     </div>
   );
 }
