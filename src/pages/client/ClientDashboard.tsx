@@ -27,17 +27,20 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-function UpcomingInspections({ user, loading: parentLoading }: { user: any; loading: boolean }) {
+function PlannedInspections({ user, loading: parentLoading }: { user: any; loading: boolean }) {
   const [inspections, setInspections] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
+      const today = new Date().toISOString().split("T")[0];
       const { data } = await supabase
         .from("inspections")
         .select("id, title, status, inspected_date, created_at, properties(name)")
-        .order("created_at", { ascending: false })
+        .eq("status", "COMPLETED")
+        .gte("inspected_date", today)
+        .order("inspected_date", { ascending: true })
         .limit(5);
       setInspections(data ?? []);
       setLoading(false);
@@ -49,12 +52,12 @@ function UpcomingInspections({ user, loading: parentLoading }: { user: any; load
 
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Upcoming Inspections</CardTitle></CardHeader>
+      <CardHeader><CardTitle className="text-base">Planned Inspections</CardTitle></CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
         ) : inspections.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No inspections scheduled</p>
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming inspections</p>
         ) : (
           <div className="space-y-2">
             {inspections.map((ins) => (
@@ -63,9 +66,14 @@ function UpcomingInspections({ user, loading: parentLoading }: { user: any; load
                   <span className="font-medium">{ins.title}</span>
                   <span className="text-muted-foreground ml-2">— {(ins as any).properties?.name}</span>
                 </div>
-                <Badge variant={ins.status === "COMPLETED" ? "default" : "secondary"}>
-                  {ins.status.replace(/_/g, " ")}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  {ins.inspected_date && (
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(ins.inspected_date + "T00:00:00").toLocaleDateString()}
+                    </span>
+                  )}
+                  <Badge variant="default">Scheduled</Badge>
+                </div>
               </div>
             ))}
           </div>
