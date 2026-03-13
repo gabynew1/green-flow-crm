@@ -130,7 +130,8 @@ export default function ClientDashboard() {
   const statusColor = (s: string) => {
     switch (s) {
       case "SENT_TO_CLIENT": return "default";
-      case "CLIENT_APPROVED": return "secondary";
+      case "APPROVED": return "secondary";
+      case "IN_PROGRESS": return "outline";
       default: return "outline";
     }
   };
