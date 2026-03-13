@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText } from "lucide-react";
@@ -7,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
 import { toast } from "sonner";
-import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,31 +22,50 @@ import {
 
 const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
-  { title: "Contracts", url: "/client/contracts", icon: FileText },
+  { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
   { title: "My Profile", url: "/client/profile", icon: UserCircle },
 ];
 
 export function ClientLayout() {
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, user } = useAuth();
   const location = useLocation();
-
-  const [showCopyWarning, setShowCopyWarning] = useState(false);
+  const [pendingContracts, setPendingContracts] = useState(0);
   const [showIdInfo, setShowIdInfo] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from("contracts")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "PENDING_NEW")
+        .then(({ count }) => setPendingContracts(count ?? 0));
+    }
+  }, [user, location.pathname]);
 
   const confirmCopyId = () => {
     if (profile?.unique_client_id) {
       navigator.clipboard.writeText(profile.unique_client_id);
       toast.success("Client ID copied!");
     }
-    setShowCopyWarning(false);
     setShowIdInfo(false);
   };
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
     : "?";
+
+  const renderNavBadge = (item: typeof navItems[0]) => {
+    if (item.badgeKey === "contracts" && pendingContracts > 0) {
+      return (
+        <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+          {pendingContracts}
+        </span>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -85,6 +105,7 @@ export function ClientLayout() {
               >
                 <item.icon className="h-4 w-4" />
                 {item.title}
+                {renderNavBadge(item)}
               </Button>
             </Link>
           ))}
@@ -93,7 +114,7 @@ export function ClientLayout() {
           <LogOut className="h-4 w-4" />
         </Button>
       </header>
-      {/* Mobile nav */}
+      {/* Mobile nav — icons only on small screens */}
       <nav className="md:hidden flex border-b bg-card">
         {navItems.map((item) => (
           <Link key={item.url} to={item.url} className="flex-1">
@@ -101,12 +122,19 @@ export function ClientLayout() {
               variant="ghost"
               size="sm"
               className={cn(
-                "w-full rounded-none gap-1 text-xs",
+                "w-full rounded-none flex flex-col gap-0.5 h-auto py-2 px-1",
                 location.pathname === item.url && "bg-primary/10 text-primary"
               )}
             >
-              <item.icon className="h-4 w-4" />
-              {item.title}
+              <span className="relative">
+                <item.icon className="h-4 w-4" />
+                {item.badgeKey === "contracts" && pendingContracts > 0 && (
+                  <span className="absolute -top-1 -right-2 h-3 min-w-[12px] px-0.5 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold flex items-center justify-center">
+                    {pendingContracts}
+                  </span>
+                )}
+              </span>
+              <span className="text-[10px] leading-tight truncate max-w-full">{item.title}</span>
             </Button>
           </Link>
         ))}
@@ -127,12 +155,8 @@ export function ClientLayout() {
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  Your Unique Client Number is <span className="font-mono font-semibold text-foreground">{profile?.unique_client_id}</span>.
-                </p>
-                <p>
-                  Share this number with a landscape provider to connect them to your account. Once connected, the provider can manage service visits, update green inventory, and maintain contracts for your properties.
-                </p>
+                <p>Your Unique Client Number is <span className="font-mono font-semibold text-foreground">{profile?.unique_client_id}</span>.</p>
+                <p>Share this number with a landscape provider to connect them to your account.</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
