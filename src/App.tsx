@@ -31,7 +31,7 @@ import AdminInvites from "./pages/admin/AdminInvites";
 
 const queryClient = new QueryClient();
 
-function AppRoutes() {
+function AppRoutes(): JSX.Element {
   const { user, isProvider, isClient, isSuperAdmin, isLoading } = useAuth();
 
   if (isLoading) {
