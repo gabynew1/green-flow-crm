@@ -81,15 +81,16 @@ export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Inspections</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{inspections.length} total</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> New Inspection</Button>
-          </DialogTrigger>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Inspections</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{inspections.length} total</p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" /> New Inspection</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>New Inspection</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
