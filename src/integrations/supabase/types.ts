@@ -157,6 +157,7 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          offer_id: string | null
           property_id: string
           rejection_comment: string | null
           start_date: string
@@ -171,6 +172,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          offer_id?: string | null
           property_id: string
           rejection_comment?: string | null
           start_date: string
@@ -185,6 +187,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          offer_id?: string | null
           property_id?: string
           rejection_comment?: string | null
           start_date?: string
@@ -194,6 +197,13 @@ export type Database = {
           visit_frequency_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contracts_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contracts_property_id_fkey"
             columns: ["property_id"]
@@ -288,6 +298,73 @@ export type Database = {
           },
         ]
       }
+      inspections: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string
+          findings: string | null
+          id: string
+          inspected_date: string | null
+          notes: string | null
+          property_id: string
+          status: Database["public"]["Enums"]["inspection_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          customer_id: string
+          findings?: string | null
+          id?: string
+          inspected_date?: string | null
+          notes?: string | null
+          property_id: string
+          status?: Database["public"]["Enums"]["inspection_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          findings?: string | null
+          id?: string
+          inspected_date?: string | null
+          notes?: string | null
+          property_id?: string
+          status?: Database["public"]["Enums"]["inspection_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inspections_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inspections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory: {
         Row: {
           created_at: string
@@ -363,6 +440,140 @@ export type Database = {
             columns: ["inventory_id"]
             isOneToOne: false
             referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offer_line_items: {
+        Row: {
+          created_at: string
+          custom_name: string | null
+          id: string
+          notes: string | null
+          offer_id: string
+          quantity: number
+          service_catalog_id: string | null
+          unit: string | null
+          unit_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          notes?: string | null
+          offer_id: string
+          quantity?: number
+          service_catalog_id?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          notes?: string | null
+          offer_id?: string
+          quantity?: number
+          service_catalog_id?: string | null
+          unit?: string | null
+          unit_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_line_items_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_line_items_service_catalog_id_fkey"
+            columns: ["service_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string
+          id: string
+          inspection_id: string | null
+          notes: string | null
+          offer_name: string
+          property_id: string
+          rejection_comment: string | null
+          status: Database["public"]["Enums"]["offer_status"]
+          tenant_id: string
+          total_value: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          customer_id: string
+          id?: string
+          inspection_id?: string | null
+          notes?: string | null
+          offer_name: string
+          property_id: string
+          rejection_comment?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          tenant_id: string
+          total_value?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string
+          id?: string
+          inspection_id?: string | null
+          notes?: string | null
+          offer_name?: string
+          property_id?: string
+          rejection_comment?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          tenant_id?: string
+          total_value?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -820,22 +1031,33 @@ export type Database = {
       connection_status: "PENDING" | "APPROVED" | "DENIED"
       contract_status:
         | "DRAFT"
+        | "SENT_TO_CLIENT"
+        | "SIGNED"
         | "ACTIVE"
-        | "PAUSED"
-        | "TERMINATED"
-        | "PENDING_NEW"
-        | "REJECTED"
+        | "CLOSED"
       frequency_type: "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME"
+      inspection_status: "DRAFT" | "COMPLETED" | "OFFER_GENERATED"
       inventory_category: "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER"
       inventory_source: "MANUAL" | "AI_ASSISTED"
+      offer_status:
+        | "DRAFT"
+        | "IN_PROGRESS"
+        | "SENT_TO_CLIENT"
+        | "ACCEPTED"
+        | "REJECTED"
+        | "EXPIRED"
+        | "CANCELED"
       period_type: "WEEK" | "MONTH" | "ONE_TIME"
       property_status: "active" | "inactive"
       service_order_item_source: "CONTRACT" | "AD_HOC"
       service_order_status:
-        | "DRAFT"
+        | "SCHEDULED"
+        | "IN_PROGRESS"
+        | "COMPLETED"
+        | "PENDING_APPROVAL"
+        | "APPROVED"
         | "SENT_TO_CLIENT"
-        | "CLIENT_APPROVED"
-        | "CLIENT_REJECTED"
+        | "CANCELED"
       task_status: "pending" | "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -969,23 +1191,35 @@ export const Constants = {
       connection_status: ["PENDING", "APPROVED", "DENIED"],
       contract_status: [
         "DRAFT",
+        "SENT_TO_CLIENT",
+        "SIGNED",
         "ACTIVE",
-        "PAUSED",
-        "TERMINATED",
-        "PENDING_NEW",
-        "REJECTED",
+        "CLOSED",
       ],
       frequency_type: ["PER_VISIT", "PER_WEEK", "PER_MONTH", "ONE_TIME"],
+      inspection_status: ["DRAFT", "COMPLETED", "OFFER_GENERATED"],
       inventory_category: ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"],
       inventory_source: ["MANUAL", "AI_ASSISTED"],
+      offer_status: [
+        "DRAFT",
+        "IN_PROGRESS",
+        "SENT_TO_CLIENT",
+        "ACCEPTED",
+        "REJECTED",
+        "EXPIRED",
+        "CANCELED",
+      ],
       period_type: ["WEEK", "MONTH", "ONE_TIME"],
       property_status: ["active", "inactive"],
       service_order_item_source: ["CONTRACT", "AD_HOC"],
       service_order_status: [
-        "DRAFT",
+        "SCHEDULED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "PENDING_APPROVAL",
+        "APPROVED",
         "SENT_TO_CLIENT",
-        "CLIENT_APPROVED",
-        "CLIENT_REJECTED",
+        "CANCELED",
       ],
       task_status: ["pending", "in_progress", "completed"],
     },
