@@ -88,22 +88,30 @@ export default function ClientDashboard() {
     let customerId = profileData?.customer_id;
 
     if (!customerId) {
-      // Auto-create a customer record for this client
-      const { data: newCustomer, error: custErr } = await supabase
-        .from("customers")
-        .insert({ name: profileData?.full_name || profileData?.email || "Client", email: profileData?.email })
-        .select("id")
-        .single();
+      if (!profileData) {
+        toast.error("Could not load your profile.");
+        return;
+      }
 
-      if (custErr || !newCustomer) {
-        toast.error("Could not create customer record: " + (custErr?.message ?? "Unknown error"));
+      // Create with a known id to avoid requiring SELECT on customers during insert
+      const generatedCustomerId = crypto.randomUUID();
+      const { error: custErr } = await supabase
+        .from("customers")
+        .insert({
+          id: generatedCustomerId,
+          name: profileData.full_name || profileData.email || "Client",
+          email: profileData.email,
+        });
+
+      if (custErr) {
+        toast.error("Could not create customer record: " + custErr.message);
         return;
       }
 
       // Link customer to profile
       const { error: linkErr } = await supabase
         .from("profiles")
-        .update({ customer_id: newCustomer.id })
+        .update({ customer_id: generatedCustomerId })
         .eq("user_id", user!.id);
 
       if (linkErr) {
@@ -111,7 +119,7 @@ export default function ClientDashboard() {
         return;
       }
 
-      customerId = newCustomer.id;
+      customerId = generatedCustomerId;
     }
 
     setSaving(true);
