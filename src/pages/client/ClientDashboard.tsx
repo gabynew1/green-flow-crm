@@ -76,6 +76,7 @@ function UpcomingInspections({ user, loading: parentLoading }: { user: any; load
 }
 
 export default function ClientDashboard() {
+  const { user } = useAuth();
   const [properties, setProperties] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
   const [totalVisits, setTotalVisits] = useState(0);
