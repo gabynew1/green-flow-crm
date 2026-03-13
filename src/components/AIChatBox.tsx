@@ -1,0 +1,213 @@
+import { useState, useRef, useEffect } from "react";
+import { MessageSquare, X, Send, Loader2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
+
+type Message = { role: "user" | "assistant"; content: string };
+
+function extractContext(pathname: string) {
+  const ctx: Record<string, string | undefined> = {};
+  const propertyMatch = pathname.match(/properties\/([a-f0-9-]+)/);
+  const visitMatch = pathname.match(/visits\/([a-f0-9-]+)/);
+  if (propertyMatch) ctx.propertyId = propertyMatch[1];
+  if (visitMatch) ctx.visitId = visitMatch[1];
+  return ctx;
+}
+
+export function AIChatBox() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { isProvider } = useAuth();
+  const location = useLocation();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, open]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    const userMsg: Message = { role: "user", content: text };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const context = {
+        role: isProvider ? "provider" : "client",
+        ...extractContext(location.pathname),
+      };
+
+      const { data, error } = await supabase.functions.invoke("ai-assistant", {
+        body: {
+          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          context,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data?.message || "Done!" },
+      ]);
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "Something went wrong";
+      toast.error(errMsg);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Sorry, something went wrong. Please try again." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  return (
+    <>
+      {/* Floating button */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
+          aria-label="Open AI Assistant"
+        >
+          <Sparkles className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* Chat panel */}
+      {open && (
+        <div className="fixed bottom-5 right-5 z-50 flex w-[380px] max-w-[calc(100vw-2.5rem)] flex-col rounded-2xl border bg-card shadow-2xl"
+          style={{ height: "min(520px, calc(100vh - 5rem))" }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">
+                AI Assistant
+              </span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                {isProvider ? "Provider" : "Client"}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.length === 0 && (
+              <div className="text-center text-sm text-muted-foreground py-8 space-y-2">
+                <Sparkles className="h-8 w-8 mx-auto text-primary/40" />
+                <p className="font-medium">How can I help?</p>
+                {isProvider ? (
+                  <div className="space-y-1 text-xs">
+                    <p>🌿 Describe greenery to populate inventory</p>
+                    <p>✅ Tell me tasks are done to mark them complete</p>
+                    <p>📝 Ask me to summarize a visit for the client</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1 text-xs">
+                    <p>🏡 Describe what you need for your property</p>
+                    <p>📋 I'll create a service request for you</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "flex",
+                  m.role === "user" ? "justify-end" : "justify-start"
+                )}
+              >
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-xl px-3 py-2 text-sm",
+                    m.role === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground"
+                  )}
+                >
+                  {m.role === "assistant" ? (
+                    <div className="prose prose-sm prose-green max-w-none [&>p]:m-0">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    m.content
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start">
+                <div className="rounded-xl bg-muted px-3 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Input */}
+          <div className="border-t p-3">
+            <div className="flex gap-2">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a message…"
+                className="min-h-[40px] max-h-[100px] resize-none text-sm"
+                rows={1}
+              />
+              <Button
+                size="icon"
+                onClick={send}
+                disabled={!input.trim() || loading}
+                className="h-10 w-10 shrink-0"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
+              AI suggestion — please review before saving
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
