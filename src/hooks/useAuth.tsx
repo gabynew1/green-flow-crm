@@ -9,6 +9,7 @@ interface ProfileData {
   unique_client_id: string | null;
   tenant_id: string | null;
   email: string | null;
+  customer_id: string | null;
 }
 
 interface AuthContextType {
