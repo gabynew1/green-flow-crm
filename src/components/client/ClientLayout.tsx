@@ -115,17 +115,33 @@ export function ClientLayout() {
       </main>
       <AIChatBox />
 
-      <AlertDialog open={showCopyWarning} onOpenChange={setShowCopyWarning}>
+      {/* Client ID Info Dialog */}
+      <AlertDialog open={showIdInfo} onOpenChange={setShowIdInfo}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Share Customer ID?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Sharing your Customer ID will give the provider access to <strong>all your properties</strong> that are not already connected at the property level with another provider. If you only want to share a single property, use the Property ID instead.
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              Unique Client Number
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Your Unique Client Number is <span className="font-mono font-semibold text-foreground">{profile?.unique_client_id}</span>.
+                </p>
+                <p>
+                  Share this number with a landscape provider to connect them to your account. Once connected, the provider can manage service visits, update green inventory, and maintain contracts for your properties.
+                </p>
+                <p className="text-destructive/80 font-medium">
+                  ⚠️ Sharing this number will give the provider access to <strong>all your properties</strong> that are not already connected at the property level with another provider. To share a single property, use the Property ID instead.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCopyId}>Copy ID</AlertDialogAction>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCopyId}>
+              <Copy className="h-4 w-4 mr-1" /> Copy Number
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
