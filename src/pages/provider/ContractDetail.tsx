@@ -52,15 +52,15 @@ export default function ContractDetail() {
   const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("contract_line_items").insert({
+    const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: form.get("service_id") as string,
       custom_name: (form.get("custom_name") as string) || null,
-      frequency_type: form.get("frequency") as string,
+      frequency_type: form.get("frequency") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
       quantity: Number(form.get("quantity")) || 1,
       unit: form.get("unit") as string,
       notes: (form.get("notes") as string) || null,
-    });
+    }]);
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
     setAddOpen(false);

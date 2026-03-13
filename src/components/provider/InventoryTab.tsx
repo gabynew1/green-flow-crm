@@ -41,15 +41,15 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
     e.preventDefault();
     if (!inventory) return;
     const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("inventory_items").insert({
+    const { error } = await supabase.from("inventory_items").insert([{
       inventory_id: inventory.id,
-      category: form.get("category") as string,
+      category: form.get("category") as "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER",
       name: form.get("name") as string,
       quantity: Number(form.get("quantity")) || 1,
       unit: form.get("unit") as string || "count",
       notes: form.get("notes") as string,
-      source: "MANUAL",
-    });
+      source: "MANUAL" as const,
+    }]);
     if (error) { toast.error(error.message); return; }
     toast.success("Item added!");
     setAddOpen(false);

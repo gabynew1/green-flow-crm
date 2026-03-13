@@ -40,13 +40,13 @@ export default function Contracts() {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("contracts").insert({
+    const { error } = await supabase.from("contracts").insert([{
       property_id: form.get("property_id") as string,
       contract_name: form.get("name") as string,
       start_date: form.get("start_date") as string,
       end_date: (form.get("end_date") as string) || null,
-      billing_cycle: form.get("billing_cycle") as string,
-    });
+      billing_cycle: form.get("billing_cycle") as "WEEKLY" | "MONTHLY" | "ONE_TIME",
+    }]);
     if (error) { toast.error(error.message); return; }
     toast.success("Contract created!");
     setOpen(false);
