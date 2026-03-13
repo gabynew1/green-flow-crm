@@ -39,7 +39,7 @@ export function ClientLayout() {
       supabase
         .from("contracts")
         .select("id", { count: "exact", head: true })
-        .eq("status", "PENDING_NEW")
+        .eq("status", "SENT_TO_CLIENT")
         .then(({ count }) => setPendingContracts(count ?? 0));
     }
   }, [user, location.pathname]);

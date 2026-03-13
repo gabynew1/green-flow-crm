@@ -62,7 +62,7 @@ export default function ClientDashboard() {
         .limit(5),
       supabase.from("service_orders").select("id", { count: "exact", head: true }),
       supabase.from("service_orders").select("id", { count: "exact", head: true }).not("performed_date", "is", null),
-      supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "PENDING_NEW"),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "SENT_TO_CLIENT"),
     ]);
 
     setProperties(propsRes.data ?? []);

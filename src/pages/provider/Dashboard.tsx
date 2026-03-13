@@ -62,7 +62,7 @@ export default function Dashboard() {
         .order("created_at", { ascending: false }).limit(5),
       supabase.from("contracts")
         .select("id, contract_name, created_at, properties(name, customers(name))")
-        .eq("status", "PENDING_NEW").order("created_at", { ascending: false }).limit(5),
+        .eq("status", "SENT_TO_CLIENT").order("created_at", { ascending: false }).limit(5),
       supabase.from("contracts")
         .select("id, contract_name, end_date, properties(name, customers(name))")
         .eq("status", "ACTIVE").not("end_date", "is", null)

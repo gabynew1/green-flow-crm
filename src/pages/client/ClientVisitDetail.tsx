@@ -162,7 +162,7 @@ export default function ClientVisitDetail() {
       )}
 
       {/* Feedback */}
-      {(order.status === "CLIENT_APPROVED" || order.status === "CLIENT_REJECTED") && !existingFeedback && (
+      {(order.status === "APPROVED" || order.status === "CANCELED") && !existingFeedback && (
         <Card>
           <CardHeader><CardTitle className="text-base">Leave Feedback</CardTitle></CardHeader>
           <CardContent className="space-y-4">

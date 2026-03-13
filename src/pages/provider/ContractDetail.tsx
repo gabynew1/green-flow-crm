@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Play, Pause, XCircle } from "lucide-react";
+import { ArrowLeft, Plus, Play, XCircle, Send, Check } from "lucide-react";
 import { toast } from "sonner";
 import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
