@@ -56,15 +56,16 @@ export function ClientLayout() {
             <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
               {initials}
             </div>
-            <div className="hidden md:block">
+            <div className="hidden md:flex items-center gap-2">
               <p className="text-sm font-medium leading-none">{profile?.full_name || "User"}</p>
+              <span className="text-muted-foreground">·</span>
               <button
-                onClick={copyId}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                title="Click to copy"
+                onClick={() => setShowIdInfo(true)}
+                className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                title="Click for details"
               >
-                <span className="font-mono">{profile?.unique_client_id || "..."}</span>
-                <Copy className="h-3 w-3" />
+                <span className="text-muted-foreground">Unique Client Number:</span>
+                <span className="font-mono font-semibold text-foreground">{profile?.unique_client_id || "..."}</span>
               </button>
             </div>
           </div>
