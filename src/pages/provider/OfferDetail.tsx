@@ -285,10 +285,10 @@ export default function OfferDetail() {
             <TableHeader>
               <TableRow>
                 <TableHead>Service</TableHead>
+                <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit Price</TableHead>
                 <TableHead>Subtotal</TableHead>
-                <TableHead>Notes</TableHead>
                 {editable && <TableHead />}
               </TableRow>
             </TableHeader>
