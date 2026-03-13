@@ -23,7 +23,8 @@ import {
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Opportunity",
-  COMPLETED: "Scheduled",
+  SCHEDULED: "Scheduled",
+  COMPLETED: "Completed",
   OFFER_GENERATED: "Offer Generated",
 };
 
