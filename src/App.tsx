@@ -76,7 +76,7 @@ function AppRoutes(): JSX.Element {
 
       {/* Client routes */}
       <Route path="/client" element={<ClientLayout />}>
-        <Route index element={<ClientProperties />} />
+        <Route index element={<ClientDashboard />} />
         <Route path="properties/:propertyId" element={<ClientPropertyDetail />} />
         <Route path="visits" element={<ClientVisits />} />
         <Route path="visits/:visitId" element={<ClientVisitDetail />} />
