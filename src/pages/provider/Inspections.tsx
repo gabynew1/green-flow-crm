@@ -49,7 +49,7 @@ export default function Inspections({ embedded, statusFilter: statusFilterProp }
       .order("created_at", { ascending: false });
 
     if (statusFilterProp) {
-      query = query.eq("status", statusFilterProp);
+      query = query.eq("status", statusFilterProp as any);
     }
 
     const [insRes, propRes] = await Promise.all([
