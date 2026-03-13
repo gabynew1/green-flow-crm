@@ -28,7 +28,7 @@ export default function Dashboard() {
     const [custRes, contRes, pendingContRes, visitsRes, feedbackRes] = await Promise.all([
       supabase.from("customers").select("id", { count: "exact", head: true }),
       supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "ACTIVE"),
-      supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "PENDING_NEW"),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "SENT_TO_CLIENT"),
       supabase.from("service_orders").select("id", { count: "exact", head: true })
         .gte("scheduled_date", format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd")),
       supabase.from("feedback").select("rating_stars"),
