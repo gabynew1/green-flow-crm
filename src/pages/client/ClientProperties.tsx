@@ -34,6 +34,20 @@ export default function ClientProperties() {
                   <div>
                     <p className="font-medium">{p.name}</p>
                     <p className="text-sm text-muted-foreground">{[p.address, p.city].filter(Boolean).join(", ")}</p>
+                    {p.unique_property_id && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigator.clipboard.writeText(p.unique_property_id);
+                          toast.success("Property ID copied!");
+                        }}
+                        className="flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground mt-1 transition-colors"
+                        title="Click to copy Property ID"
+                      >
+                        {p.unique_property_id}
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    )}
                     <Badge variant={p.status === "active" ? "default" : "secondary"} className="mt-2">{p.status}</Badge>
                   </div>
                 </div>

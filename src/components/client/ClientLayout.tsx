@@ -117,6 +117,21 @@ export function ClientLayout() {
         <Outlet />
       </main>
       <AIChatBox />
+
+      <AlertDialog open={showCopyWarning} onOpenChange={setShowCopyWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Share Customer ID?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sharing your Customer ID will give the provider access to <strong>all your properties</strong> that are not already connected at the property level with another provider. If you only want to share a single property, use the Property ID instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCopyId}>Copy ID</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
