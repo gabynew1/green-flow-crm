@@ -34,7 +34,7 @@ export default function InspectionDetail() {
   const [inspection, setInspection] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
-  const [findings, setFindings] = useState("");
+  const [customer, setCustomer] = useState<any>(null);
   const [inspectedDate, setInspectedDate] = useState("");
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -45,21 +45,21 @@ export default function InspectionDetail() {
   const load = async () => {
     const { data } = await supabase
       .from("inspections")
-      .select("*, properties(name, address, city, customers(name))")
+      .select("*, properties(name, address, city, customers(name, email, phone, company_name, contact_person_name))")
       .eq("id", inspectionId!)
       .single();
     if (data) {
       setInspection(data);
       setTitle(data.title);
       setNotes(data.notes || "");
-      setFindings(data.findings || "");
       setInspectedDate(data.inspected_date || "");
+      setCustomer((data.properties as any)?.customers || null);
     }
   };
 
   const save = async () => {
     await supabase.from("inspections").update({
-      title, notes: notes || null, findings: findings || null,
+      title, notes: notes || null,
       inspected_date: inspectedDate || null,
     }).eq("id", inspectionId!);
     toast.success("Saved!");
@@ -74,7 +74,6 @@ export default function InspectionDetail() {
       inspected_date: dateStr,
       title,
       notes: notes || null,
-      findings: findings || null,
     }).eq("id", inspectionId!);
     if (error) { toast.error(error.message); return; }
     toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
@@ -120,28 +119,61 @@ export default function InspectionDetail() {
         <Badge variant={isDraft ? "secondary" : "default"}>{statusLabels[inspection.status]}</Badge>
       </div>
 
-      {/* Property info */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Property</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Name:</span>
-              <p className="font-medium">{property?.name}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Customer:</span>
-              <p className="font-medium">{property?.customers?.name}</p>
-            </div>
-            {property?.address && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Address:</span>
-                <p className="font-medium">{[property.address, property.city].filter(Boolean).join(", ")}</p>
+      {/* Property & Contact info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Property</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Name:</span>
+                <p className="font-medium">{property?.name}</p>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {property?.address && (
+                <div>
+                  <span className="text-muted-foreground">Address:</span>
+                  <p className="font-medium">{[property.address, property.city].filter(Boolean).join(", ")}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Contact</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Customer:</span>
+                <p className="font-medium">{customer?.name || "—"}</p>
+              </div>
+              {customer?.contact_person_name && (
+                <div>
+                  <span className="text-muted-foreground">Contact Person:</span>
+                  <p className="font-medium">{customer.contact_person_name}</p>
+                </div>
+              )}
+              {customer?.email && (
+                <div>
+                  <span className="text-muted-foreground">Email:</span>
+                  <p className="font-medium">{customer.email}</p>
+                </div>
+              )}
+              {customer?.phone && (
+                <div>
+                  <span className="text-muted-foreground">Phone:</span>
+                  <p className="font-medium">{customer.phone}</p>
+                </div>
+              )}
+              {customer?.company_name && (
+                <div>
+                  <span className="text-muted-foreground">Company:</span>
+                  <p className="font-medium">{customer.company_name}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Details */}
       <Card>
@@ -161,10 +193,6 @@ export default function InspectionDetail() {
             <Label>Notes</Label>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} disabled={!isDraft} placeholder="General notes…" />
           </div>
-          <div className="space-y-2">
-            <Label>Findings</Label>
-            <Textarea value={findings} onChange={e => setFindings(e.target.value)} rows={5} disabled={!isDraft && !isCompleted} placeholder="Detailed findings from the inspection…" />
-          </div>
         </CardContent>
       </Card>
 
@@ -179,30 +207,21 @@ export default function InspectionDetail() {
           </>
         )}
         {isCompleted && (
-          <>
-            <Button variant="secondary" onClick={async () => {
-              await supabase.from("inspections").update({ findings: findings || null }).eq("id", inspectionId!);
-              toast.success("Findings saved!");
-              load();
-            }}>
-              <Save className="h-4 w-4 mr-2" /> Save Findings
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
-                  <AlertDialogDescription>An offer will be created with the inspection findings. You can add line items and pricing before sending to the client.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={generateOffer}>Generate</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
+                <AlertDialogDescription>An offer will be created from this inspection. You can add line items and pricing before sending to the client.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={generateOffer}>Generate</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
 
