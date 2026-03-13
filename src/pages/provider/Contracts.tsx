@@ -218,6 +218,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   return (
     <div className="space-y-5">
       {/* Header */}
+      {!embedded && (
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Contracts</h1>
