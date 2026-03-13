@@ -33,6 +33,7 @@ import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
+
 function AppRoutes(): JSX.Element {
   const { user, isProvider, isClient, isSuperAdmin, isLoading } = useAuth();
 
