@@ -20,10 +20,9 @@ import ContractDetail from "./pages/provider/ContractDetail";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
 import FeedbackPage from "./pages/provider/Feedback";
-import Inspections from "./pages/provider/Inspections";
 import InspectionDetail from "./pages/provider/InspectionDetail";
-import Offers from "./pages/provider/Offers";
 import OfferDetail from "./pages/provider/OfferDetail";
+import SalesPipeline from "./pages/provider/SalesPipeline";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
