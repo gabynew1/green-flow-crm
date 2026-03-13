@@ -161,6 +161,8 @@ export type Database = {
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
           updated_at: string
+          visit_frequency_count: number | null
+          visit_frequency_type: string | null
         }
         Insert: {
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
@@ -172,6 +174,8 @@ export type Database = {
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
           updated_at?: string
+          visit_frequency_count?: number | null
+          visit_frequency_type?: string | null
         }
         Update: {
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
@@ -183,6 +187,8 @@ export type Database = {
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
           updated_at?: string
+          visit_frequency_count?: number | null
+          visit_frequency_type?: string | null
         }
         Relationships: [
           {
