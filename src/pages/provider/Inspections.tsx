@@ -112,8 +112,9 @@ export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
               <Button type="submit" className="w-full">Create Inspection</Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <div className="relative flex-1">

@@ -31,9 +31,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { title: "Dashboard", url: "/provider", icon: LayoutDashboard },
   { title: "Customers", url: "/provider/customers", icon: Users },
-  { title: "Inspections", url: "/provider/inspections", icon: ClipboardCheck },
-  { title: "Offers", url: "/provider/offers", icon: FileOutput },
-  { title: "Contracts", url: "/provider/contracts", icon: FileText },
+  { title: "Sales Pipeline", url: "/provider/pipeline", icon: ClipboardCheck },
   { title: "Service Visits", url: "/provider/visits", icon: ClipboardList },
   { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen },
   { title: "Feedback", url: "/provider/feedback", icon: MessageSquare },

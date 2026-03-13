@@ -122,8 +122,9 @@ export default function Offers({ embedded }: { embedded?: boolean } = {}) {
               <Button type="submit" className="w-full">Create Offer</Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <div className="relative flex-1">

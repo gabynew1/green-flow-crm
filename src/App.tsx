@@ -76,11 +76,12 @@ function AppRoutes(): JSX.Element {
         <Route path="customers/:customerId" element={<CustomerDetail />} />
         <Route path="properties/:propertyId" element={<PropertyDetail />} />
         <Route path="catalog" element={<ServiceCatalog />} />
-        <Route path="inspections" element={<Inspections />} />
+        <Route path="pipeline" element={<SalesPipeline />} />
+        <Route path="inspections" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="inspections/:inspectionId" element={<InspectionDetail />} />
-        <Route path="offers" element={<Offers />} />
+        <Route path="offers" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="offers/:offerId" element={<OfferDetail />} />
-        <Route path="contracts" element={<Contracts />} />
+        <Route path="contracts" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="contracts/:contractId" element={<ContractDetail />} />
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
