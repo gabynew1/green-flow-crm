@@ -59,7 +59,7 @@ export default function InspectionDetail() {
 
   const save = async () => {
     await supabase.from("inspections").update({
-      title, notes: notes || null, findings: findings || null,
+      title, notes: notes || null,
       inspected_date: inspectedDate || null,
     }).eq("id", inspectionId!);
     toast.success("Saved!");
