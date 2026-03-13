@@ -7,6 +7,17 @@ import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
 import { toast } from "sonner";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const navItems = [
   { title: "My Properties", url: "/client", icon: Home },
@@ -18,11 +29,20 @@ export function ClientLayout() {
   const { signOut, profile } = useAuth();
   const location = useLocation();
 
+  const [showCopyWarning, setShowCopyWarning] = useState(false);
+
   const copyId = () => {
+    if (profile?.unique_client_id) {
+      setShowCopyWarning(true);
+    }
+  };
+
+  const confirmCopyId = () => {
     if (profile?.unique_client_id) {
       navigator.clipboard.writeText(profile.unique_client_id);
       toast.success("Client ID copied!");
     }
+    setShowCopyWarning(false);
   };
 
   const initials = profile?.full_name
@@ -97,6 +117,21 @@ export function ClientLayout() {
         <Outlet />
       </main>
       <AIChatBox />
+
+      <AlertDialog open={showCopyWarning} onOpenChange={setShowCopyWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Share Customer ID?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sharing your Customer ID will give the provider access to <strong>all your properties</strong> that are not already connected at the property level with another provider. If you only want to share a single property, use the Property ID instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCopyId}>Copy ID</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

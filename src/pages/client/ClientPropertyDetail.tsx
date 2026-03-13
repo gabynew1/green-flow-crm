@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, MapPin, Pencil, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ClientPropertyDetail() {
@@ -182,7 +182,23 @@ export default function ClientPropertyDetail() {
 
       {/* Property info */}
       <Card>
-        <CardContent className="pt-6 text-sm space-y-2">
+        <CardContent className="pt-6 text-sm space-y-3">
+          {property.unique_property_id && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Property ID:</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(property.unique_property_id);
+                  toast.success("Property ID copied!");
+                }}
+                className="flex items-center gap-1 font-mono text-sm bg-muted px-2 py-0.5 rounded hover:bg-muted/80 transition-colors"
+                title="Click to copy"
+              >
+                {property.unique_property_id}
+                <Copy className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-1"><MapPin className="h-4 w-4 text-muted-foreground" /> {[property.address, property.city].filter(Boolean).join(", ") || "No address"}</div>
           {property.description && <p className="text-muted-foreground">{property.description}</p>}
         </CardContent>
