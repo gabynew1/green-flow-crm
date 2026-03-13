@@ -57,7 +57,7 @@ export default function ClientVisitDetail() {
 
   const reject = async () => {
     await supabase.from("service_orders").update({
-      status: "CLIENT_REJECTED",
+      status: "CANCELED" as any,
       notes: (order.notes ? order.notes + "\n" : "") + `Client rejection reason: ${rejectReason}`,
     }).eq("id", visitId!);
     toast.success("Visit rejected");
