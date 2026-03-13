@@ -86,8 +86,10 @@ export default function Contracts() {
       start_date: startDate,
       end_date: endDate,
       billing_cycle: billingCycle,
+      visit_frequency_count: visitCount,
+      visit_frequency_type: visitType,
       status: "ACTIVE" as const,
-    }));
+    } as any));
 
     const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
