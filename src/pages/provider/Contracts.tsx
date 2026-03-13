@@ -15,9 +15,16 @@ import { format } from "date-fns";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
+  PENDING_NEW: "outline",
   ACTIVE: "default",
   PAUSED: "outline",
   TERMINATED: "destructive",
+  REJECTED: "destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING_NEW: "Pending Approval",
+  REJECTED: "Rejected",
 };
 
 const billingLabels: Record<string, string> = {
