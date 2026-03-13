@@ -52,6 +52,28 @@ export default function ClientOfferDetail() {
   const handleAccept = async () => {
     const { error } = await supabase.from("offers").update({ status: "ACCEPTED" } as any).eq("id", offerId!);
     if (error) { toast.error(error.message); return; }
+
+    // Auto-generate draft contract
+    const { data: contract, error: cErr } = await supabase.from("contracts").insert({
+      contract_name: `Contract - ${offer.offer_name}`,
+      property_id: offer.property_id,
+      offer_id: offerId,
+      start_date: new Date().toISOString().split("T")[0],
+      status: "DRAFT",
+    } as any).select().single();
+
+    if (!cErr && contract && lineItems.length > 0) {
+      const contractLines = lineItems.map(li => ({
+        contract_id: contract.id,
+        service_catalog_id: li.service_catalog_id,
+        custom_name: li.custom_name,
+        quantity: li.quantity,
+        unit: li.unit,
+        notes: li.notes,
+      }));
+      await supabase.from("contract_line_items").insert(contractLines);
+    }
+
     toast.success("Offer accepted!");
     load();
   };

@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const statusLabels: Record<string, string> = {
@@ -115,6 +115,13 @@ export default function OfferDetail() {
     load();
   };
 
+  const acceptOnBehalf = async () => {
+    const { error } = await supabase.from("offers").update({ status: "ACCEPTED" } as any).eq("id", offerId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Offer accepted on behalf of client");
+    await generateContract();
+  };
+
   const generateContract = async () => {
     if (!offer) return;
     const { data: contract, error } = await supabase.from("contracts").insert({
@@ -189,19 +196,21 @@ export default function OfferDetail() {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            {offer.status === "ACCEPTED" && (
+            {offer.status === "SENT_TO_CLIENT" && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm"><FileText className="h-3 w-3 mr-1" /> Generate Contract</Button>
+                  <Button size="sm" variant="outline"><Check className="h-3 w-3 mr-1" /> Accept on Behalf</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Generate contract from this offer?</AlertDialogTitle>
-                    <AlertDialogDescription>A new contract will be created with the offer's line items.</AlertDialogDescription>
+                    <AlertDialogTitle>Accept offer on behalf of client?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will mark the offer as accepted on the client's behalf. The client will be informed that the offer was agreed offline.
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={generateContract}>Generate</AlertDialogAction>
+                    <AlertDialogAction onClick={acceptOnBehalf}>Accept & Generate Contract</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
