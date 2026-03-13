@@ -5,9 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, ClipboardCheck, FileOutput, FileText, Lightbulb } from "lucide-react";
+import { ArrowRight, ClipboardCheck, FileOutput, FileText, Lightbulb, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const statusVariantInspection: Record<string, "default" | "secondary" | "outline"> = {
   DRAFT: "secondary",
@@ -42,7 +46,7 @@ interface KanbanColumn {
 }
 
 export default function PipelineKanban() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [inspections, setInspections] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
@@ -64,8 +68,6 @@ export default function PipelineKanban() {
     setLoading(false);
   };
 
-  // Opportunities now navigate to detail page for scheduling
-
   const handleGenerateOffer = async (inspection: any) => {
     const { error: offerErr } = await supabase.from("offers").insert({
       offer_name: `Offer - ${inspection.title}`,
@@ -81,8 +83,25 @@ export default function PipelineKanban() {
     load();
   };
 
-  const handleGenerateContract = async (offer: any) => {
-    navigate(`/provider/offers/${offer.id}`);
+  const handleCancelInspection = async (id: string) => {
+    const { error } = await supabase.from("inspections").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Opportunity cancelled");
+    load();
+  };
+
+  const handleCancelOffer = async (id: string) => {
+    const { error } = await supabase.from("offers").update({ status: "CANCELED" }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Offer cancelled");
+    load();
+  };
+
+  const handleCloseContract = async (id: string) => {
+    const { error } = await supabase.from("contracts").update({ status: "CLOSED" }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Contract closed");
+    load();
   };
 
   const columns: KanbanColumn[] = [
@@ -161,6 +180,9 @@ export default function PipelineKanban() {
                 statusBadgeVariant = statusVariantContract[status] || "secondary";
               }
 
+              // Determine if item is in a terminal/cancelled state
+              const isCancelled = status === "CANCELED" || status === "CLOSED" || status === "REJECTED" || status === "EXPIRED";
+
               return (
                 <Card key={item.id} className="hover:border-primary/40 transition-colors">
                   <CardContent className="p-3 space-y-2">
@@ -168,26 +190,65 @@ export default function PipelineKanban() {
                       <p className="text-sm font-medium truncate">{title}</p>
                       <p className="text-xs text-muted-foreground truncate">{customerName} · {propertyName}</p>
                     </Link>
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-1">
                       <Badge variant={statusBadgeVariant} className="text-[10px]">
                         {status.replace(/_/g, " ")}
                       </Badge>
 
-                      {col.type === "opportunity" && status === "DRAFT" && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/inspections/${item.id}`)}>
-                          Schedule <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      )}
-                      {col.type === "inspection" && status === "COMPLETED" && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleGenerateOffer(item)}>
-                          Gen. Offer <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      )}
-                      {col.type === "offer" && status === "ACCEPTED" && (
-                        <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleGenerateContract(item)}>
-                          Gen. Contract <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {/* Primary action */}
+                        {col.type === "opportunity" && status === "DRAFT" && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/inspections/${item.id}`)}>
+                            Schedule <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {col.type === "inspection" && status === "COMPLETED" && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleGenerateOffer(item)}>
+                            Gen. Offer <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {col.type === "offer" && status === "ACCEPTED" && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/offers/${item.id}`)}>
+                            Gen. Contract <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        )}
+
+                        {/* Cancel action - shown on non-terminal items */}
+                        {!isCancelled && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {col.type === "opportunity" ? "Cancel this opportunity?" :
+                                   col.type === "inspection" ? "Cancel this inspection?" :
+                                   col.type === "offer" ? "Cancel this offer?" :
+                                   "Close this contract?"}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Keep</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => {
+                                    if (col.type === "opportunity") handleCancelInspection(item.id);
+                                    else if (col.type === "inspection") handleCancelInspection(item.id);
+                                    else if (col.type === "offer") handleCancelOffer(item.id);
+                                    else handleCloseContract(item.id);
+                                  }}
+                                >
+                                  {col.type === "contract" ? "Close" : "Cancel"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
