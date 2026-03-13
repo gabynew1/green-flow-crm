@@ -23,7 +23,8 @@ import {
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Opportunity",
-  COMPLETED: "Scheduled",
+  SCHEDULED: "Scheduled",
+  COMPLETED: "Completed",
   OFFER_GENERATED: "Offer Generated",
 };
 
@@ -70,7 +71,7 @@ export default function InspectionDetail() {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     const { error } = await supabase.from("inspections").update({
-      status: "COMPLETED",
+      status: "SCHEDULED",
       inspected_date: dateStr,
       title,
       notes: notes || null,
@@ -95,7 +96,7 @@ export default function InspectionDetail() {
 
     if (error) { toast.error(error.message); return; }
 
-    await supabase.from("inspections").update({ status: "OFFER_GENERATED" }).eq("id", inspectionId!);
+    await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", inspectionId!);
     toast.success("Offer created from inspection!");
     navigate(`/provider/offers/${offer.id}`);
   };
@@ -103,7 +104,7 @@ export default function InspectionDetail() {
   if (!inspection) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
   const isDraft = inspection.status === "DRAFT";
-  const isCompleted = inspection.status === "COMPLETED";
+  const isScheduled = inspection.status === "SCHEDULED";
   const property = inspection.properties as any;
 
   return (
@@ -116,7 +117,7 @@ export default function InspectionDetail() {
             {property?.customers?.name} · {property?.name}
           </p>
         </div>
-        <Badge variant={isDraft ? "secondary" : "default"}>{statusLabels[inspection.status]}</Badge>
+        <Badge variant={isDraft ? "secondary" : isScheduled ? "default" : "outline"}>{statusLabels[inspection.status]}</Badge>
       </div>
 
       {/* Property & Contact info */}
@@ -183,7 +184,7 @@ export default function InspectionDetail() {
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} disabled={!isDraft} />
           </div>
-          {!isDraft && inspectedDate && (
+          {(isScheduled || inspection.status === "COMPLETED" || inspection.status === "OFFER_GENERATED") && inspectedDate && (
             <div className="space-y-2">
               <Label>Scheduled Date</Label>
               <Input type="date" value={inspectedDate} disabled />
@@ -206,7 +207,7 @@ export default function InspectionDetail() {
             </Button>
           </>
         )}
-        {isCompleted && (
+        {isScheduled && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button><FileOutput className="h-4 w-4 mr-2" /> Generate Offer</Button>

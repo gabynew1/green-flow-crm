@@ -15,7 +15,8 @@ import {
 
 const statusVariantInspection: Record<string, "default" | "secondary" | "outline"> = {
   DRAFT: "secondary",
-  COMPLETED: "default",
+  SCHEDULED: "default",
+  COMPLETED: "outline",
   OFFER_GENERATED: "outline",
 };
 
@@ -78,7 +79,7 @@ export default function PipelineKanban() {
       created_by: user!.id,
     });
     if (offerErr) { toast.error(offerErr.message); return; }
-    await supabase.from("inspections").update({ status: "OFFER_GENERATED" }).eq("id", inspection.id);
+    await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", inspection.id);
     toast.success("Offer generated from inspection");
     load();
   };
@@ -101,7 +102,7 @@ export default function PipelineKanban() {
     {
       title: "Inspections",
       icon: ClipboardCheck,
-      items: inspections.filter(i => ["COMPLETED", "OFFER_GENERATED"].includes(i.status)),
+      items: inspections.filter(i => i.status === "SCHEDULED"),
       type: "inspection",
       color: "bg-info/10 border-info/30",
     },
@@ -189,7 +190,7 @@ export default function PipelineKanban() {
                             Schedule <ArrowRight className="h-3 w-3" />
                           </Button>
                         )}
-                        {col.type === "inspection" && status === "COMPLETED" && (
+                        {col.type === "inspection" && status === "SCHEDULED" && (
                           <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleGenerateOffer(item)}>
                             Gen. Offer <ArrowRight className="h-3 w-3" />
                           </Button>
