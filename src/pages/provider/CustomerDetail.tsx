@@ -123,6 +123,8 @@ export default function CustomerDetail() {
     setContractOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
+    setVisitCount(1);
+    setVisitType("WEEK");
     load();
   };
 
