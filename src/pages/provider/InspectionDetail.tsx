@@ -184,7 +184,7 @@ export default function InspectionDetail() {
             <Label>Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} disabled={!isDraft} />
           </div>
-          {!isDraft && inspectedDate && (
+          {(isScheduled || inspection.status === "COMPLETED" || inspection.status === "OFFER_GENERATED") && inspectedDate && (
             <div className="space-y-2">
               <Label>Scheduled Date</Label>
               <Input type="date" value={inspectedDate} disabled />
