@@ -37,6 +37,7 @@ export default function InspectionDetail() {
   const [notes, setNotes] = useState("");
   const [customer, setCustomer] = useState<any>(null);
   const [inspectedDate, setInspectedDate] = useState("");
+  const [lastSavedBy, setLastSavedBy] = useState<string | null>(null);
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -55,6 +56,14 @@ export default function InspectionDetail() {
       setNotes(data.notes || "");
       setInspectedDate(data.inspected_date || "");
       setCustomer((data.properties as any)?.customers || null);
+
+      // Fetch last saved by user name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", data.created_by)
+        .single();
+      setLastSavedBy(profile?.full_name || null);
     }
   };
 
@@ -191,7 +200,14 @@ export default function InspectionDetail() {
             </div>
           )}
           <div className="space-y-2">
-            <Label>Notes</Label>
+            <div className="flex items-center justify-between">
+              <Label>Notes</Label>
+              {inspection?.updated_at && (
+                <span className="text-[11px] text-muted-foreground">
+                  Last saved: {format(new Date(inspection.updated_at), "PPp")}{lastSavedBy ? ` by ${lastSavedBy}` : ""}
+                </span>
+              )}
+            </div>
             <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="General notes…" />
           </div>
         </CardContent>
