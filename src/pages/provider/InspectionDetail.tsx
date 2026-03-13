@@ -34,7 +34,7 @@ export default function InspectionDetail() {
   const [inspection, setInspection] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
-  const [findings, setFindings] = useState("");
+  const [customer, setCustomer] = useState<any>(null);
   const [inspectedDate, setInspectedDate] = useState("");
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
