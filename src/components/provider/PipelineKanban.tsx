@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Archive, ClipboardCheck, FileOutput, FileText, Lightbulb } from "lucide-react";
+import { ArrowRight, Archive, ClipboardCheck, FileOutput, FileText, Lightbulb, Send, Undo2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -36,6 +36,7 @@ const statusVariantContract: Record<string, "default" | "secondary" | "outline" 
   SIGNED: "default",
   ACTIVE: "default",
   CLOSED: "destructive",
+  REJECTED: "destructive",
 };
 
 interface KanbanColumn {
@@ -91,6 +92,13 @@ export default function PipelineKanban() {
     load();
   };
 
+  const handleQuickStatus = async (table: "offers" | "contracts", id: string, status: string) => {
+    const { error } = await supabase.from(table).update({ status } as any).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Status updated to ${status.replace(/_/g, " ").toLowerCase()}`);
+    load();
+  };
+
   const columns: KanbanColumn[] = [
     {
       title: "Opportunities",
@@ -116,7 +124,7 @@ export default function PipelineKanban() {
     {
       title: "Contracts",
       icon: FileText,
-      items: contracts,
+      items: contracts.filter(c => ["DRAFT", "SENT_TO_CLIENT", "SIGNED", "REJECTED"].includes(c.status)),
       type: "contract",
       color: "bg-success/10 border-success/30",
     },
@@ -184,7 +192,36 @@ export default function PipelineKanban() {
                       </Badge>
 
                       <div className="flex items-center gap-1">
-                        {/* Primary action */}
+                        {/* Offer quick actions */}
+                        {col.type === "offer" && (status === "DRAFT" || status === "IN_PROGRESS") && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleQuickStatus("offers", item.id, "SENT_TO_CLIENT")}>
+                            <Send className="h-3 w-3" /> Send
+                          </Button>
+                        )}
+                        {col.type === "offer" && (status === "SENT_TO_CLIENT" || status === "REJECTED") && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleQuickStatus("offers", item.id, "IN_PROGRESS")}>
+                            <Undo2 className="h-3 w-3" /> Edit
+                          </Button>
+                        )}
+                        {col.type === "offer" && status === "ACCEPTED" && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/offers/${item.id}`)}>
+                            Gen. Contract <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        )}
+
+                        {/* Contract quick actions */}
+                        {col.type === "contract" && status === "DRAFT" && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleQuickStatus("contracts", item.id, "SENT_TO_CLIENT")}>
+                            <Send className="h-3 w-3" /> Send
+                          </Button>
+                        )}
+                        {col.type === "contract" && (status === "SENT_TO_CLIENT" || status === "REJECTED") && (
+                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleQuickStatus("contracts", item.id, "DRAFT")}>
+                            <Undo2 className="h-3 w-3" /> Revert
+                          </Button>
+                        )}
+
+                        {/* Inspection actions */}
                         {col.type === "opportunity" && status === "DRAFT" && (
                           <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/inspections/${item.id}`)}>
                             Schedule <ArrowRight className="h-3 w-3" />
@@ -193,11 +230,6 @@ export default function PipelineKanban() {
                         {col.type === "inspection" && status === "SCHEDULED" && (
                           <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => handleGenerateOffer(item)}>
                             Gen. Offer <ArrowRight className="h-3 w-3" />
-                          </Button>
-                        )}
-                        {col.type === "offer" && status === "ACCEPTED" && (
-                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/offers/${item.id}`)}>
-                            Gen. Contract <ArrowRight className="h-3 w-3" />
                           </Button>
                         )}
 
