@@ -29,11 +29,20 @@ export function ClientLayout() {
   const { signOut, profile } = useAuth();
   const location = useLocation();
 
+  const [showCopyWarning, setShowCopyWarning] = useState(false);
+
   const copyId = () => {
+    if (profile?.unique_client_id) {
+      setShowCopyWarning(true);
+    }
+  };
+
+  const confirmCopyId = () => {
     if (profile?.unique_client_id) {
       navigator.clipboard.writeText(profile.unique_client_id);
       toast.success("Client ID copied!");
     }
+    setShowCopyWarning(false);
   };
 
   const initials = profile?.full_name
