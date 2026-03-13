@@ -199,13 +199,11 @@ export default function InspectionDetail() {
 
       {/* Actions */}
       <div className="flex gap-3 flex-wrap">
+        <Button variant="secondary" onClick={save}><Save className="h-4 w-4 mr-2" /> Save</Button>
         {isDraft && (
-          <>
-            <Button variant="secondary" onClick={save}><Save className="h-4 w-4 mr-2" /> Save Draft</Button>
-            <Button onClick={() => { setSelectedDate(undefined); setScheduleOpen(true); }}>
-              <CalendarDays className="h-4 w-4 mr-2" /> Schedule Inspection
-            </Button>
-          </>
+          <Button onClick={() => { setSelectedDate(undefined); setScheduleOpen(true); }}>
+            <CalendarDays className="h-4 w-4 mr-2" /> Schedule Inspection
+          </Button>
         )}
         {isScheduled && (
           <AlertDialog>
