@@ -27,6 +27,7 @@ import ClientVisits from "./pages/client/ClientVisits";
 import ClientVisitDetail from "./pages/client/ClientVisitDetail";
 import ClientFeedback from "./pages/client/ClientFeedback";
 import ClientContracts from "./pages/client/ClientContracts";
+import ClientContractDetail from "./pages/client/ClientContractDetail";
 import ClientProfile from "./pages/client/ClientProfile";
 
 import AdminInvites from "./pages/admin/AdminInvites";
