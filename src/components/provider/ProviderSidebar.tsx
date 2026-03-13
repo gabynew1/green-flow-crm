@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  FileText,
   ClipboardList,
   BookOpen,
   MessageSquare,
@@ -9,7 +8,6 @@ import {
   LogOut,
   Shield,
   ClipboardCheck,
-  FileOutput,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
