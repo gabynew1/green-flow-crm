@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, Pause, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, Pause, XCircle, Clock, Pencil, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -25,6 +26,12 @@ function getTimeRemaining(endDate: string | null): { label: string; urgent: bool
   return { label: `${diffDays}d`, urgent: diffDays <= 30 };
 }
 
+const billingCycleLabels: Record<string, string> = {
+  WEEKLY: "Weekly",
+  MONTHLY: "Monthly",
+  ONE_TIME: "Ad hoc",
+};
+
 const statusColors: Record<string, string> = {
   DRAFT: "secondary",
   ACTIVE: "default",
@@ -39,7 +46,17 @@ export default function CustomerDetail() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
-  const [selectedPropertyId, setSelectedPropertyId] = useState("");
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<{
+    contract_name: string;
+    start_date: string;
+    end_date: string;
+    billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME";
+  }>({ contract_name: "", start_date: "", end_date: "", billing_cycle: "MONTHLY" });
 
   useEffect(() => { load(); }, [customerId]);
 
@@ -70,28 +87,38 @@ export default function CustomerDetail() {
     load();
   };
 
+  const toggleProperty = (id: string) => {
+    setSelectedPropertyIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
   const handleCreateContract = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const startDate = form.get("start_date") as string;
     const endDate = form.get("end_date") as string;
-    const propertyId = selectedPropertyId;
+    const contractName = form.get("contract_name") as string;
 
-    if (!propertyId) { toast.error("Select a property"); return; }
+    if (selectedPropertyIds.length === 0) { toast.error("Select at least one property"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
 
-    const { error } = await supabase.from("contracts").insert({
-      contract_name: form.get("contract_name") as string,
+    // Create one contract per selected property
+    const inserts = selectedPropertyIds.map((propertyId) => ({
+      contract_name: contractName,
       property_id: propertyId,
       start_date: startDate,
       end_date: endDate,
-      billing_cycle: (form.get("billing_cycle") as "WEEKLY" | "MONTHLY" | "ONE_TIME") || "MONTHLY",
+      billing_cycle: billingCycle,
       status: "ACTIVE" as const,
-    });
+    }));
+
+    const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
-    toast.success("Contract created & client activated!");
+    toast.success(`${inserts.length} contract(s) created & client activated!`);
     setContractOpen(false);
-    setSelectedPropertyId("");
+    setSelectedPropertyIds([]);
+    setBillingCycle("MONTHLY");
     load();
   };
 
@@ -102,9 +129,44 @@ export default function CustomerDetail() {
     load();
   };
 
+  const startEdit = (c: any) => {
+    setEditingId(c.id);
+    setEditData({
+      contract_name: c.contract_name,
+      start_date: c.start_date,
+      end_date: c.end_date || "",
+      billing_cycle: c.billing_cycle,
+    });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    const { error } = await supabase.from("contracts").update({
+      contract_name: editData.contract_name,
+      start_date: editData.start_date,
+      end_date: editData.end_date || null,
+      billing_cycle: editData.billing_cycle,
+    }).eq("id", editingId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Contract updated");
+    setEditingId(null);
+    load();
+  };
+
   if (!customer) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
   const hasActiveContract = contracts.some((c) => c.status === "ACTIVE");
+
+  // Group contracts by property
+  const contractsByProperty = new Map<string, { propertyName: string; contracts: any[] }>();
+  for (const c of contracts) {
+    const propName = (c.properties as any)?.name || "Unknown";
+    const propId = c.property_id;
+    if (!contractsByProperty.has(propId)) {
+      contractsByProperty.set(propId, { propertyName: propName, contracts: [] });
+    }
+    contractsByProperty.get(propId)!.contracts.push(c);
+  }
 
   return (
     <div className="space-y-6">
@@ -136,7 +198,7 @@ export default function CustomerDetail() {
       {/* Contracts Section */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Contracts</h2>
-        <Dialog open={contractOpen} onOpenChange={setContractOpen}>
+        <Dialog open={contractOpen} onOpenChange={(open) => { setContractOpen(open); if (!open) { setSelectedPropertyIds([]); setBillingCycle("MONTHLY"); } }}>
           <DialogTrigger asChild>
             <Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Contract</Button>
           </DialogTrigger>
@@ -148,15 +210,29 @@ export default function CustomerDetail() {
                 <Input name="contract_name" required placeholder="e.g. Annual Maintenance 2026" />
               </div>
               <div className="space-y-2">
-                <Label>Property *</Label>
-                <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-                  <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
-                  <SelectContent>
-                    {properties.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Properties *</Label>
+                <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                  {properties.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No properties — add one first.</p>
+                  ) : (
+                    properties.map((p) => (
+                      <div key={p.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`prop-${p.id}`}
+                          checked={selectedPropertyIds.includes(p.id)}
+                          onCheckedChange={() => toggleProperty(p.id)}
+                        />
+                        <label htmlFor={`prop-${p.id}`} className="text-sm cursor-pointer flex-1">
+                          {p.name}
+                          {p.address && <span className="text-muted-foreground ml-1">— {p.address}</span>}
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {selectedPropertyIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">{selectedPropertyIds.length} selected — a contract will be created for each property</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -170,12 +246,12 @@ export default function CustomerDetail() {
               </div>
               <div className="space-y-2">
                 <Label>Billing Cycle</Label>
-                <Select name="billing_cycle" defaultValue="MONTHLY">
+                <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="WEEKLY">Weekly</SelectItem>
                     <SelectItem value="MONTHLY">Monthly</SelectItem>
-                    <SelectItem value="ONE_TIME">One Time</SelectItem>
+                    <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -188,60 +264,124 @@ export default function CustomerDetail() {
       {contracts.length === 0 ? (
         <p className="text-muted-foreground text-center py-6">No contracts yet — create one to activate this client.</p>
       ) : (
-        <div className="grid gap-3">
-          {contracts.map((c) => {
-            const timeLeft = getTimeRemaining(c.end_date);
-            return (
-              <Card key={c.id}>
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <div>
-                        <Link to={`/provider/contracts/${c.id}`} className="font-medium hover:underline">
-                          {c.contract_name}
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {(c.properties as any)?.name} · {format(new Date(c.start_date), "MMM d, yyyy")} → {c.end_date ? format(new Date(c.end_date), "MMM d, yyyy") : "Ongoing"}
-                        </p>
+        <div className="space-y-4">
+          {Array.from(contractsByProperty.entries()).map(([propId, { propertyName, contracts: propContracts }]) => (
+            <Card key={propId}>
+              <CardContent className="pt-4 pb-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <Link to={`/provider/properties/${propId}`} className="font-medium text-sm hover:underline">{propertyName}</Link>
+                </div>
+                <div className="space-y-2 pl-6">
+                  {propContracts.map((c: any) => {
+                    const timeLeft = getTimeRemaining(c.end_date);
+                    const isEditing = editingId === c.id;
+
+                    if (isEditing) {
+                      return (
+                        <div key={c.id} className="border rounded-md p-3 space-y-3 bg-muted/30">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Contract Name</Label>
+                            <Input
+                              value={editData.contract_name}
+                              onChange={(e) => setEditData({ ...editData, contract_name: e.target.value })}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Start Date</Label>
+                              <Input
+                                type="date"
+                                value={editData.start_date}
+                                onChange={(e) => setEditData({ ...editData, start_date: e.target.value })}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">End Date</Label>
+                              <Input
+                                type="date"
+                                value={editData.end_date}
+                                onChange={(e) => setEditData({ ...editData, end_date: e.target.value })}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Billing</Label>
+                              <Select value={editData.billing_cycle} onValueChange={(v) => setEditData({ ...editData, billing_cycle: v as any })}>
+                                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="WEEKLY">Weekly</SelectItem>
+                                  <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                  <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={saveEdit} className="gap-1"><Save className="h-3 w-3" /> Save</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingId(null)}><X className="h-3 w-3" /></Button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={c.id} className="flex items-center justify-between py-1.5">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <Link to={`/provider/contracts/${c.id}`} className="text-sm font-medium hover:underline">
+                              {c.contract_name}
+                            </Link>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(c.start_date), "MMM d, yyyy")} → {c.end_date ? format(new Date(c.end_date), "MMM d, yyyy") : "Ongoing"}
+                              {" · "}{billingCycleLabels[c.billing_cycle] || c.billing_cycle}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {c.status === "ACTIVE" && timeLeft && (
+                            <span className={`flex items-center gap-1 text-xs font-medium ${timeLeft.urgent ? "text-destructive" : "text-muted-foreground"}`}>
+                              <Clock className="h-3 w-3" />
+                              {timeLeft.label}
+                            </span>
+                          )}
+                          <Badge variant={statusColors[c.status] as any || "secondary"} className="text-[10px] px-1.5 py-0">
+                            {c.status}
+                          </Badge>
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(c)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          {c.status === "DRAFT" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
+                              <Play className="h-3 w-3 mr-1" /> Activate
+                            </Button>
+                          )}
+                          {c.status === "ACTIVE" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "PAUSED")}>
+                              <Pause className="h-3 w-3 mr-1" /> Pause
+                            </Button>
+                          )}
+                          {c.status === "PAUSED" && (
+                            <>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
+                                <Play className="h-3 w-3 mr-1" /> Resume
+                              </Button>
+                              <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "TERMINATED")}>
+                                <XCircle className="h-3 w-3 mr-1" /> End
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {c.status === "ACTIVE" && timeLeft && (
-                        <span className={`flex items-center gap-1 text-xs font-medium ${timeLeft.urgent ? "text-destructive" : "text-muted-foreground"}`}>
-                          <Clock className="h-3 w-3" />
-                          {timeLeft.label}
-                        </span>
-                      )}
-                      <Badge variant={statusColors[c.status] as any || "secondary"}>
-                        {c.status}
-                      </Badge>
-                      {c.status === "DRAFT" && (
-                        <Button size="sm" variant="outline" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
-                          <Play className="h-3 w-3 mr-1" /> Activate
-                        </Button>
-                      )}
-                      {c.status === "ACTIVE" && (
-                        <Button size="sm" variant="outline" onClick={() => updateContractStatus(c.id, "PAUSED")}>
-                          <Pause className="h-3 w-3 mr-1" /> Pause
-                        </Button>
-                      )}
-                      {c.status === "PAUSED" && (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => updateContractStatus(c.id, "ACTIVE")}>
-                            <Play className="h-3 w-3 mr-1" /> Resume
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => updateContractStatus(c.id, "TERMINATED")}>
-                            <XCircle className="h-3 w-3 mr-1" /> Terminate
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
