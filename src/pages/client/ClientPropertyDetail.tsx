@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, MapPin, Pencil, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ClientPropertyDetail() {
