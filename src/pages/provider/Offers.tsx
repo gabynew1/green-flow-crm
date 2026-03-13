@@ -33,7 +33,7 @@ const statusLabels: Record<string, string> = {
   CANCELED: "Canceled",
 };
 
-export default function Offers() {
+export default function Offers({ embedded }: { embedded?: boolean } = {}) {
   const { user, profile } = useAuth();
   const [offers, setOffers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
@@ -90,15 +90,16 @@ export default function Offers() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Offers</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{offers.length} total</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> New Offer</Button>
-          </DialogTrigger>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Offers</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{offers.length} total</p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" /> New Offer</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>New Offer</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -121,8 +122,9 @@ export default function Offers() {
               <Button type="submit" className="w-full">Create Offer</Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <div className="relative flex-1">

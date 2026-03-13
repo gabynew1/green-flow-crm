@@ -25,7 +25,7 @@ const statusLabels: Record<string, string> = {
   OFFER_GENERATED: "Offer Generated",
 };
 
-export default function Inspections() {
+export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
   const { user, profile } = useAuth();
   const [inspections, setInspections] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
@@ -81,15 +81,16 @@ export default function Inspections() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Inspections</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{inspections.length} total</p>
-        </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" /> New Inspection</Button>
-          </DialogTrigger>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Inspections</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{inspections.length} total</p>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" /> New Inspection</Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>New Inspection</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
@@ -111,8 +112,9 @@ export default function Inspections() {
               <Button type="submit" className="w-full">Create Inspection</Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <div className="relative flex-1">

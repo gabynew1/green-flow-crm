@@ -15,15 +15,14 @@ import Customers from "./pages/provider/Customers";
 import CustomerDetail from "./pages/provider/CustomerDetail";
 import PropertyDetail from "./pages/provider/PropertyDetail";
 import ServiceCatalog from "./pages/provider/ServiceCatalog";
-import Contracts from "./pages/provider/Contracts";
+
 import ContractDetail from "./pages/provider/ContractDetail";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
 import FeedbackPage from "./pages/provider/Feedback";
-import Inspections from "./pages/provider/Inspections";
 import InspectionDetail from "./pages/provider/InspectionDetail";
-import Offers from "./pages/provider/Offers";
 import OfferDetail from "./pages/provider/OfferDetail";
+import SalesPipeline from "./pages/provider/SalesPipeline";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
@@ -77,11 +76,12 @@ function AppRoutes(): JSX.Element {
         <Route path="customers/:customerId" element={<CustomerDetail />} />
         <Route path="properties/:propertyId" element={<PropertyDetail />} />
         <Route path="catalog" element={<ServiceCatalog />} />
-        <Route path="inspections" element={<Inspections />} />
+        <Route path="pipeline" element={<SalesPipeline />} />
+        <Route path="inspections" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="inspections/:inspectionId" element={<InspectionDetail />} />
-        <Route path="offers" element={<Offers />} />
+        <Route path="offers" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="offers/:offerId" element={<OfferDetail />} />
-        <Route path="contracts" element={<Contracts />} />
+        <Route path="contracts" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="contracts/:contractId" element={<ContractDetail />} />
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />

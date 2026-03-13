@@ -42,7 +42,7 @@ type SortDir = "asc" | "desc";
 const ACTIVE_STATUSES = ["ACTIVE", "SIGNED", "SENT_TO_CLIENT"];
 const INACTIVE_STATUSES = ["CLOSED", "DRAFT"];
 
-export default function Contracts() {
+export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const [contracts, setContracts] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [lineItemTotals, setLineItemTotals] = useState<Map<string, number>>(new Map());
@@ -218,6 +218,7 @@ export default function Contracts() {
   return (
     <div className="space-y-5">
       {/* Header */}
+      {!embedded && (
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Contracts</h1>
@@ -303,6 +304,7 @@ export default function Contracts() {
           </Dialog>
         </div>
       </div>
+      )}
 
       {/* Filter tabs + search */}
       <div className="flex flex-col sm:flex-row gap-3">
