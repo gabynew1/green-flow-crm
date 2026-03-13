@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin } from "lucide-react";
+import { MapPin, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 export default function ClientProperties() {
