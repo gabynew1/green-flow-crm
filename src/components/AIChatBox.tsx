@@ -25,10 +25,23 @@ export function AIChatBox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const { isProvider } = useAuth();
+  const { isProvider, profile } = useAuth();
   const location = useLocation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [userProperties, setUserProperties] = useState<{ id: string; name: string; address: string | null; city: string | null }[]>([]);
+
+  // Fetch user properties for context
+  useEffect(() => {
+    if (!profile?.customer_id) return;
+    supabase
+      .from("properties")
+      .select("id, name, address, city")
+      .eq("customer_id", profile.customer_id)
+      .then(({ data }) => {
+        if (data) setUserProperties(data);
+      });
+  }, [profile?.customer_id]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -52,10 +65,18 @@ export function AIChatBox() {
         ...extractContext(location.pathname),
       };
 
+      const user = profile ? {
+        full_name: profile.full_name,
+        email: profile.email,
+        unique_client_id: profile.unique_client_id,
+      } : undefined;
+
       const { data, error } = await supabase.functions.invoke("ai-assistant", {
         body: {
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
           context,
+          user,
+          properties: userProperties,
         },
       });
 

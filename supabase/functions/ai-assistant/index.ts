@@ -108,18 +108,52 @@ const tools = [
   },
 ];
 
-function getSystemPrompt(role: string, context: Record<string, string | undefined>) {
+interface UserInfo {
+  full_name?: string;
+  email?: string;
+  unique_client_id?: string;
+}
+
+interface PropertyInfo {
+  id: string;
+  name: string;
+  address?: string | null;
+  city?: string | null;
+}
+
+function getSystemPrompt(
+  role: string,
+  context: Record<string, string | undefined>,
+  user?: UserInfo,
+  properties?: PropertyInfo[]
+) {
   const base =
     "You are GreenCRM Assistant, a helpful AI for a landscaping and gardening CRM. Be concise, friendly, and action-oriented. When you perform an action, confirm what you did clearly.";
+
+  let userCtx = "";
+  if (user?.full_name) {
+    userCtx += `\n\nYou are helping ${user.full_name}`;
+    if (user.unique_client_id) userCtx += ` (Client ID: ${user.unique_client_id})`;
+    if (user.email) userCtx += `, email: ${user.email}`;
+    userCtx += ".";
+  }
+
+  let propsCtx = "";
+  if (properties && properties.length > 0) {
+    propsCtx = "\n\nTheir properties:\n" + properties.map((p, i) =>
+      `${i + 1}. "${p.name}" (ID: ${p.id})${p.address ? `, ${p.address}` : ""}${p.city ? `, ${p.city}` : ""}`
+    ).join("\n");
+    propsCtx += "\n\nWhen the user refers to a property by name, use the matching property ID for tool calls.";
+  }
 
   if (role === "provider") {
     let ctx = "";
     if (context.propertyId) ctx += ` The user is viewing property ${context.propertyId}.`;
     if (context.visitId) ctx += ` The user is viewing service visit ${context.visitId}.`;
-    return `${base}\n\nYou are helping a landscaping SERVICE PROVIDER. You can:\n1. Populate property inventory from natural-language descriptions (trees, lawns, shrubs, etc.)\n2. Summarize visit notes into client-friendly summaries\n3. Mark service visit tasks as completed\n\nAlways confirm actions before executing when the request is ambiguous. Label AI suggestions clearly.${ctx}`;
+    return `${base}${userCtx}${propsCtx}\n\nYou are helping a landscaping SERVICE PROVIDER. You can:\n1. Populate property inventory from natural-language descriptions (trees, lawns, shrubs, etc.)\n2. Summarize visit notes into client-friendly summaries\n3. Mark service visit tasks as completed\n\nAlways confirm actions before executing when the request is ambiguous. Label AI suggestions clearly.${ctx}`;
   }
 
-  return `${base}\n\nYou are helping a PROPERTY OWNER (client). You can:\n1. Create service requests by describing what you need in plain language\n\nAlways confirm the parsed request before saving. Property: ${context.propertyId || "not specified"}.`;
+  return `${base}${userCtx}${propsCtx}\n\nYou are helping a PROPERTY OWNER (client). You can:\n1. Create service requests by describing what you need in plain language\n\nAlways confirm the parsed request before saving. Property: ${context.propertyId || "not specified"}.`;
 }
 
 async function executeToolCall(
@@ -289,7 +323,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, context } = await req.json();
+    const { messages, context, user, properties } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -298,7 +332,7 @@ serve(async (req) => {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const role = context?.role || "provider";
-    const systemPrompt = getSystemPrompt(role, context || {});
+    const systemPrompt = getSystemPrompt(role, context || {}, user, properties);
 
     // Filter tools based on role
     const availableTools =
