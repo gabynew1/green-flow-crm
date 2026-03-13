@@ -35,6 +35,8 @@ export default function Contracts() {
   const [open, setOpen] = useState(false);
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [visitCount, setVisitCount] = useState(1);
+  const [visitType, setVisitType] = useState("WEEK");
 
   useEffect(() => { load(); }, []);
 
