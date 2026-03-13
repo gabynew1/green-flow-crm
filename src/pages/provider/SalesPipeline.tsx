@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Kanban, ClipboardCheck, FileOutput, FileText } from "lucide-react";
+import { Kanban, ClipboardCheck, FileOutput, FileText, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PipelineKanban from "@/components/provider/PipelineKanban";
 import PipelineCreateMenu from "@/components/provider/PipelineCreateMenu";
@@ -7,13 +7,14 @@ import Inspections from "./Inspections";
 import Offers from "./Offers";
 import Contracts from "./Contracts";
 
-type Tab = "kanban" | "inspections" | "offers" | "contracts";
+type Tab = "kanban" | "opportunities" | "inspections" | "offers" | "contracts";
 
 export default function SalesPipeline() {
   const [tab, setTab] = useState<Tab>("kanban");
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "kanban", label: "Pipeline", icon: Kanban },
+    { key: "opportunities", label: "Opportunities", icon: Lightbulb },
     { key: "inspections", label: "Inspections", icon: ClipboardCheck },
     { key: "offers", label: "Offers", icon: FileOutput },
     { key: "contracts", label: "Contracts", icon: FileText },
@@ -45,6 +46,7 @@ export default function SalesPipeline() {
       </div>
 
       {tab === "kanban" && <PipelineKanban />}
+      {tab === "opportunities" && <Inspections embedded statusFilter="DRAFT" />}
       {tab === "inspections" && <Inspections embedded />}
       {tab === "offers" && <Offers embedded />}
       {tab === "contracts" && <Contracts embedded />}

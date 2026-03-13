@@ -25,22 +25,35 @@ const statusLabels: Record<string, string> = {
   OFFER_GENERATED: "Offer Generated",
 };
 
-export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
+interface InspectionsProps {
+  embedded?: boolean;
+  statusFilter?: string;
+}
+
+export default function Inspections({ embedded, statusFilter: statusFilterProp }: InspectionsProps = {}) {
   const { user, profile } = useAuth();
   const [inspections, setInspections] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState(statusFilterProp || "ALL");
   const [open, setOpen] = useState(false);
+
+  const isStatusLocked = !!statusFilterProp;
 
   useEffect(() => { load(); }, []);
 
   const load = async () => {
+    let query = supabase
+      .from("inspections")
+      .select("*, properties(name, customers(name))")
+      .order("created_at", { ascending: false });
+
+    if (statusFilterProp) {
+      query = query.eq("status", statusFilterProp);
+    }
+
     const [insRes, propRes] = await Promise.all([
-      supabase
-        .from("inspections")
-        .select("*, properties(name, customers(name))")
-        .order("created_at", { ascending: false }),
+      query,
       supabase.from("properties").select("id, name, customer_id, customers(id, name)").order("name"),
     ]);
     setInspections(insRes.data ?? []);
@@ -70,14 +83,14 @@ export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
 
   const filtered = useMemo(() => {
     return inspections.filter(i => {
-      if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+      if (!isStatusLocked && statusFilter !== "ALL" && i.status !== statusFilter) return false;
       const q = search.toLowerCase();
       if (!q) return true;
       return i.title?.toLowerCase().includes(q) ||
         (i.properties as any)?.name?.toLowerCase().includes(q) ||
         (i.properties as any)?.customers?.name?.toLowerCase().includes(q);
     });
-  }, [inspections, statusFilter, search]);
+  }, [inspections, statusFilter, search, isStatusLocked]);
 
   return (
     <div className="space-y-5">
@@ -121,15 +134,17 @@ export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
-            <SelectItem value="COMPLETED">Completed</SelectItem>
-            <SelectItem value="OFFER_GENERATED">Offer Generated</SelectItem>
-          </SelectContent>
-        </Select>
+        {!isStatusLocked && (
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="OFFER_GENERATED">Offer Generated</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -147,7 +162,10 @@ export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
                     </p>
                   </div>
                 </div>
-                <Badge variant={statusVariant[i.status] || "secondary"}>{statusLabels[i.status] || i.status}</Badge>
+                <div className="flex items-center gap-2">
+                  {i.archived && <Badge variant="outline" className="text-[10px]">Archived</Badge>}
+                  <Badge variant={statusVariant[i.status] || "secondary"}>{statusLabels[i.status] || i.status}</Badge>
+                </div>
               </CardContent>
             </Card>
           </Link>
