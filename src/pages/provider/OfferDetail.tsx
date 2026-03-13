@@ -81,7 +81,7 @@ export default function OfferDetail() {
           quantity: 1,
           unit_price: svc?.default_price || null,
           unit: svc?.default_unit || null,
-          notes: v.frequency,
+          notes: `${v.visitCount}x ${v.frequency.replace(/_/g, " ")}`,
         };
       });
     if (toAdd.length === 0) { toast.error("Select at least one service"); return; }
