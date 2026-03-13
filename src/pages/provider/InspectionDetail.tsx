@@ -56,6 +56,14 @@ export default function InspectionDetail() {
       setNotes(data.notes || "");
       setInspectedDate(data.inspected_date || "");
       setCustomer((data.properties as any)?.customers || null);
+
+      // Fetch last saved by user name
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", data.created_by)
+        .single();
+      setLastSavedBy(profile?.full_name || null);
     }
   };
 
