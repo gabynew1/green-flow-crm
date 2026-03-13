@@ -27,10 +27,12 @@ import ClientVisits from "./pages/client/ClientVisits";
 import ClientVisitDetail from "./pages/client/ClientVisitDetail";
 import ClientFeedback from "./pages/client/ClientFeedback";
 
+import AdminInvites from "./pages/admin/AdminInvites";
+
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { user, isProvider, isClient, isLoading } = useAuth();
+  const { user, isProvider, isClient, isSuperAdmin, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -51,6 +53,11 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Super Admin */}
+      {isSuperAdmin && (
+        <Route path="/admin" element={<AdminInvites />} />
+      )}
+
       {/* Provider routes */}
       <Route path="/provider" element={<ProviderLayout />}>
         <Route index element={<Dashboard />} />
@@ -76,9 +83,10 @@ function AppRoutes() {
 
       {/* Default redirect based on role */}
       <Route path="/" element={
+        isSuperAdmin && !isProvider && !isClient ? <Navigate to="/admin" replace /> :
         isProvider ? <Navigate to="/provider" replace /> :
         isClient ? <Navigate to="/client" replace /> :
-        <Navigate to="/provider" replace />
+        <Navigate to="/client" replace />
       } />
 
       <Route path="/auth" element={<Navigate to="/" replace />} />
