@@ -74,7 +74,6 @@ export default function InspectionDetail() {
       inspected_date: dateStr,
       title,
       notes: notes || null,
-      findings: findings || null,
     }).eq("id", inspectionId!);
     if (error) { toast.error(error.message); return; }
     toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
