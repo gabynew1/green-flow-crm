@@ -117,7 +117,7 @@ export default function InspectionDetail() {
             {property?.customers?.name} · {property?.name}
           </p>
         </div>
-        <Badge variant={isDraft ? "secondary" : "default"}>{statusLabels[inspection.status]}</Badge>
+        <Badge variant={isDraft ? "secondary" : isScheduled ? "default" : "outline"}>{statusLabels[inspection.status]}</Badge>
       </div>
 
       {/* Property & Contact info */}
