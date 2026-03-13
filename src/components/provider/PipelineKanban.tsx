@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, ClipboardCheck, FileOutput, FileText, Lightbulb, X } from "lucide-react";
+import { ArrowRight, Archive, ClipboardCheck, FileOutput, FileText, Lightbulb } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -58,9 +58,9 @@ export default function PipelineKanban() {
   const load = async () => {
     setLoading(true);
     const [insRes, offRes, conRes] = await Promise.all([
-      supabase.from("inspections").select("*, properties(name, customers(name))").order("created_at", { ascending: false }),
-      supabase.from("offers").select("*, properties(name, customers(name))").order("created_at", { ascending: false }),
-      supabase.from("contracts").select("*, properties(name, customers(name))").order("created_at", { ascending: false }),
+      supabase.from("inspections").select("*, properties(name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
+      supabase.from("offers").select("*, properties(name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
+      supabase.from("contracts").select("*, properties(name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
     ]);
     setInspections(insRes.data ?? []);
     setOffers(offRes.data ?? []);
@@ -83,24 +83,10 @@ export default function PipelineKanban() {
     load();
   };
 
-  const handleCancelInspection = async (id: string) => {
-    const { error } = await supabase.from("inspections").delete().eq("id", id);
+  const handleArchive = async (table: "inspections" | "offers" | "contracts", id: string) => {
+    const { error } = await supabase.from(table).update({ archived: true } as any).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("Opportunity cancelled");
-    load();
-  };
-
-  const handleCancelOffer = async (id: string) => {
-    const { error } = await supabase.from("offers").update({ status: "CANCELED" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Offer cancelled");
-    load();
-  };
-
-  const handleCloseContract = async (id: string) => {
-    const { error } = await supabase.from("contracts").update({ status: "CLOSED" }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Contract closed");
+    toast.success("Archived successfully");
     load();
   };
 
@@ -180,8 +166,9 @@ export default function PipelineKanban() {
                 statusBadgeVariant = statusVariantContract[status] || "secondary";
               }
 
-              // Determine if item is in a terminal/cancelled state
-              const isCancelled = status === "CANCELED" || status === "CLOSED" || status === "REJECTED" || status === "EXPIRED";
+              const archiveTable: "inspections" | "offers" | "contracts" =
+                col.type === "opportunity" || col.type === "inspection" ? "inspections" :
+                col.type === "offer" ? "offers" : "contracts";
 
               return (
                 <Card key={item.id} className="hover:border-primary/40 transition-colors">
@@ -213,41 +200,28 @@ export default function PipelineKanban() {
                           </Button>
                         )}
 
-                        {/* Cancel action - shown on non-terminal items */}
-                        {!isCancelled && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  {col.type === "opportunity" ? "Cancel this opportunity?" :
-                                   col.type === "inspection" ? "Cancel this inspection?" :
-                                   col.type === "offer" ? "Cancel this offer?" :
-                                   "Close this contract?"}
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Keep</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onClick={() => {
-                                    if (col.type === "opportunity") handleCancelInspection(item.id);
-                                    else if (col.type === "inspection") handleCancelInspection(item.id);
-                                    else if (col.type === "offer") handleCancelOffer(item.id);
-                                    else handleCloseContract(item.id);
-                                  }}
-                                >
-                                  {col.type === "contract" ? "Close" : "Cancel"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
+                        {/* Archive action */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground">
+                              <Archive className="h-3 w-3" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Archive this item?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                It will be removed from the pipeline view but remain in historical records.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Keep</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleArchive(archiveTable, item.id)}>
+                                Archive
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   </CardContent>
