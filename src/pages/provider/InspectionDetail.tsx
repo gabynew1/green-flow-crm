@@ -96,7 +96,7 @@ export default function InspectionDetail() {
 
     if (error) { toast.error(error.message); return; }
 
-    await supabase.from("inspections").update({ status: "OFFER_GENERATED" }).eq("id", inspectionId!);
+    await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", inspectionId!);
     toast.success("Offer created from inspection!");
     navigate(`/provider/offers/${offer.id}`);
   };
