@@ -30,12 +30,7 @@ export function ClientLayout() {
   const location = useLocation();
 
   const [showCopyWarning, setShowCopyWarning] = useState(false);
-
-  const copyId = () => {
-    if (profile?.unique_client_id) {
-      setShowCopyWarning(true);
-    }
-  };
+  const [showIdInfo, setShowIdInfo] = useState(false);
 
   const confirmCopyId = () => {
     if (profile?.unique_client_id) {
@@ -43,6 +38,7 @@ export function ClientLayout() {
       toast.success("Client ID copied!");
     }
     setShowCopyWarning(false);
+    setShowIdInfo(false);
   };
 
   const initials = profile?.full_name
