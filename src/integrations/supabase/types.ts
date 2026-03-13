@@ -152,6 +152,7 @@ export type Database = {
       }
       contracts: {
         Row: {
+          archived: boolean
           billing_cycle: Database["public"]["Enums"]["billing_cycle"]
           contract_name: string
           created_at: string
@@ -167,6 +168,7 @@ export type Database = {
           visit_frequency_type: string | null
         }
         Insert: {
+          archived?: boolean
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
           contract_name: string
           created_at?: string
@@ -182,6 +184,7 @@ export type Database = {
           visit_frequency_type?: string | null
         }
         Update: {
+          archived?: boolean
           billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
           contract_name?: string
           created_at?: string
@@ -300,6 +303,7 @@ export type Database = {
       }
       inspections: {
         Row: {
+          archived: boolean
           created_at: string
           created_by: string
           customer_id: string
@@ -314,6 +318,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
           created_at?: string
           created_by: string
           customer_id: string
@@ -328,6 +333,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
           created_at?: string
           created_by?: string
           customer_id?: string
@@ -500,6 +506,7 @@ export type Database = {
       }
       offers: {
         Row: {
+          archived: boolean
           created_at: string
           created_by: string
           customer_id: string
@@ -516,6 +523,7 @@ export type Database = {
           valid_until: string | null
         }
         Insert: {
+          archived?: boolean
           created_at?: string
           created_by: string
           customer_id: string
@@ -532,6 +540,7 @@ export type Database = {
           valid_until?: string | null
         }
         Update: {
+          archived?: boolean
           created_at?: string
           created_by?: string
           customer_id?: string
