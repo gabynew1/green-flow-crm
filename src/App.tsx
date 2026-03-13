@@ -82,6 +82,7 @@ function AppRoutes(): JSX.Element {
       <Route path="/client" element={<ClientLayout />}>
         <Route index element={<ClientDashboard />} />
         <Route path="contracts" element={<ClientContracts />} />
+        <Route path="contracts/:contractId" element={<ClientContractDetail />} />
         <Route path="properties/:propertyId" element={<ClientPropertyDetail />} />
         <Route path="visits" element={<ClientVisits />} />
         <Route path="visits/:visitId" element={<ClientVisitDetail />} />
