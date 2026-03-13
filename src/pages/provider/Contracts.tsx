@@ -42,7 +42,7 @@ type SortDir = "asc" | "desc";
 const ACTIVE_STATUSES = ["ACTIVE", "SIGNED", "SENT_TO_CLIENT"];
 const INACTIVE_STATUSES = ["CLOSED", "DRAFT"];
 
-export default function Contracts() {
+export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const [contracts, setContracts] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [lineItemTotals, setLineItemTotals] = useState<Map<string, number>>(new Map());
