@@ -104,7 +104,7 @@ export default function InspectionDetail() {
   if (!inspection) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
   const isDraft = inspection.status === "DRAFT";
-  const isCompleted = inspection.status === "COMPLETED";
+  const isScheduled = inspection.status === "SCHEDULED";
   const property = inspection.properties as any;
 
   return (
