@@ -119,28 +119,61 @@ export default function InspectionDetail() {
         <Badge variant={isDraft ? "secondary" : "default"}>{statusLabels[inspection.status]}</Badge>
       </div>
 
-      {/* Property info */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Property</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Name:</span>
-              <p className="font-medium">{property?.name}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Customer:</span>
-              <p className="font-medium">{property?.customers?.name}</p>
-            </div>
-            {property?.address && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Address:</span>
-                <p className="font-medium">{[property.address, property.city].filter(Boolean).join(", ")}</p>
+      {/* Property & Contact info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Property</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Name:</span>
+                <p className="font-medium">{property?.name}</p>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              {property?.address && (
+                <div>
+                  <span className="text-muted-foreground">Address:</span>
+                  <p className="font-medium">{[property.address, property.city].filter(Boolean).join(", ")}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Contact</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Customer:</span>
+                <p className="font-medium">{customer?.name || "—"}</p>
+              </div>
+              {customer?.contact_person_name && (
+                <div>
+                  <span className="text-muted-foreground">Contact Person:</span>
+                  <p className="font-medium">{customer.contact_person_name}</p>
+                </div>
+              )}
+              {customer?.email && (
+                <div>
+                  <span className="text-muted-foreground">Email:</span>
+                  <p className="font-medium">{customer.email}</p>
+                </div>
+              )}
+              {customer?.phone && (
+                <div>
+                  <span className="text-muted-foreground">Phone:</span>
+                  <p className="font-medium">{customer.phone}</p>
+                </div>
+              )}
+              {customer?.company_name && (
+                <div>
+                  <span className="text-muted-foreground">Company:</span>
+                  <p className="font-medium">{customer.company_name}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Details */}
       <Card>
