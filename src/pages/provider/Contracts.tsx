@@ -217,6 +217,7 @@ export default function Contracts() {
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Total Value</TableHead>
               <TableHead>Visit Frequency</TableHead>
+              <TableHead>Billing Frequency</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
