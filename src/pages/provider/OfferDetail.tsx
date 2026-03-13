@@ -51,14 +51,21 @@ export default function OfferDetail() {
   const toggleService = (id: string, checked: boolean) => {
     setSelectedServices(prev => ({
       ...prev,
-      [id]: { checked, frequency: prev[id]?.frequency || "PER_VISIT" },
+      [id]: { checked, frequency: prev[id]?.frequency || "PER_VISIT", visitCount: prev[id]?.visitCount || 1 },
     }));
   };
 
   const setServiceFrequency = (id: string, frequency: string) => {
     setSelectedServices(prev => ({
       ...prev,
-      [id]: { ...prev[id], checked: true, frequency },
+      [id]: { ...prev[id], checked: true, frequency, visitCount: prev[id]?.visitCount || 1 },
+    }));
+  };
+
+  const setServiceVisitCount = (id: string, visitCount: number) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [id]: { ...prev[id], checked: true, visitCount },
     }));
   };
 
