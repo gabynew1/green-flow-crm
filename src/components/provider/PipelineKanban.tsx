@@ -78,7 +78,7 @@ export default function PipelineKanban() {
       created_by: user!.id,
     });
     if (offerErr) { toast.error(offerErr.message); return; }
-    await supabase.from("inspections").update({ status: "OFFER_GENERATED" }).eq("id", inspection.id);
+    await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", inspection.id);
     toast.success("Offer generated from inspection");
     load();
   };
