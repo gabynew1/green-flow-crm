@@ -15,7 +15,7 @@ import Customers from "./pages/provider/Customers";
 import CustomerDetail from "./pages/provider/CustomerDetail";
 import PropertyDetail from "./pages/provider/PropertyDetail";
 import ServiceCatalog from "./pages/provider/ServiceCatalog";
-import Contracts from "./pages/provider/Contracts";
+
 import ContractDetail from "./pages/provider/ContractDetail";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";

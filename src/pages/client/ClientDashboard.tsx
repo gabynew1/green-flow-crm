@@ -235,6 +235,9 @@ export default function ClientDashboard() {
         </div>
       )}
 
+      {/* Upcoming Inspections */}
+      <UpcomingInspections user={user} loading={loading} />
+
       {/* Upcoming Visits */}
       <Card>
         <CardHeader><CardTitle className="text-base">Upcoming Service Visits</CardTitle></CardHeader>
