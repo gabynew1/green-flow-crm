@@ -71,7 +71,7 @@ export default function InspectionDetail() {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     const { error } = await supabase.from("inspections").update({
-      status: "COMPLETED",
+      status: "SCHEDULED",
       inspected_date: dateStr,
       title,
       notes: notes || null,
