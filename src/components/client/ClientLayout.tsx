@@ -131,9 +131,6 @@ export function ClientLayout() {
                 <p>
                   Share this number with a landscape provider to connect them to your account. Once connected, the provider can manage service visits, update green inventory, and maintain contracts for your properties.
                 </p>
-                <p className="text-destructive/80 font-medium">
-                  ⚠️ Sharing this number will give the provider access to <strong>all your properties</strong> that are not already connected at the property level with another provider. To share a single property, use the Property ID instead.
-                </p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
