@@ -95,7 +95,7 @@ export default function CustomerDetail() {
     load();
   };
 
-  const updateContractStatus = async (contractId: string, status: string) => {
+  const updateContractStatus = async (contractId: string, status: "ACTIVE" | "DRAFT" | "PAUSED" | "TERMINATED") => {
     const { error } = await supabase.from("contracts").update({ status }).eq("id", contractId);
     if (error) { toast.error(error.message); return; }
     toast.success(`Contract ${status.toLowerCase()}`);
