@@ -204,9 +204,10 @@ export default function Contracts() {
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
+            <SelectItem value="PENDING_NEW">Pending Approval</SelectItem>
             <SelectItem value="ACTIVE">Active</SelectItem>
             <SelectItem value="PAUSED">Paused</SelectItem>
+            <SelectItem value="REJECTED">Rejected</SelectItem>
             <SelectItem value="TERMINATED">Terminated</SelectItem>
           </SelectContent>
         </Select>
