@@ -126,7 +126,7 @@ export default function CustomerDetail() {
 
     const { error } = await supabase.from("contracts").insert(inserts);
     if (error) { toast.error(error.message); return; }
-    toast.success(`${inserts.length} contract(s) created & client activated!`);
+    toast.success(`${inserts.length} contract(s) created — pending client approval`);
     setContractOpen(false);
     setSelectedPropertyIds([]);
     setBillingCycle("MONTHLY");
