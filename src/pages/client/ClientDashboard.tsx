@@ -79,15 +79,39 @@ export default function ClientDashboard() {
     if (!form.name.trim()) return;
 
     // Get customer_id from profile
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from("profiles")
-      .select("customer_id")
+      .select("customer_id, full_name, email")
       .eq("user_id", user!.id)
       .single();
 
-    if (!profile?.customer_id) {
-      toast.error("Your account is not linked to a customer. Contact your provider.");
-      return;
+    let customerId = profileData?.customer_id;
+
+    if (!customerId) {
+      // Auto-create a customer record for this client
+      const { data: newCustomer, error: custErr } = await supabase
+        .from("customers")
+        .insert({ name: profileData?.full_name || profileData?.email || "Client", email: profileData?.email })
+        .select("id")
+        .single();
+
+      if (custErr || !newCustomer) {
+        toast.error("Could not create customer record: " + (custErr?.message ?? "Unknown error"));
+        return;
+      }
+
+      // Link customer to profile
+      const { error: linkErr } = await supabase
+        .from("profiles")
+        .update({ customer_id: newCustomer.id })
+        .eq("user_id", user!.id);
+
+      if (linkErr) {
+        toast.error("Could not link customer to profile: " + linkErr.message);
+        return;
+      }
+
+      customerId = newCustomer.id;
     }
 
     setSaving(true);
@@ -96,7 +120,7 @@ export default function ClientDashboard() {
       address: form.address.trim() || null,
       city: form.city.trim() || null,
       description: form.description.trim() || null,
-      customer_id: profile.customer_id,
+      customer_id: customerId,
     });
     setSaving(false);
 
