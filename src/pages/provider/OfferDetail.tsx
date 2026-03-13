@@ -115,6 +115,13 @@ export default function OfferDetail() {
     load();
   };
 
+  const acceptOnBehalf = async () => {
+    const { error } = await supabase.from("offers").update({ status: "ACCEPTED" } as any).eq("id", offerId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Offer accepted on behalf of client");
+    await generateContract();
+  };
+
   const generateContract = async () => {
     if (!offer) return;
     const { data: contract, error } = await supabase.from("contracts").insert({
