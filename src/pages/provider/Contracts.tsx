@@ -245,6 +245,11 @@ export default function Contracts() {
                   <TableCell className="text-right font-mono">
                     {totalValue != null ? `$${totalValue.toFixed(2)}` : "—"}
                   </TableCell>
+                  <TableCell>
+                    {(c as any).visit_frequency_count && (c as any).visit_frequency_type
+                      ? `${(c as any).visit_frequency_count}x / ${(c as any).visit_frequency_type.toLowerCase()}`
+                      : "—"}
+                  </TableCell>
                   <TableCell>{billingLabels[c.billing_cycle] || c.billing_cycle}</TableCell>
                 </TableRow>
               );
