@@ -33,6 +33,7 @@ export default function OfferDetail() {
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [selectedServices, setSelectedServices] = useState<Record<string, { checked: boolean; frequency: string }>>({});
 
   useEffect(() => { load(); }, [offerId]);
 
@@ -47,34 +48,41 @@ export default function OfferDetail() {
     setCatalog(catRes.data ?? []);
   };
 
-  const updateStatus = async (status: string) => {
-    await supabase.from("offers").update({ status } as any).eq("id", offerId!);
-    toast.success(`Offer ${statusLabels[status]?.toLowerCase() || status}`);
-    load();
+  const toggleService = (id: string, checked: boolean) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [id]: { checked, frequency: prev[id]?.frequency || "PER_VISIT" },
+    }));
   };
 
-  const updateTotal = async (items: any[]) => {
-    const total = items.reduce((s, li) => s + (li.quantity * (li.unit_price || (li.service_catalog as any)?.default_price || 0)), 0);
-    await supabase.from("offers").update({ total_value: total }).eq("id", offerId!);
+  const setServiceFrequency = (id: string, frequency: string) => {
+    setSelectedServices(prev => ({
+      ...prev,
+      [id]: { ...prev[id], checked: true, frequency },
+    }));
   };
 
-  const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const serviceId = form.get("service_id") as string;
-    const svc = catalog.find(c => c.id === serviceId);
-    const { error } = await supabase.from("offer_line_items").insert({
-      offer_id: offerId!,
-      service_catalog_id: serviceId || null,
-      custom_name: (form.get("custom_name") as string) || null,
-      quantity: Number(form.get("quantity")) || 1,
-      unit_price: Number(form.get("unit_price")) || svc?.default_price || null,
-      unit: (form.get("unit") as string) || svc?.default_unit || null,
-      notes: (form.get("notes") as string) || null,
-    });
+  const handleAddSelected = async () => {
+    const toAdd = Object.entries(selectedServices)
+      .filter(([, v]) => v.checked)
+      .map(([id, v]) => {
+        const svc = catalog.find(c => c.id === id);
+        return {
+          offer_id: offerId!,
+          service_catalog_id: id,
+          custom_name: null,
+          quantity: 1,
+          unit_price: svc?.default_price || null,
+          unit: svc?.default_unit || null,
+          notes: v.frequency,
+        };
+      });
+    if (toAdd.length === 0) { toast.error("Select at least one service"); return; }
+    const { error } = await supabase.from("offer_line_items").insert(toAdd);
     if (error) { toast.error(error.message); return; }
-    toast.success("Line item added!");
+    toast.success(`${toAdd.length} line item(s) added!`);
     setAddOpen(false);
+    setSelectedServices({});
     const { data: updated } = await supabase.from("offer_line_items").select("*, service_catalog(name, code, default_price)").eq("offer_id", offerId!);
     setLineItems(updated ?? []);
     await updateTotal(updated ?? []);
