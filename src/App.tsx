@@ -28,6 +28,7 @@ import ClientVisitDetail from "./pages/client/ClientVisitDetail";
 import ClientFeedback from "./pages/client/ClientFeedback";
 
 import AdminInvites from "./pages/admin/AdminInvites";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
