@@ -244,6 +244,7 @@ export default function OfferDetail() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Service</TableHead>
+                        <TableHead>Visits</TableHead>
                         <TableHead>Frequency</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -255,6 +256,15 @@ export default function OfferDetail() {
                           return (
                             <TableRow key={id}>
                               <TableCell className="font-medium text-sm">{svc?.name}</TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={v.visitCount}
+                                  onChange={(e) => setServiceVisitCount(id, Number(e.target.value) || 1)}
+                                  className="h-8 w-[70px]"
+                                />
+                              </TableCell>
                               <TableCell>
                                 <Select value={v.frequency} onValueChange={(val) => setServiceFrequency(id, val)}>
                                   <SelectTrigger className="h-8 w-[140px]">
