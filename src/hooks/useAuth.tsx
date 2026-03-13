@@ -10,6 +10,7 @@ interface ProfileData {
   tenant_id: string | null;
   email: string | null;
   customer_id: string | null;
+  phone: string | null;
 }
 
 interface AuthContextType {
