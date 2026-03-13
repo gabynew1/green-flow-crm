@@ -50,7 +50,7 @@ export default function ClientVisitDetail() {
   };
 
   const approve = async () => {
-    await supabase.from("service_orders").update({ status: "CLIENT_APPROVED" }).eq("id", visitId!);
+    await supabase.from("service_orders").update({ status: "APPROVED" }).eq("id", visitId!);
     toast.success("Visit approved!");
     load();
   };
