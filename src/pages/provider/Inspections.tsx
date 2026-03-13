@@ -25,7 +25,7 @@ const statusLabels: Record<string, string> = {
   OFFER_GENERATED: "Offer Generated",
 };
 
-export default function Inspections() {
+export default function Inspections({ embedded }: { embedded?: boolean } = {}) {
   const { user, profile } = useAuth();
   const [inspections, setInspections] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
