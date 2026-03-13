@@ -34,9 +34,16 @@ const billingCycleLabels: Record<string, string> = {
 
 const statusColors: Record<string, string> = {
   DRAFT: "secondary",
+  PENDING_NEW: "outline",
   ACTIVE: "default",
   PAUSED: "outline",
   TERMINATED: "destructive",
+  REJECTED: "destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING_NEW: "Pending Approval",
+  REJECTED: "Rejected",
 };
 
 export default function CustomerDetail() {
