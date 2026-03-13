@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Leaf,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -38,7 +39,11 @@ export function ProviderSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, profile, isSuperAdmin } = useAuth();
+
+  const initials = profile?.full_name
+    ? profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : "?";
 
   return (
     <Sidebar collapsible="icon">
@@ -50,6 +55,19 @@ export function ProviderSidebar() {
               {!collapsed && <span className="font-semibold">GreenCRM</span>}
             </div>
           </SidebarGroupLabel>
+          {!collapsed && (
+            <div className="px-3 py-2 mb-1">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-full bg-sidebar-primary/10 flex items-center justify-center text-xs font-bold text-sidebar-primary">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium truncate text-sidebar-foreground">{profile?.full_name || "User"}</p>
+                  <p className="text-[10px] text-sidebar-foreground/50 truncate">{profile?.email}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
@@ -67,6 +85,20 @@ export function ProviderSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isSuperAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/admin"
+                      className="hover:bg-sidebar-accent/50"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>Admin</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
