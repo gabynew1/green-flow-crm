@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, User } from "lucide-react";
+import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
