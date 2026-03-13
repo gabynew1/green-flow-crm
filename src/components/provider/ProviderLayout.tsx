@@ -17,6 +17,7 @@ export function ProviderLayout() {
             <Outlet />
           </main>
         </div>
+        <AIChatBox />
       </div>
     </SidebarProvider>
   );
