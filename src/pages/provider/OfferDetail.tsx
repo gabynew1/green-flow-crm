@@ -210,29 +210,68 @@ export default function OfferDetail() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Line Items</h2>
         {editable && (
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add Line Item</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddLine} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Service</Label>
-                  <Select name="service_id">
-                    <SelectTrigger><SelectValue placeholder="Select from catalog (optional)" /></SelectTrigger>
-                    <SelectContent>
-                      {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — ${s.default_price || 0}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+          <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) setSelectedServices({}); }}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Services</Button></DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Select Services</DialogTitle></DialogHeader>
+              <ScrollArea className="max-h-[300px] border rounded-md p-3">
+                <div className="space-y-3">
+                  {catalog.map(s => (
+                    <div key={s.id} className="flex items-center gap-3">
+                      <Checkbox
+                        id={`svc-${s.id}`}
+                        checked={selectedServices[s.id]?.checked || false}
+                        onCheckedChange={(checked) => toggleService(s.id, !!checked)}
+                      />
+                      <label htmlFor={`svc-${s.id}`} className="flex-1 text-sm cursor-pointer">
+                        {s.name} {s.default_price ? `— $${s.default_price}` : ""}
+                      </label>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-2"><Label>Custom Name</Label><Input name="custom_name" placeholder="Override service name" /></div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-2"><Label>Qty</Label><Input name="quantity" type="number" defaultValue="1" /></div>
-                  <div className="space-y-2"><Label>Unit Price</Label><Input name="unit_price" type="number" step="0.01" placeholder="Auto" /></div>
-                  <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+              </ScrollArea>
+
+              {Object.entries(selectedServices).filter(([, v]) => v.checked).length > 0 && (
+                <div className="border rounded-md overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Frequency</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Object.entries(selectedServices)
+                        .filter(([, v]) => v.checked)
+                        .map(([id, v]) => {
+                          const svc = catalog.find(c => c.id === id);
+                          return (
+                            <TableRow key={id}>
+                              <TableCell className="font-medium text-sm">{svc?.name}</TableCell>
+                              <TableCell>
+                                <Select value={v.frequency} onValueChange={(val) => setServiceFrequency(id, val)}>
+                                  <SelectTrigger className="h-8 w-[140px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="PER_VISIT">Per Visit</SelectItem>
+                                    <SelectItem value="PER_WEEK">Per Week</SelectItem>
+                                    <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                    <SelectItem value="ONE_TIME">One Time</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
-                <Button type="submit" className="w-full">Add</Button>
-              </form>
+              )}
+
+              <Button onClick={handleAddSelected} className="w-full">
+                Add {Object.values(selectedServices).filter(v => v.checked).length} Service(s)
+              </Button>
             </DialogContent>
           </Dialog>
         )}
