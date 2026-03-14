@@ -8,7 +8,8 @@ import {
     ScrollText,
     LogOut,
     Bell,
-    Search
+    Search,
+    CreditCard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const AdminLayout = () => {
         { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
         { icon: Building2, label: "Tenants", path: "/admin/tenants" },
         { icon: Users, label: "Global Users", path: "/admin/users" },
+        { icon: CreditCard, label: "Billing Plans", path: "/admin/billing" },
         { icon: ScrollText, label: "Audit Logs", path: "/admin/audit" },
         { icon: Shield, label: "Security", path: "/admin/security" },
     ];

@@ -7,6 +7,11 @@ dotenv.config()
 const supabaseUrl = process.env.VITE_SUPABASE_URL
 const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
+if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Missing VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY in .env file')
+    process.exit(1)
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const rl = readline.createInterface({
