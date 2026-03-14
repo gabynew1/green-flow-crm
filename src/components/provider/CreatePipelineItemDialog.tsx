@@ -154,7 +154,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
           )}
           <div className="space-y-2">
             <Label>{label} Name *</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder={`e.g. ${type === "offer" ? "Garden Maintenance Offer" : "Annual Service Contract"}`} />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={`e.g. ${type === "inspection" ? "Spring Garden Inspection" : type === "offer" ? "Garden Maintenance Offer" : "Annual Service Contract"}`} />
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
