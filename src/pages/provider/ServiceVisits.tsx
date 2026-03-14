@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
+import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -31,6 +33,7 @@ export default function ServiceVisits() {
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -52,7 +55,12 @@ export default function ServiceVisits() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Service Visits</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Service Visits</h1>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Create Visit
+        </Button>
+      </div>
 
       <div className="flex gap-3">
         <div className="relative flex-1">
@@ -92,6 +100,8 @@ export default function ServiceVisits() {
         ))}
         {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No service visits found</p>}
       </div>
+
+      <CreateAdHocVisitDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} />
     </div>
   );
 }

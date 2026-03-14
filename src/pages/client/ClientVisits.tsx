@@ -21,7 +21,6 @@ export default function ClientVisits() {
     supabase
       .from("service_orders")
       .select("*, properties(name)")
-      .neq("status", "SCHEDULED")
       .order("scheduled_date", { ascending: false })
       .then(({ data }) => setOrders(data ?? []));
   }, []);
