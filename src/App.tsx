@@ -69,8 +69,10 @@ function AppRoutes(): JSX.Element {
         <Route path="/admin" element={<AdminInvites />} />
       )}
 
-      {/* Provider routes */}
-      <Route path="/provider" element={<ProviderLayout />}>
+      {/* Provider routes — block pure clients */}
+      <Route path="/provider" element={
+        isClient && !isProvider ? <Navigate to="/client" replace /> : <ProviderLayout />
+      }>
         <Route index element={<Dashboard />} />
         <Route path="customers" element={<Customers />} />
         <Route path="customers/:customerId" element={<CustomerDetail />} />
@@ -88,8 +90,10 @@ function AppRoutes(): JSX.Element {
         <Route path="feedback" element={<FeedbackPage />} />
       </Route>
 
-      {/* Client routes */}
-      <Route path="/client" element={<ClientLayout />}>
+      {/* Client routes — block providers */}
+      <Route path="/client" element={
+        isProvider && !isClient ? <Navigate to="/provider" replace /> : <ClientLayout />
+      }>
         <Route index element={<ClientDashboard />} />
         <Route path="offers" element={<ClientOffers />} />
         <Route path="offers/:offerId" element={<ClientOfferDetail />} />
@@ -107,7 +111,7 @@ function AppRoutes(): JSX.Element {
         isSuperAdmin && !isProvider && !isClient ? <Navigate to="/admin" replace /> :
         isProvider ? <Navigate to="/provider" replace /> :
         isClient ? <Navigate to="/client" replace /> :
-        <Navigate to="/client" replace />
+        <Navigate to="/auth" replace />
       } />
 
       <Route path="/auth" element={<Navigate to="/" replace />} />
