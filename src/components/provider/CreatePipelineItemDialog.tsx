@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "offer" | "contract";
+  type: "inspection" | "offer" | "contract";
 }
 
 export default function CreatePipelineItemDialog({ open, onOpenChange, type }: Props) {
