@@ -43,7 +43,6 @@ import TenantManagement from "./pages/admin/TenantManagement";
 import GlobalUserManagement from "./pages/admin/GlobalUserManagement";
 import AuditCompliance from "./pages/admin/AuditCompliance";
 import SecurityMonitor from "./pages/admin/SecurityMonitor";
-import BillingTiers from "./pages/admin/BillingTiers";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
@@ -100,7 +99,6 @@ function AppRoutes(): JSX.Element {
           <Route path="audit" element={<AuditCompliance />} />
           <Route path="security" element={<SecurityMonitor />} />
           <Route path="invites" element={<AdminInvites />} />
-          <Route path="billing" element={<BillingTiers />} />
         </Route>
       )}
 

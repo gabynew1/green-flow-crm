@@ -13,7 +13,7 @@ export function useTenantQuery() {
         const query = supabase.from(table);
 
         // List of tables known to have tenant_id from types.ts
-        const tablesWithTenant = [
+        const tablesWithTenant: string[] = [
             "customers",
             "inspections",
             "offers",
