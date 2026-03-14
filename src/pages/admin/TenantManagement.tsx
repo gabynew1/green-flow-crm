@@ -39,14 +39,7 @@ import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 
 export default function TenantManagement() {
-    const { data: plans } = useQuery({
-        queryKey: ["admin-billing-plans"],
-        queryFn: async () => {
-            const { data, error } = await supabase.from("subscription_plans").select("tier").order("monthly_price");
-            if (error) throw error;
-            return data.map(p => p.tier).filter(t => t !== 'TRIAL'); // Filter out virtual trial tier
-        }
-    });
+    const plans = ["free", "starter", "professional", "enterprise"];
 
     const { data: tenants, isLoading, refetch } = useQuery({
         queryKey: ["admin-tenants"],

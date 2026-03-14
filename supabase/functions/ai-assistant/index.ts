@@ -159,7 +159,7 @@ function getSystemPrompt(
 async function executeToolCall(
   fnName: string,
   args: Record<string, unknown>,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: any
 ): Promise<string> {
   try {
     switch (fnName) {

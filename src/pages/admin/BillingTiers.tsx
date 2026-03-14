@@ -28,18 +28,13 @@ interface SubscriptionPlan {
 }
 
 export default function BillingTiers() {
-    const { data: plans, isLoading } = useQuery({
-        queryKey: ["admin-billing-plans"],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from("subscription_plans")
-                .select("*")
-                .order("monthly_price", { ascending: true });
-
-            if (error) throw error;
-            return data as SubscriptionPlan[];
-        }
-    });
+    const plans: SubscriptionPlan[] = [
+        { tier: "free", name: "Free", description: "Basic access for small teams", monthly_price: 0, max_provider_seats: 2, max_client_seats: 50, feature_flags: {}, is_active: true },
+        { tier: "starter", name: "Starter", description: "For growing businesses", monthly_price: 29, max_provider_seats: 5, max_client_seats: 100, feature_flags: { ai_assistant: true }, is_active: true },
+        { tier: "professional", name: "Professional", description: "Full-featured plan", monthly_price: 79, max_provider_seats: 15, max_client_seats: 500, feature_flags: { ai_assistant: true, advanced_reports: true }, is_active: true },
+        { tier: "enterprise", name: "Enterprise", description: "Unlimited everything", monthly_price: 199, max_provider_seats: 999, max_client_seats: 9999, feature_flags: { ai_assistant: true, advanced_reports: true, white_label: true }, is_active: true },
+    ];
+    const isLoading = false;
 
     if (isLoading) {
         return (

@@ -24,7 +24,7 @@ export function useTenantQuery() {
         ];
 
         if (tenantId && tablesWithTenant.includes(table as string)) {
-            return query.select().eq("tenant_id", tenantId) as any;
+            return (query.select() as any).eq("tenant_id", tenantId);
         }
 
         return query;
