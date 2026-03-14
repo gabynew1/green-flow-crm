@@ -17,7 +17,8 @@ import {
     Eye,
     ChevronDown,
     Building2,
-    Shield
+    Shield,
+    Ban
 } from "lucide-react";
 import {
     DropdownMenu,
