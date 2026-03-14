@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "offer" | "contract";
+  type: "inspection" | "offer" | "contract";
 }
 
 export default function CreatePipelineItemDialog({ open, onOpenChange, type }: Props) {
@@ -64,7 +64,22 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
     }
     setSaving(true);
     try {
-      if (type === "offer") {
+      if (type === "inspection") {
+        const { data, error } = await supabase.from("inspections").insert({
+          title: name.trim(),
+          property_id: selectedPropertyId,
+          customer_id: selectedCustomerId,
+          tenant_id: profile?.tenant_id,
+          notes: notes.trim() || null,
+          created_by: user!.id,
+          status: "SCHEDULED",
+        }).select().single();
+        if (error) throw error;
+        toast.success("Inspection created!");
+        resetForm();
+        onOpenChange(false);
+        navigate(`/provider/inspections/${data.id}`);
+      } else if (type === "offer") {
         const { data, error } = await supabase.from("offers").insert({
           offer_name: name.trim(),
           property_id: selectedPropertyId,
@@ -99,7 +114,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
     }
   };
 
-  const label = type === "offer" ? "Offer" : "Contract";
+  const label = type === "inspection" ? "Inspection" : type === "offer" ? "Offer" : "Contract";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
@@ -139,7 +154,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
           )}
           <div className="space-y-2">
             <Label>{label} Name *</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder={`e.g. ${type === "offer" ? "Garden Maintenance Offer" : "Annual Service Contract"}`} />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={`e.g. ${type === "inspection" ? "Spring Garden Inspection" : type === "offer" ? "Garden Maintenance Offer" : "Annual Service Contract"}`} />
           </div>
           <div className="space-y-2">
             <Label>Notes</Label>
