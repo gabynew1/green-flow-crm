@@ -22,7 +22,7 @@ export default function Inspections({ embedded = false, statusFilter }: Inspecti
         .order("created_at", { ascending: false });
 
       if (statusFilter) {
-        query = query.eq("status", statusFilter);
+        query = query.eq("status", statusFilter as any);
       }
 
       const { data, error } = await query;
