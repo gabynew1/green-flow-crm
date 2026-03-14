@@ -55,7 +55,12 @@ export default function ServiceVisits() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Service Visits</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Service Visits</h1>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" /> Create Visit
+        </Button>
+      </div>
 
       <div className="flex gap-3">
         <div className="relative flex-1">
