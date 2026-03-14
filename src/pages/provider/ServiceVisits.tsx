@@ -100,6 +100,8 @@ export default function ServiceVisits() {
         ))}
         {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No service visits found</p>}
       </div>
+
+      <CreateAdHocVisitDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={load} />
     </div>
   );
 }
