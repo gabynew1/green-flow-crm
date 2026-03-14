@@ -33,6 +33,7 @@ export default function ServiceVisits() {
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => { load(); }, []);
 
