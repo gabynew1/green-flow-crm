@@ -21,6 +21,7 @@ interface AuthContextType {
   isProvider: boolean;
   isClient: boolean;
   isSuperAdmin: boolean;
+  tenantId: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
@@ -116,9 +117,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isProvider = roles.some((r) => r === "PROVIDER_ADMIN" || r === "PROVIDER_STAFF");
   const isClient = roles.includes("CLIENT_USER");
   const isSuperAdmin = profile?.email === "sidor.gabriel@gmail.com";
+  const tenantId = profile?.tenant_id ?? null;
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, isLoading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLoading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

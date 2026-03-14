@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenantQuery } from "@/lib/supabase-tenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight } from "lucide-react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, subDays } from "date-fns";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface KPIs {
   activeCustomers: number;
@@ -13,10 +15,12 @@ interface KPIs {
   visitsThisMonth: number;
   avgRating: number;
   draftInspections: number;
+  staleInspections: number;
 }
 
 export default function Dashboard() {
-  const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, pendingOffers: 0, visitsThisMonth: 0, avgRating: 0, draftInspections: 0 });
+  const tq = useTenantQuery();
+  const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, pendingOffers: 0, visitsThisMonth: 0, avgRating: 0, draftInspections: 0, staleInspections: 0 });
   const [pipelineCounts, setPipelineCounts] = useState({ inspections: 0, offers: 0, contracts: 0, visits: 0 });
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
@@ -26,15 +30,19 @@ export default function Dashboard() {
   useEffect(() => { loadDashboard(); }, []);
 
   const loadDashboard = async () => {
-    const [custRes, contRes, pendingOffRes, visitsRes, feedbackRes, inspRes, offersRes, contractsRes, visitsCountRes] = await Promise.all([
-      supabase.from("customers").select("id", { count: "exact", head: true }),
+    const today = new Date();
+    const threeDaysAgo = format(subDays(today, 3), "yyyy-MM-dd'T'HH:mm:ss");
+
+    const [custRes, contRes, pendingOffRes, visitsRes, feedbackRes, inspRes, staleInspRes, offersRes, contractsRes, visitsCountRes] = await Promise.all([
+      tq.from("customers").select("id", { count: "exact", head: true }),
       supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "ACTIVE"),
-      supabase.from("offers").select("id", { count: "exact", head: true }).eq("status", "SENT_TO_CLIENT"),
+      tq.from("offers").select("id", { count: "exact", head: true }).eq("status", "SENT_TO_CLIENT"),
       supabase.from("service_orders").select("id", { count: "exact", head: true })
         .gte("scheduled_date", format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd")),
       supabase.from("feedback").select("rating_stars"),
-      supabase.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "COMPLETED"]),
-      supabase.from("offers").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "IN_PROGRESS", "SENT_TO_CLIENT"]),
+      tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]),
+      tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]).lt("created_at", threeDaysAgo),
+      tq.from("offers").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "IN_PROGRESS", "SENT_TO_CLIENT"]),
       supabase.from("contracts").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SENT_TO_CLIENT", "SIGNED", "ACTIVE"]),
       supabase.from("service_orders").select("id", { count: "exact", head: true }).in("status", ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL"]),
     ]);
@@ -50,6 +58,7 @@ export default function Dashboard() {
       visitsThisMonth: visitsRes.count ?? 0,
       avgRating: Math.round(avgRating * 10) / 10,
       draftInspections: inspRes.count ?? 0,
+      staleInspections: staleInspRes.count ?? 0,
     });
 
     setPipelineCounts({
@@ -59,13 +68,13 @@ export default function Dashboard() {
       visits: visitsCountRes.count ?? 0,
     });
 
-    const today = format(new Date(), "yyyy-MM-dd");
+    const todayStr = format(today, "yyyy-MM-dd");
     const thirtyDaysOut = format(new Date(Date.now() + 30 * 86400000), "yyyy-MM-dd");
 
     const [upcomingRes, pendingRevRes, fbRes, expiringRes] = await Promise.all([
       supabase.from("service_orders")
         .select("id, scheduled_date, status, period_label, properties(name, customers(name))")
-        .gte("scheduled_date", today).order("scheduled_date").limit(5),
+        .gte("scheduled_date", todayStr).order("scheduled_date").limit(5),
       supabase.from("service_orders")
         .select("id, scheduled_date, period_label, properties(name, customers(name))")
         .eq("status", "SENT_TO_CLIENT").order("created_at", { ascending: false }).limit(5),
@@ -75,7 +84,7 @@ export default function Dashboard() {
       supabase.from("contracts")
         .select("id, contract_name, end_date, properties(name, customers(name))")
         .eq("status", "ACTIVE").not("end_date", "is", null)
-        .lte("end_date", thirtyDaysOut).gte("end_date", today)
+        .lte("end_date", thirtyDaysOut).gte("end_date", todayStr)
         .order("end_date").limit(5),
     ]);
 
@@ -108,7 +117,7 @@ export default function Dashboard() {
       <Card>
         <CardContent className="pt-6">
           <p className="text-sm font-medium text-muted-foreground mb-3">Sales Pipeline</p>
-          <div className="flex items-center gap-2 overflow-x-auto">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
             {pipelineSteps.map((step, i) => (
               <div key={step.label} className="flex items-center gap-2">
                 <Link to={step.url} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors min-w-[120px]">
@@ -127,7 +136,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {kpiCards.map((k) => (
-          <Card key={k.label} className={k.highlight ? "border-warning/50" : ""}>
+          <Card key={k.label} className={k.highlight ? "border-warning/50 shadow-sm" : ""}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <k.icon className={`h-8 w-8 ${k.color}`} />
@@ -142,6 +151,22 @@ export default function Dashboard() {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* SLA Alerts */}
+        {kpis.staleInspections > 0 && (
+          <Card className="border-destructive/30 bg-destructive/5">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4" /> SLA Alerts: Stale Inspections</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-sm">
+                You have <span className="font-bold">{kpis.staleInspections}</span> inspections that have been pending for more than 3 days.
+                Follow up to maintain high engagement.
+              </p>
+              <Link to="/provider/pipeline">
+                <Button size="sm" variant="link" className="px-0 text-destructive pt-2">View Pipeline <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Upcoming visits */}
         <Card>
           <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Upcoming Visits</CardTitle></CardHeader>

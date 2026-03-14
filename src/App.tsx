@@ -3,12 +3,14 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { ProviderLayout } from "./components/provider/ProviderLayout";
 import { ClientLayout } from "./components/client/ClientLayout";
+import AdminLayout from "./components/admin/AdminLayout";
 
 import Dashboard from "./pages/provider/Dashboard";
 import Customers from "./pages/provider/Customers";
@@ -36,13 +38,18 @@ import ClientOfferDetail from "./pages/client/ClientOfferDetail";
 import ClientProfile from "./pages/client/ClientProfile";
 
 import AdminInvites from "./pages/admin/AdminInvites";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import TenantManagement from "./pages/admin/TenantManagement";
+import GlobalUserManagement from "./pages/admin/GlobalUserManagement";
+import AuditCompliance from "./pages/admin/AuditCompliance";
+import SecurityMonitor from "./pages/admin/SecurityMonitor";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
 
 function AppRoutes(): JSX.Element {
-  const { user, isProvider, isClient, isSuperAdmin, isLoading } = useAuth();
+  const { user, isProvider, isClient, isSuperAdmin, isLoading, signOut } = useAuth();
 
   if (isLoading) {
     return (
@@ -62,11 +69,37 @@ function AppRoutes(): JSX.Element {
     );
   }
 
+  // Authenticated but no role yet (e.g. fresh signup)
+  if (!isProvider && !isClient && !isSuperAdmin) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+        <h1 className="mb-2 text-2xl font-bold">Welcome to GreenCRM</h1>
+        <p className="mb-6 text-muted-foreground">Your account is created, but you haven't been assigned a role yet.</p>
+        <div className="rounded-lg bg-muted p-4 text-sm text-left max-w-md">
+          <p className="font-semibold mb-2">Next Steps:</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>If you are a provider, contact your admin to elevate your role.</li>
+            <li>If you just signed up, wait for an administrator to approve your connection.</li>
+            <li>Use the bootstrap script to set up your first tenant.</li>
+          </ul>
+        </div>
+        <Button variant="outline" className="mt-8" onClick={() => signOut()}>Sign Out</Button>
+      </div>
+    );
+  }
+
   return (
     <Routes>
       {/* Super Admin */}
       {isSuperAdmin && (
-        <Route path="/admin" element={<AdminInvites />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="tenants" element={<TenantManagement />} />
+          <Route path="users" element={<GlobalUserManagement />} />
+          <Route path="audit" element={<AuditCompliance />} />
+          <Route path="security" element={<SecurityMonitor />} />
+          <Route path="invites" element={<AdminInvites />} />
+        </Route>
       )}
 
       {/* Provider routes — block pure clients */}
@@ -109,9 +142,9 @@ function AppRoutes(): JSX.Element {
       {/* Default redirect based on role */}
       <Route path="/" element={
         isSuperAdmin && !isProvider && !isClient ? <Navigate to="/admin" replace /> :
-        isProvider ? <Navigate to="/provider" replace /> :
-        isClient ? <Navigate to="/client" replace /> :
-        <Navigate to="/auth" replace />
+          isProvider ? <Navigate to="/provider" replace /> :
+            isClient ? <Navigate to="/client" replace /> :
+              <Navigate to="/auth" replace />
       } />
 
       <Route path="/auth" element={<Navigate to="/" replace />} />

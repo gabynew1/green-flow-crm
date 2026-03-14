@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trees, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { format, differenceInDays } from "date-fns";
 
 const CATEGORIES = ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"] as const;
 
@@ -63,13 +64,20 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
 
   const categoryColor = (cat: string) => {
     const colors: Record<string, string> = {
-      TREE: "bg-primary/10 text-primary",
-      LAWN: "bg-success/10 text-success",
-      SHRUB: "bg-info/10 text-info",
-      FLOWER_BED: "bg-accent/10 text-accent-foreground",
-      OTHER: "bg-muted text-muted-foreground",
+      TREE: "bg-primary/10 text-primary border-primary/20",
+      LAWN: "bg-green-500/10 text-green-600 border-green-500/20",
+      SHRUB: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+      FLOWER_BED: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+      OTHER: "bg-slate-500/10 text-slate-600 border-slate-500/20",
     };
     return colors[cat] || colors.OTHER;
+  };
+
+  const getHealthBadge = (updatedAt: string) => {
+    const daysSinceUpdate = differenceInDays(new Date(), new Date(updatedAt));
+    if (daysSinceUpdate < 30) return <Badge className="bg-green-500/10 text-green-600 border-green-500/20" variant="outline">Healthy</Badge>;
+    if (daysSinceUpdate < 90) return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20" variant="outline">Stable</Badge>;
+    return <Badge className="bg-rose-500/10 text-rose-600 border-rose-500/20" variant="outline">Attention</Badge>;
   };
 
   return (
@@ -111,29 +119,42 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-lg border overflow-auto">
+        <div className="rounded-lg border overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead>Category</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Qty</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Source</TableHead>
+                <TableHead>Health</TableHead>
+                <TableHead>Last Check</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map(item => (
-                <TableRow key={item.id}>
-                  <TableCell><Badge className={categoryColor(item.category)} variant="secondary">{item.category.replace("_", " ")}</Badge></TableCell>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.unit}</TableCell>
-                  <TableCell><Badge variant="outline" className="text-xs">{item.source}</Badge></TableCell>
+                <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Badge className={categoryColor(item.category)} variant="secondary">
+                      {item.category.replace("_", " ")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{item.name}</span>
+                      {item.notes && <span className="text-[10px] text-muted-foreground line-clamp-1">{item.notes}</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {item.quantity} <span className="text-[10px] text-muted-foreground">{item.unit}</span>
+                  </TableCell>
+                  <TableCell>{getHealthBadge(item.updated_at)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {format(new Date(item.updated_at), "MMM d, yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(item.id)}>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

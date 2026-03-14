@@ -13,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { ArrowLeft, CalendarDays, CheckCircle, FileOutput, Save } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { WorkflowEngine } from "@/lib/workflow-engine";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -79,35 +80,29 @@ export default function InspectionDetail() {
   const scheduleInspection = async () => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const { error } = await supabase.from("inspections").update({
-      status: "SCHEDULED",
-      inspected_date: dateStr,
-      title,
-      notes: notes || null,
-    }).eq("id", inspectionId!);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
-    setScheduleOpen(false);
-    load();
+    try {
+      await WorkflowEngine.transitionInspection(inspectionId!, "SCHEDULED", {
+        inspected_date: dateStr,
+        title,
+        notes: notes || null,
+      });
+      toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
+      setScheduleOpen(false);
+      load();
+    } catch (e) {
+      // Error handled by engine
+    }
   };
 
   const generateOffer = async () => {
     if (!inspection) return;
-    const { data: offer, error } = await supabase.from("offers").insert({
-      inspection_id: inspectionId,
-      property_id: inspection.property_id,
-      customer_id: inspection.customer_id,
-      tenant_id: inspection.tenant_id,
-      offer_name: `Offer - ${inspection.title}`,
-      notes: inspection.findings || null,
-      created_by: user!.id,
-    }).select().single();
-
-    if (error) { toast.error(error.message); return; }
-
-    await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", inspectionId!);
-    toast.success("Offer created from inspection!");
-    navigate(`/provider/offers/${offer.id}`);
+    try {
+      const { offerId } = await WorkflowEngine.completeInspectionAndGenerateOffer(inspectionId!, user!.id);
+      toast.success("Offer created from inspection!");
+      navigate(`/provider/offers/${offerId}`);
+    } catch (e) {
+      // Error handled by engine
+    }
   };
 
   if (!inspection) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;

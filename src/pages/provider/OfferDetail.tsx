@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2, Check, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { WorkflowEngine } from "@/lib/workflow-engine";
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Draft", IN_PROGRESS: "In Progress", SENT_TO_CLIENT: "Sent to Client",
@@ -96,10 +97,14 @@ export default function OfferDetail() {
     load();
   };
 
-  const updateStatus = async (status: string) => {
-    await supabase.from("offers").update({ status } as any).eq("id", offerId!);
-    toast.success(`Offer ${statusLabels[status]?.toLowerCase() || status}`);
-    load();
+  const updateStatus = async (status: any) => {
+    try {
+      await WorkflowEngine.transitionOffer(offerId!, status);
+      toast.success(`Offer ${statusLabels[status]?.toLowerCase() || status}`);
+      load();
+    } catch (e) {
+      // Error handled by engine
+    }
   };
 
   const updateTotal = async (items: any[]) => {
@@ -116,40 +121,17 @@ export default function OfferDetail() {
   };
 
   const acceptOnBehalf = async () => {
-    const { error } = await supabase.from("offers").update({ status: "ACCEPTED" } as any).eq("id", offerId!);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Offer accepted on behalf of client");
-    await generateContract();
-  };
-
-  const generateContract = async () => {
-    if (!offer) return;
-    const { data: contract, error } = await supabase.from("contracts").insert({
-      contract_name: `Contract - ${offer.offer_name}`,
-      property_id: offer.property_id,
-      offer_id: offerId,
-      start_date: new Date().toISOString().split("T")[0],
-      status: "DRAFT",
-    } as any).select().single();
-
-    if (error) { toast.error(error.message); return; }
-
-    // Copy offer line items to contract line items
-    if (lineItems.length > 0) {
-      const contractLines = lineItems.map(li => ({
-        contract_id: contract.id,
-        service_catalog_id: li.service_catalog_id,
-        custom_name: li.custom_name,
-        quantity: li.quantity,
-        unit: li.unit,
-        notes: li.notes,
-      }));
-      await supabase.from("contract_line_items").insert(contractLines);
+    try {
+      const { contractId } = await WorkflowEngine.acceptOfferAndGenerateContract(offerId!, user!.id);
+      toast.success("Offer accepted on behalf of client");
+      toast.success("Contract generated from offer!");
+      navigate(`/provider/contracts/${contractId}`);
+    } catch (e) {
+      // Error handled by engine
     }
-
-    toast.success("Contract generated from offer!");
-    navigate(`/provider/contracts/${contract.id}`);
   };
+
+  // generateContract logic moved to WorkflowEngine
 
   if (!offer) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 

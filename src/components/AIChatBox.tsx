@@ -20,7 +20,11 @@ function extractContext(pathname: string) {
   return ctx;
 }
 
-export function AIChatBox() {
+interface AIChatBoxProps {
+  mobileTriggerOnly?: boolean;
+}
+
+export function AIChatBox({ mobileTriggerOnly }: AIChatBoxProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -114,7 +118,7 @@ export function AIChatBox() {
   return (
     <>
       {/* Floating button */}
-      {!open && (
+      {!open && !mobileTriggerOnly && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
@@ -228,6 +232,17 @@ export function AIChatBox() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Small touch target for mobile bottom nav if mobileTriggerOnly is true */}
+      {mobileTriggerOnly && !open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary"
+        >
+          <Sparkles className="h-5 w-5" />
+          <span className="text-[10px]">AI Chat</span>
+        </button>
       )}
     </>
   );

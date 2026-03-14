@@ -58,28 +58,60 @@ export default function AdminInvites() {
             <CardTitle>New Provider Invite</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tenant / Company Name</Label>
-              <Input
-                value={tenantName}
-                onChange={(e) => setTenantName(e.target.value)}
-                placeholder="e.g. Green Gardens LLC"
-              />
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant={role.startsWith("PROVIDER") ? "default" : "outline"}
+                  className="h-24 flex flex-col items-center justify-center gap-2"
+                  onClick={() => setRole("PROVIDER_ADMIN")}
+                >
+                  <Shield className="h-6 w-6" />
+                  Provider (Tenant)
+                </Button>
+                <Button
+                  variant={role.startsWith("CLIENT") ? "default" : "outline"}
+                  className="h-24 flex flex-col items-center justify-center gap-2"
+                  onClick={() => setRole("CLIENT_ADMIN")}
+                >
+                  <Leaf className="h-6 w-6" />
+                  Customer (Client)
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{role.startsWith("PROVIDER") ? "Company Name" : "Customer / Household Name"}</Label>
+                <Input
+                  value={tenantName}
+                  onChange={(e) => setTenantName(e.target.value)}
+                  placeholder={role.startsWith("PROVIDER") ? "e.g. Green Gardens LLC" : "e.g. Smith Residence"}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Required Role</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {role.startsWith("PROVIDER") ? (
+                      <>
+                        <SelectItem value="PROVIDER_ADMIN">Provider Admin</SelectItem>
+                        <SelectItem value="PROVIDER_STAFF">Provider Staff</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="CLIENT_ADMIN">Client Admin (Owner)</SelectItem>
+                        <SelectItem value="CLIENT_MEMBER">Client Member (Family)</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PROVIDER_ADMIN">Provider Admin</SelectItem>
-                  <SelectItem value="PROVIDER_STAFF">Provider Staff</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleCreate} disabled={isLoading} className="w-full">
-              {isLoading ? "Creating…" : "Generate Invite Link"}
+
+            <Button onClick={handleCreate} disabled={isLoading} className="w-full mt-4">
+              {isLoading ? "Generating Link…" : "Generate Invite Link"}
             </Button>
 
             {inviteLink && (
