@@ -36,9 +36,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  defaultCustomerId?: string;
+  defaultPropertyId?: string;
 }
 
-export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated }: Props) {
+export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, defaultCustomerId, defaultPropertyId }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
