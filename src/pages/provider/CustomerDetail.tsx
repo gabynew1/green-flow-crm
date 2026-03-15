@@ -213,9 +213,9 @@ export default function CustomerDetail() {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setVisitOpen(true)}>
-            <CalendarPlus className="h-4 w-4 mr-1" /> New Visit
-          </Button>
+          <Link to={`/provider/customers/${customerId}/manage`}>
+            <Button variant="outline" size="sm">Manage Account</Button>
+          </Link>
           <Link to={`/provider/customers/${customerId}/manage`}>
             <Button variant="outline" size="sm">Manage Account</Button>
           </Link>
