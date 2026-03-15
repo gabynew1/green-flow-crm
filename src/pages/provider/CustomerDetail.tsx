@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Archive, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Archive, Trash2, Send, CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
