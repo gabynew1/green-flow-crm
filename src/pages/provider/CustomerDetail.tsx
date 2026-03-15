@@ -483,6 +483,8 @@ export default function CustomerDetail() {
           <p className="text-muted-foreground col-span-full text-center py-8">No properties yet</p>
         )}
       </div>
+
+      <CreateAdHocVisitDialog open={visitOpen} onOpenChange={setVisitOpen} onCreated={load} />
     </div>
   );
 }
