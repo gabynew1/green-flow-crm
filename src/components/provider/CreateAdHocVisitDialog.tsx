@@ -84,6 +84,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated }
     setSelectedDate(undefined);
     setSelectedTime("09:00");
     setSelectedServiceIds([]);
+    setSelectedCategory("");
     setNotes("");
   };
 
