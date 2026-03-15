@@ -93,6 +93,15 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
     );
   };
 
+  const categories = [...new Set(services.map((s) => s.code as string))].sort();
+  const filteredServices = services.filter((s) => s.code === selectedCategory);
+
+  const toggleService = (id: string) => {
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -102,6 +111,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
 
     if (selectedPropertyIds.length === 0) { toast.error("Select at least one property"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
+    if (selectedServiceIds.length === 0) { toast.error("Select at least one service"); return; }
 
     const inserts = selectedPropertyIds.map((propertyId) => ({
       contract_name: contractName,
@@ -114,11 +124,28 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
       status: "DRAFT" as const,
     } as any));
 
-    const { error } = await supabase.from("contracts").insert(inserts);
+    const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
     if (error) { toast.error(error.message); return; }
+
+    // Insert contract line items for each created contract
+    const lineItems = (created ?? []).flatMap((contract) =>
+      selectedServiceIds.map((serviceId) => ({
+        contract_id: contract.id,
+        service_catalog_id: serviceId,
+        quantity: 1,
+        frequency_type: "PER_VISIT" as const,
+      }))
+    );
+    if (lineItems.length > 0) {
+      const { error: liError } = await supabase.from("contract_line_items").insert(lineItems);
+      if (liError) { toast.error("Contract created but failed to add service lines: " + liError.message); }
+    }
+
     toast.success(`${inserts.length} contract(s) created`);
     setOpen(false);
     setSelectedPropertyIds([]);
+    setSelectedServiceIds([]);
+    setSelectedCategory("");
     setBillingCycle("MONTHLY");
     setVisitCount(1);
     setVisitType("WEEK");
