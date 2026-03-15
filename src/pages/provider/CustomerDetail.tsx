@@ -198,10 +198,13 @@ export default function CustomerDetail() {
 
       <Card>
         <CardContent className="pt-6 grid md:grid-cols-2 gap-4 text-sm">
-          <div><span className="text-muted-foreground">Contact:</span> {customer.contact_person_name || "—"}</div>
-          <div><span className="text-muted-foreground">Email:</span> {customer.email || "—"}</div>
-          <div><span className="text-muted-foreground">Phone:</span> {customer.phone || "—"}</div>
+          <div><span className="text-muted-foreground">Contact:</span> {clientProfile?.full_name || customer.contact_person_name || "—"}</div>
+          <div><span className="text-muted-foreground">Email:</span> {clientProfile?.email || customer.email || "—"}</div>
+          <div><span className="text-muted-foreground">Phone:</span> {clientProfile?.phone || customer.phone || "—"}</div>
           <div><span className="text-muted-foreground">Company:</span> {customer.company_name || "—"}</div>
+          {clientProfile?.unique_client_id && (
+            <div><span className="text-muted-foreground">Client ID:</span> {clientProfile.unique_client_id}</div>
+          )}
           {customer.billing_address && (
             <div className="md:col-span-2"><span className="text-muted-foreground">Billing Address:</span> {customer.billing_address}</div>
           )}
