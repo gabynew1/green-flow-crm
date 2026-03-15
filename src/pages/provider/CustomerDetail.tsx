@@ -84,6 +84,19 @@ export default function CustomerDetail() {
     setProperties(propRes.data ?? []);
     setContracts(contractRes.data ?? []);
     setClientId(profileRes.data?.unique_client_id ?? null);
+
+    // Fetch visits for all customer properties
+    const propIds = (propRes.data ?? []).map((p: any) => p.id);
+    if (propIds.length > 0) {
+      const { data: visitData } = await supabase
+        .from("service_orders")
+        .select("*, properties(name)")
+        .in("property_id", propIds)
+        .order("scheduled_date", { ascending: false });
+      setVisits(visitData ?? []);
+    } else {
+      setVisits([]);
+    }
   };
 
   const handleCreateProperty = async (e: React.FormEvent<HTMLFormElement>) => {
