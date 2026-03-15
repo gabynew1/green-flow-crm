@@ -71,6 +71,8 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated }
   };
 
   const filteredProperties = properties.filter((p) => p.customer_id === selectedCustomerId);
+  const categories = [...new Set(services.map((s) => s.code as string))].sort();
+  const filteredServices = services.filter((s) => s.code === selectedCategory);
 
   const toggleService = (id: string) => {
     setSelectedServiceIds((prev) =>
