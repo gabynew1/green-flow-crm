@@ -66,6 +66,7 @@ export default function CustomerDetail() {
     end_date: string;
     billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME";
   }>({ contract_name: "", start_date: "", end_date: "", billing_cycle: "MONTHLY" });
+  const [clientProfile, setClientProfile] = useState<{ full_name: string | null; email: string | null; phone: string | null; unique_client_id: string | null } | null>(null);
 
   useEffect(() => { load(); }, [customerId]);
 
