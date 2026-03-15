@@ -140,6 +140,7 @@ export default function Inspections({ embedded, statusFilter: statusFilterProp }
             <SelectContent>
               <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="SCHEDULED">Scheduled</SelectItem>
               <SelectItem value="COMPLETED">Completed</SelectItem>
               <SelectItem value="OFFER_GENERATED">Offer Generated</SelectItem>
             </SelectContent>
