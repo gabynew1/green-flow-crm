@@ -454,6 +454,44 @@ export default function CustomerDetail() {
         </div>
       )}
 
+      {/* Service Visits Section */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Service Visits</h2>
+        <Button size="sm" onClick={() => setVisitOpen(true)}>
+          <CalendarPlus className="h-4 w-4 mr-1" /> New Visit
+        </Button>
+      </div>
+
+      {visits.length === 0 ? (
+        <p className="text-muted-foreground text-center py-6">No service visits yet</p>
+      ) : (
+        <div className="space-y-3">
+          {visits.map((o) => (
+            <Link key={o.id} to={`/provider/visits/${o.id}`}>
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+                <CardContent className="pt-4 pb-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{o.period_label || o.scheduled_date || "Unscheduled"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
+                      {o.period_type} · {o.scheduled_date}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className={
+                    o.status === "COMPLETED" || o.status === "APPROVED" ? "bg-success/10 text-success" :
+                    o.status === "CANCELED" ? "bg-destructive/10 text-destructive" :
+                    o.status === "SENT_TO_CLIENT" ? "bg-warning/10 text-warning" :
+                    "bg-muted text-muted-foreground"
+                  }>
+                    {o.status.replace(/_/g, " ")}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Properties Section */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Properties</h2>
