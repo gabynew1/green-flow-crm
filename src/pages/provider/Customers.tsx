@@ -222,12 +222,18 @@ export default function Customers() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold truncate">{c.name}</p>
-                        <Badge
-                          variant={isActive ? "default" : "secondary"}
-                          className={`shrink-0 text-[10px] px-1.5 py-0 ${isActive ? "" : "text-muted-foreground"}`}
-                        >
-                          {isActive ? "Active" : "Inactive"}
-                        </Badge>
+                        {(c as any).status === "DELINKED" ? (
+                          <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 border-orange-500/50 text-orange-600">
+                            Delinked
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant={isActive ? "default" : "secondary"}
+                            className={`shrink-0 text-[10px] px-1.5 py-0 ${isActive ? "" : "text-muted-foreground"}`}
+                          >
+                            {isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        )}
                       </div>
                       {c.company_name && <p className="text-sm text-muted-foreground truncate">{c.company_name}</p>}
                       <p className="text-xs text-muted-foreground mt-1">{c.email}</p>

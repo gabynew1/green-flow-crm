@@ -110,6 +110,7 @@ function AppRoutes(): JSX.Element {
         <Route index element={<Dashboard />} />
         <Route path="customers" element={<Customers />} />
         <Route path="customers/:customerId" element={<CustomerDetail />} />
+        <Route path="customers/:customerId/manage" element={<CustomerManage />} />
         <Route path="properties/:propertyId" element={<PropertyDetail />} />
         <Route path="catalog" element={<ServiceCatalog />} />
         <Route path="pipeline" element={<SalesPipeline />} />
