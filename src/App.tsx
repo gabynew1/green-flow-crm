@@ -15,6 +15,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import Dashboard from "./pages/provider/Dashboard";
 import Customers from "./pages/provider/Customers";
 import CustomerDetail from "./pages/provider/CustomerDetail";
+import CustomerManage from "./pages/provider/CustomerManage";
 import PropertyDetail from "./pages/provider/PropertyDetail";
 import ServiceCatalog from "./pages/provider/ServiceCatalog";
 
