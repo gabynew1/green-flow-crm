@@ -75,12 +75,12 @@ export default function CustomerDetail() {
       supabase.from("customers").select("*").eq("id", customerId!).single(),
       supabase.from("properties").select("*").eq("customer_id", customerId!).order("name"),
       supabase.from("contracts").select("*, properties!inner(customer_id, name)").eq("properties.customer_id", customerId!).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("full_name, email, phone, unique_client_id").eq("customer_id", customerId!).maybeSingle(),
+      supabase.from("profiles").select("unique_client_id").eq("customer_id", customerId!).maybeSingle(),
     ]);
     setCustomer(custRes.data);
     setProperties(propRes.data ?? []);
     setContracts(contractRes.data ?? []);
-    setClientProfile(profileRes.data);
+    setClientId(profileRes.data?.unique_client_id ?? null);
   };
 
   const handleCreateProperty = async (e: React.FormEvent<HTMLFormElement>) => {
