@@ -55,7 +55,7 @@ export default function Customers() {
     const custId = (c.properties as any)?.customer_id;
     if (!custId) continue;
     const existing = customerContractMap.get(custId) || { hasActive: false, latestEndDate: null };
-    if (c.status === "ACTIVE") {
+    if (c.status === "ACTIVE" || c.status === "SIGNED") {
       existing.hasActive = true;
       if (!existing.latestEndDate || (c.end_date && c.end_date > existing.latestEndDate)) {
         existing.latestEndDate = c.end_date;
