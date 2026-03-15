@@ -536,7 +536,13 @@ export default function CustomerDetail() {
         )}
       </div>
 
-      <CreateAdHocVisitDialog open={visitOpen} onOpenChange={setVisitOpen} onCreated={load} />
+      <CreateAdHocVisitDialog
+        open={visitOpen}
+        onOpenChange={setVisitOpen}
+        onCreated={load}
+        defaultCustomerId={customerId}
+        defaultPropertyId={properties.length === 1 ? properties[0].id : undefined}
+      />
     </div>
   );
 }
