@@ -56,6 +56,9 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const [visitType, setVisitType] = useState("WEEK");
   const [sortKey, setSortKey] = useState<SortKey>("start_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [services, setServices] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   useEffect(() => { load(); }, []);
 
