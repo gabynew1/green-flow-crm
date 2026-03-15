@@ -67,9 +67,22 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
       supabase.from("properties").select("id, name, customer_id").order("name"),
       supabase.from("service_catalog").select("id, name, code").eq("is_active", true).order("name"),
     ]);
-    setCustomers(custRes.data ?? []);
-    setProperties(propRes.data ?? []);
+    const loadedCustomers = custRes.data ?? [];
+    const loadedProperties = propRes.data ?? [];
+    setCustomers(loadedCustomers);
+    setProperties(loadedProperties);
     setServices(svcRes.data ?? []);
+
+    // Apply defaults
+    if (defaultCustomerId && loadedCustomers.some((c: any) => c.id === defaultCustomerId)) {
+      setSelectedCustomerId(defaultCustomerId);
+      const custProps = loadedProperties.filter((p: any) => p.customer_id === defaultCustomerId);
+      if (defaultPropertyId && custProps.some((p: any) => p.id === defaultPropertyId)) {
+        setSelectedPropertyId(defaultPropertyId);
+      } else if (custProps.length === 1) {
+        setSelectedPropertyId(custProps[0].id);
+      }
+    }
   };
 
   const filteredProperties = properties.filter((p) => p.customer_id === selectedCustomerId);
