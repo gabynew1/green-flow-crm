@@ -146,6 +146,21 @@ export default function ClientDashboard() {
         toast.error("Could not load your profile.");
         return;
       }
+
+      // Check for duplicate email before creating customer
+      if (profileData.email) {
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id, name")
+          .ilike("email", profileData.email)
+          .neq("status", "DELETED")
+          .limit(1);
+        if (existing && existing.length > 0) {
+          toast.error(`A customer with this email already exists: ${existing[0].name}`);
+          return;
+        }
+      }
+
       const generatedCustomerId = crypto.randomUUID();
       const { error: custErr } = await supabase
         .from("customers")

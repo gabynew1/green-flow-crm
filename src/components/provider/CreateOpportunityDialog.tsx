@@ -124,13 +124,27 @@ export default function CreateOpportunityDialog({ open, onOpenChange }: Props) {
       toast.error("Fill in all required fields");
       return;
     }
+    const trimmedEmail = newEmail.trim();
+    if (trimmedEmail && profile?.tenant_id) {
+      const { data: existing } = await supabase
+        .from("customers")
+        .select("id, name")
+        .eq("tenant_id", profile.tenant_id)
+        .ilike("email", trimmedEmail)
+        .neq("status", "DELETED")
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error(`A customer with this email already exists: ${existing[0].name}`);
+        return;
+      }
+    }
     setSaving(true);
     try {
       const customerId = crypto.randomUUID();
       const { error: custErr } = await supabase.from("customers").insert({
         id: customerId,
         name: newName.trim(),
-        email: newEmail.trim() || null,
+        email: trimmedEmail || null,
         phone: newPhone.trim() || null,
         company_name: newCompany.trim() || null,
         tenant_id: profile?.tenant_id,

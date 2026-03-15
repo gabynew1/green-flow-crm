@@ -67,10 +67,26 @@ export default function Customers() {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const email = (form.get("email") as string)?.trim();
+
+    if (email && profile?.tenant_id) {
+      const { data: existing } = await supabase
+        .from("customers")
+        .select("id, name")
+        .eq("tenant_id", profile.tenant_id)
+        .ilike("email", email)
+        .neq("status", "DELETED")
+        .limit(1);
+      if (existing && existing.length > 0) {
+        toast.error(`A customer with this email already exists: ${existing[0].name}`);
+        return;
+      }
+    }
+
     const { error } = await supabase.from("customers").insert({
       name: form.get("name") as string,
       contact_person_name: form.get("contact") as string,
-      email: form.get("email") as string,
+      email: email || null,
       phone: form.get("phone") as string,
       company_name: form.get("company") as string,
       billing_address: form.get("address") as string,

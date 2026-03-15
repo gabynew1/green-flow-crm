@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_customers_email_tenant ON customers (lower(email), tenant_id) WHERE email IS NOT NULL AND status != 'DELETED';

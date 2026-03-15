@@ -41,6 +41,21 @@ export function ConnectionRequests() {
         .eq("user_id", user!.id)
         .single();
 
+      // Check for duplicate email
+      if (profile?.email) {
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id, name")
+          .eq("tenant_id", tenantId)
+          .ilike("email", profile.email)
+          .neq("status", "DELETED")
+          .limit(1);
+        if (existing && existing.length > 0) {
+          toast.error(`A customer with this email already exists: ${existing[0].name}`);
+          return;
+        }
+      }
+
       const { data: customer, error: custErr } = await supabase
         .from("customers")
         .insert({
