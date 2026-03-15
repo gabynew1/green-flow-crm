@@ -66,18 +66,21 @@ export default function CustomerDetail() {
     end_date: string;
     billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME";
   }>({ contract_name: "", start_date: "", end_date: "", billing_cycle: "MONTHLY" });
+  const [clientProfile, setClientProfile] = useState<{ full_name: string | null; email: string | null; phone: string | null; unique_client_id: string | null } | null>(null);
 
   useEffect(() => { load(); }, [customerId]);
 
   const load = async () => {
-    const [custRes, propRes, contractRes] = await Promise.all([
+    const [custRes, propRes, contractRes, profileRes] = await Promise.all([
       supabase.from("customers").select("*").eq("id", customerId!).single(),
       supabase.from("properties").select("*").eq("customer_id", customerId!).order("name"),
       supabase.from("contracts").select("*, properties!inner(customer_id, name)").eq("properties.customer_id", customerId!).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("full_name, email, phone, unique_client_id").eq("customer_id", customerId!).maybeSingle(),
     ]);
     setCustomer(custRes.data);
     setProperties(propRes.data ?? []);
     setContracts(contractRes.data ?? []);
+    setClientProfile(profileRes.data);
   };
 
   const handleCreateProperty = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -195,10 +198,13 @@ export default function CustomerDetail() {
 
       <Card>
         <CardContent className="pt-6 grid md:grid-cols-2 gap-4 text-sm">
-          <div><span className="text-muted-foreground">Contact:</span> {customer.contact_person_name || "—"}</div>
-          <div><span className="text-muted-foreground">Email:</span> {customer.email || "—"}</div>
-          <div><span className="text-muted-foreground">Phone:</span> {customer.phone || "—"}</div>
+          <div><span className="text-muted-foreground">Contact:</span> {clientProfile?.full_name || customer.contact_person_name || "—"}</div>
+          <div><span className="text-muted-foreground">Email:</span> {clientProfile?.email || customer.email || "—"}</div>
+          <div><span className="text-muted-foreground">Phone:</span> {clientProfile?.phone || customer.phone || "—"}</div>
           <div><span className="text-muted-foreground">Company:</span> {customer.company_name || "—"}</div>
+          {clientProfile?.unique_client_id && (
+            <div><span className="text-muted-foreground">Client ID:</span> {clientProfile.unique_client_id}</div>
+          )}
           {customer.billing_address && (
             <div className="md:col-span-2"><span className="text-muted-foreground">Billing Address:</span> {customer.billing_address}</div>
           )}
