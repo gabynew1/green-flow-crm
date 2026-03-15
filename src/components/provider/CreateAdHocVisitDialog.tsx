@@ -52,6 +52,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated }
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState("09:00");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
