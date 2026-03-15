@@ -106,7 +106,7 @@ const AdminLayout = () => {
                 </header>
 
                 {/* Content Area */}
-                <div className="flex-1 p-8 bg-[#F9FAFB]">
+                <div className="flex-1 p-8 bg-muted/30">
                     <Outlet />
                 </div>
             </main>

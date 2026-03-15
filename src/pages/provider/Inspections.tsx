@@ -15,12 +15,14 @@ import { format } from "date-fns";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
+  SCHEDULED: "default",
   COMPLETED: "default",
   OFFER_GENERATED: "outline",
 };
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Draft",
+  SCHEDULED: "Scheduled",
   COMPLETED: "Completed",
   OFFER_GENERATED: "Offer Generated",
 };
@@ -140,6 +142,7 @@ export default function Inspections({ embedded, statusFilter: statusFilterProp }
             <SelectContent>
               <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="SCHEDULED">Scheduled</SelectItem>
               <SelectItem value="COMPLETED">Completed</SelectItem>
               <SelectItem value="OFFER_GENERATED">Offer Generated</SelectItem>
             </SelectContent>
