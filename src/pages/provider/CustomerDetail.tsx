@@ -52,6 +52,7 @@ export default function CustomerDetail() {
   const [customer, setCustomer] = useState<any>(null);
   const [properties, setProperties] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
+  const [visits, setVisits] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
