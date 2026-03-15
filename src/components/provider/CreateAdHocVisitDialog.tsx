@@ -244,29 +244,66 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated }
             </div>
           </div>
 
-          {/* Services multi-select */}
+          {/* Services – category-first picker */}
           <div className="space-y-2">
-            <Label>Services * <span className="text-xs text-muted-foreground font-normal">(select one or more)</span></Label>
-            <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
-              {services.map((svc) => (
-                <label
-                  key={svc.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                >
-                  <Checkbox
-                    checked={selectedServiceIds.includes(svc.id)}
-                    onCheckedChange={() => toggleService(svc.id)}
-                  />
-                  <span className="flex-1">{svc.name}</span>
-                  <span className="text-xs text-muted-foreground">{svc.code}</span>
-                </label>
-              ))}
-              {services.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-2">
-                  No services in catalog
-                </p>
-              )}
-            </div>
+            <Label>Services * <span className="text-xs text-muted-foreground font-normal">(select category, then check services)</span></Label>
+            
+            {/* Category dropdown */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filtered services for selected category */}
+            {selectedCategory && (
+              <div className="border rounded-md max-h-40 overflow-y-auto p-2 space-y-1">
+                {filteredServices.length > 0 ? filteredServices.map((svc) => (
+                  <label
+                    key={svc.id}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+                  >
+                    <Checkbox
+                      checked={selectedServiceIds.includes(svc.id)}
+                      onCheckedChange={() => toggleService(svc.id)}
+                    />
+                    <span className="flex-1">{svc.name}</span>
+                  </label>
+                )) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">No services in this category</p>
+                )}
+              </div>
+            )}
+
+            {/* Selected services summary */}
+            {selectedServiceIds.length > 0 && (
+              <div className="border rounded-md p-2 space-y-1 bg-muted/30">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Selected services ({selectedServiceIds.length})</p>
+                {selectedServiceIds.map((id) => {
+                  const svc = services.find((s) => s.id === id);
+                  return (
+                    <div key={id} className="flex items-center justify-between text-sm px-2 py-1 rounded hover:bg-muted">
+                      <span>{svc?.name}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{svc?.code}</span>
+                        <button
+                          type="button"
+                          className="text-xs text-destructive hover:underline"
+                          onClick={() => toggleService(id)}
+                        >
+                          Remove
+                        </button>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Notes */}
