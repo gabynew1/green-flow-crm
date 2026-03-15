@@ -53,18 +53,16 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
   }, [open]);
 
   const loadData = async () => {
-    const queries: Promise<any>[] = [
+    const [custRes, propRes] = await Promise.all([
       supabase.from("customers").select("id, name, email, company_name").order("name"),
       supabase.from("properties").select("id, name, customer_id").order("name"),
-    ];
+    ]);
+    setCustomers(custRes.data ?? []);
+    setProperties(propRes.data ?? []);
+
     if (type === "contract") {
-      queries.push(supabase.from("service_catalog").select("*").eq("is_active", true).order("code").order("name"));
-    }
-    const results = await Promise.all(queries);
-    setCustomers(results[0].data ?? []);
-    setProperties(results[1].data ?? []);
-    if (type === "contract" && results[2]) {
-      setServices(results[2].data ?? []);
+      const svcRes = await supabase.from("service_catalog").select("*").eq("is_active", true).order("code").order("name");
+      setServices(svcRes.data ?? []);
     }
   };
 
