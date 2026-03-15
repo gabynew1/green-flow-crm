@@ -63,7 +63,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const [contractRes, propRes, lineItemRes] = await Promise.all([
+    const [contractRes, propRes, lineItemRes, svcRes] = await Promise.all([
       supabase
         .from("contracts")
         .select("*, properties(name, customers(name))")
@@ -71,10 +71,12 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
       supabase.from("properties").select("id, name, address, customers(name)").order("name"),
       supabase
         .from("contract_line_items")
-        .select("contract_id, quantity, service_catalog(default_price)")
+        .select("contract_id, quantity, service_catalog(default_price)"),
+      supabase.from("service_catalog").select("*").eq("is_active", true).order("code").order("name"),
     ]);
     setContracts(contractRes.data ?? []);
     setProperties(propRes.data ?? []);
+    setServices(svcRes.data ?? []);
 
     const totals = new Map<string, number>();
     for (const item of lineItemRes.data ?? []) {
