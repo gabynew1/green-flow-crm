@@ -15,6 +15,7 @@ import { format } from "date-fns";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
+  SCHEDULED: "default",
   COMPLETED: "default",
   OFFER_GENERATED: "outline",
 };
