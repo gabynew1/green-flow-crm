@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, Download, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -56,11 +56,14 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const [visitType, setVisitType] = useState("WEEK");
   const [sortKey, setSortKey] = useState<SortKey>("start_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [services, setServices] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const [contractRes, propRes, lineItemRes] = await Promise.all([
+    const [contractRes, propRes, lineItemRes, svcRes] = await Promise.all([
       supabase
         .from("contracts")
         .select("*, properties(name, customers(name))")
@@ -68,10 +71,12 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
       supabase.from("properties").select("id, name, address, customers(name)").order("name"),
       supabase
         .from("contract_line_items")
-        .select("contract_id, quantity, service_catalog(default_price)")
+        .select("contract_id, quantity, service_catalog(default_price)"),
+      supabase.from("service_catalog").select("*").eq("is_active", true).order("code").order("name"),
     ]);
     setContracts(contractRes.data ?? []);
     setProperties(propRes.data ?? []);
+    setServices(svcRes.data ?? []);
 
     const totals = new Map<string, number>();
     for (const item of lineItemRes.data ?? []) {
@@ -88,6 +93,15 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
     );
   };
 
+  const categories = [...new Set(services.map((s) => s.code as string))].sort();
+  const filteredServices = services.filter((s) => s.code === selectedCategory);
+
+  const toggleService = (id: string) => {
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -97,6 +111,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
 
     if (selectedPropertyIds.length === 0) { toast.error("Select at least one property"); return; }
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
+    if (selectedServiceIds.length === 0) { toast.error("Select at least one service"); return; }
 
     const inserts = selectedPropertyIds.map((propertyId) => ({
       contract_name: contractName,
@@ -109,11 +124,28 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
       status: "DRAFT" as const,
     } as any));
 
-    const { error } = await supabase.from("contracts").insert(inserts);
+    const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
     if (error) { toast.error(error.message); return; }
+
+    // Insert contract line items for each created contract
+    const lineItems = (created ?? []).flatMap((contract) =>
+      selectedServiceIds.map((serviceId) => ({
+        contract_id: contract.id,
+        service_catalog_id: serviceId,
+        quantity: 1,
+        frequency_type: "PER_VISIT" as const,
+      }))
+    );
+    if (lineItems.length > 0) {
+      const { error: liError } = await supabase.from("contract_line_items").insert(lineItems);
+      if (liError) { toast.error("Contract created but failed to add service lines: " + liError.message); }
+    }
+
     toast.success(`${inserts.length} contract(s) created`);
     setOpen(false);
     setSelectedPropertyIds([]);
+    setSelectedServiceIds([]);
+    setSelectedCategory("");
     setBillingCycle("MONTHLY");
     setVisitCount(1);
     setVisitType("WEEK");
@@ -230,11 +262,11 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
           <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filtered.length === 0}>
             <Download className="h-4 w-4 mr-1" /> Export
           </Button>
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSelectedPropertyIds([]); setBillingCycle("MONTHLY"); } }}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setSelectedPropertyIds([]); setSelectedServiceIds([]); setSelectedCategory(""); setBillingCycle("MONTHLY"); } }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" /> New Contract</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>New Contract</DialogTitle></DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2"><Label>Contract Name *</Label><Input name="name" required placeholder="e.g. Annual Maintenance 2026" /></div>
@@ -266,6 +298,54 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
                   <div className="space-y-2"><Label>Start Date *</Label><Input name="start_date" type="date" required /></div>
                   <div className="space-y-2"><Label>End Date *</Label><Input name="end_date" type="date" required /></div>
                 </div>
+
+                {/* Service Selection */}
+                <div className="space-y-2">
+                  <Label>Services *</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedCategory && filteredServices.length > 0 && (
+                    <div className="border rounded-md p-3 space-y-2 max-h-36 overflow-y-auto">
+                      {filteredServices.map((svc) => (
+                        <div key={svc.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`csvc-${svc.id}`}
+                            checked={selectedServiceIds.includes(svc.id)}
+                            onCheckedChange={() => toggleService(svc.id)}
+                          />
+                          <label htmlFor={`csvc-${svc.id}`} className="text-sm cursor-pointer flex-1">
+                            {svc.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {selectedServiceIds.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{selectedServiceIds.length} service(s) selected:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedServiceIds.map((id) => {
+                          const svc = services.find((s) => s.id === id);
+                          return svc ? (
+                            <Badge key={id} variant="secondary" className="text-xs gap-1">
+                              {svc.name}
+                              <button type="button" onClick={() => toggleService(id)} className="hover:text-destructive">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label>Visit Frequency</Label>
                   <div className="flex gap-2">
