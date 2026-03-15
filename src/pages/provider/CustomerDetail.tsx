@@ -54,6 +54,7 @@ export default function CustomerDetail() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
+  const [visitOpen, setVisitOpen] = useState(false);
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
