@@ -38,7 +38,6 @@ export default function TenantManagement() {
     const { data: tenants, isLoading, refetch } = useQuery({
         queryKey: ["admin-tenants"],
         queryFn: async () => {
-            // Get tenants and count their providers/clients
             const { data: tenantsData, error } = await supabase
                 .from("tenants")
                 .select(`
@@ -53,22 +52,16 @@ export default function TenantManagement() {
 
             if (error) throw error;
 
-            // For each tenant, get provider/client counts from profiles
             const enrichedTenants = await Promise.all((tenantsData || []).map(async (t) => {
-                // This is slightly inefficient but for a super admin portal with limited tenants it's fine.
-                // In a real production environment, we'd use a view or a dedicated stats table.
                 const { count: providers } = await supabase
                     .from("profiles")
                     .select("*", { count: "exact", head: true })
                     .eq("tenant_id", t.id);
-                // Note: This count includes all profiles in tenant. 
-                // To be precise we should filter by roles, but user_roles is a separate table.
-                // For now we'll show total profiles as a proxy or just perform one more query if needed.
 
                 return {
                     ...t,
                     providerCount: providers || 0,
-                    clientCount: 0 // Placeholder until we have a better way to join
+                    clientCount: 0
                 };
             }));
 
@@ -91,17 +84,17 @@ export default function TenantManagement() {
 
     const getTierBadge = (tier: string) => {
         switch (tier) {
-            case "PLATINUM": return <Badge className="bg-purple-600 hover:bg-purple-700">Platinum</Badge>;
-            case "PREMIUM": return <Badge className="bg-blue-600 hover:bg-blue-700">Premium</Badge>;
-            default: return <Badge variant="secondary">Basic</Badge>;
+            case "enterprise": return <Badge className="bg-purple-600 hover:bg-purple-700">Enterprise</Badge>;
+            case "pro": return <Badge className="bg-blue-600 hover:bg-blue-700">Pro</Badge>;
+            default: return <Badge variant="secondary">Free</Badge>;
         }
     };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case "ACTIVE": return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Active</Badge>;
-            case "SUSPENDED": return <Badge variant="destructive">Suspended</Badge>;
-            case "TRIAL": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
+            case "active": return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Active</Badge>;
+            case "suspended": return <Badge variant="destructive">Suspended</Badge>;
+            case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
             default: return <Badge variant="outline">{status}</Badge>;
         }
     };
@@ -127,8 +120,8 @@ export default function TenantManagement() {
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Trial Conversions</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">84%</div>
-                        <p className="text-xs text-green-500 font-semibold mt-1">+4% from last month</p>
+                        <div className="text-2xl font-bold">{tenants?.filter(t => t.status !== 'trial').length || 0} / {tenants?.length || 0}</div>
+                        <p className="text-xs text-muted-foreground font-medium mt-1">Converted tenants</p>
                     </CardContent>
                 </Card>
                 <Card className="border-primary/10">
@@ -136,7 +129,9 @@ export default function TenantManagement() {
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Over-Quota Alerts</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-destructive">3</div>
+                        <div className="text-2xl font-bold text-destructive">
+                            {tenants?.filter(t => t.providerCount >= (t.max_provider_seats || 2)).length || 0}
+                        </div>
                         <p className="text-xs text-muted-foreground font-medium mt-1">Tenants exceeded seat limits</p>
                     </CardContent>
                 </Card>
@@ -145,7 +140,7 @@ export default function TenantManagement() {
                         <CardTitle className="text-sm font-medium text-muted-foreground uppercase">Active Subscriptions</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{tenants?.filter(t => t.status === 'ACTIVE').length}</div>
+                        <div className="text-2xl font-bold">{tenants?.filter(t => t.status === 'active').length || 0}</div>
                         <p className="text-xs text-muted-foreground font-medium mt-1">Excluding trials</p>
                     </CardContent>
                 </Card>
@@ -203,11 +198,11 @@ export default function TenantManagement() {
                                         <DropdownMenuContent align="end" className="w-56">
                                             <DropdownMenuLabel>Management Actions</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'ACTIVE')}>
+                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'active')}>
                                                 <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
                                                 Activate Account
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'SUSPENDED')}>
+                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'suspended')}>
                                                 <Ban className="h-4 w-4 mr-2 text-destructive" />
                                                 Suspend Account
                                             </DropdownMenuItem>

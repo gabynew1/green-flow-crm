@@ -22,6 +22,7 @@ const statusVariant: Record<string, "default" | "secondary" | "outline" | "destr
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Draft",
+  SCHEDULED: "Scheduled",
   COMPLETED: "Completed",
   OFFER_GENERATED: "Offer Generated",
 };

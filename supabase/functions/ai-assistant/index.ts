@@ -262,7 +262,7 @@ async function executeToolCall(
           .from("service_orders")
           .insert([{
             property_id: propertyId,
-            status: "DRAFT",
+            status: "SCHEDULED",
             period_type: "ONE_TIME",
             scheduled_date: preferredDate || null,
             notes: description,

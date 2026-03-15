@@ -46,7 +46,7 @@ export default function AdminDashboard() {
             const [tenants, profiles, security] = await Promise.all([
                 supabase.from("tenants").select("id", { count: "exact" }),
                 supabase.from("profiles").select("id", { count: "exact" }),
-                supabase.from("security_alerts" as any).select("id", { count: "exact" }).eq("is_resolved", false)
+                supabase.from("security_alerts").select("id", { count: "exact" }).eq("resolved", false)
             ]);
 
             return {
