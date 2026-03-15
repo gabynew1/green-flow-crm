@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Archive, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Archive, Trash2, Send, CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -53,6 +54,7 @@ export default function CustomerDetail() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
   const [contractOpen, setContractOpen] = useState(false);
+  const [visitOpen, setVisitOpen] = useState(false);
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
@@ -196,9 +198,14 @@ export default function CustomerDetail() {
             {hasActiveContract ? "Active" : "Inactive"}
           </Badge>
         </div>
-        <Link to={`/provider/customers/${customerId}/manage`}>
-          <Button variant="outline" size="sm">Manage Account</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setVisitOpen(true)}>
+            <CalendarPlus className="h-4 w-4 mr-1" /> New Visit
+          </Button>
+          <Link to={`/provider/customers/${customerId}/manage`}>
+            <Button variant="outline" size="sm">Manage Account</Button>
+          </Link>
+        </div>
       </div>
 
       <Card>
@@ -476,6 +483,8 @@ export default function CustomerDetail() {
           <p className="text-muted-foreground col-span-full text-center py-8">No properties yet</p>
         )}
       </div>
+
+      <CreateAdHocVisitDialog open={visitOpen} onOpenChange={setVisitOpen} onCreated={load} />
     </div>
   );
 }
