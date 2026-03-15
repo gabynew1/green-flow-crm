@@ -186,14 +186,19 @@ export default function CustomerDetail() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link to="/provider/customers">
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link to="/provider/customers">
+            <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+          </Link>
+          <h1 className="text-2xl font-bold">{customer.name}</h1>
+          <Badge variant={hasActiveContract ? "default" : "secondary"}>
+            {hasActiveContract ? "Active" : "Inactive"}
+          </Badge>
+        </div>
+        <Link to={`/provider/customers/${customerId}/manage`}>
+          <Button variant="outline" size="sm">Manage Account</Button>
         </Link>
-        <h1 className="text-2xl font-bold">{customer.name}</h1>
-        <Badge variant={hasActiveContract ? "default" : "secondary"}>
-          {hasActiveContract ? "Active" : "Inactive"}
-        </Badge>
       </div>
 
       <Card>

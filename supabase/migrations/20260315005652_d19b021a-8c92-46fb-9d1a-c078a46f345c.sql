@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ADD COLUMN status text NOT NULL DEFAULT 'ACTIVE';

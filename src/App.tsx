@@ -15,6 +15,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import Dashboard from "./pages/provider/Dashboard";
 import Customers from "./pages/provider/Customers";
 import CustomerDetail from "./pages/provider/CustomerDetail";
+import CustomerManage from "./pages/provider/CustomerManage";
 import PropertyDetail from "./pages/provider/PropertyDetail";
 import ServiceCatalog from "./pages/provider/ServiceCatalog";
 
@@ -109,6 +110,7 @@ function AppRoutes(): JSX.Element {
         <Route index element={<Dashboard />} />
         <Route path="customers" element={<Customers />} />
         <Route path="customers/:customerId" element={<CustomerDetail />} />
+        <Route path="customers/:customerId/manage" element={<CustomerManage />} />
         <Route path="properties/:propertyId" element={<PropertyDetail />} />
         <Route path="catalog" element={<ServiceCatalog />} />
         <Route path="pipeline" element={<SalesPipeline />} />
