@@ -132,11 +132,13 @@ export default function Customers() {
     setConnectLoading(false);
   };
 
-  const filtered = customers.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email?.toLowerCase().includes(search.toLowerCase()) ||
-    c.company_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = customers
+    .filter((c: any) => c.status !== "DELETED")
+    .filter((c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email?.toLowerCase().includes(search.toLowerCase()) ||
+      c.company_name?.toLowerCase().includes(search.toLowerCase())
+    );
 
   return (
     <div className="space-y-6">
