@@ -239,89 +239,16 @@ export default function CustomerDetail() {
       {/* Contracts Section */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Contracts</h2>
-        <Dialog open={contractOpen} onOpenChange={(open) => { setContractOpen(open); if (!open) { setSelectedPropertyIds([]); setBillingCycle("MONTHLY"); } }}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Contract</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create Contract</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreateContract} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Contract Name *</Label>
-                <Input name="contract_name" required placeholder="e.g. Annual Maintenance 2026" />
-              </div>
-              <div className="space-y-2">
-                <Label>Properties *</Label>
-                <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
-                  {properties.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No properties — add one first.</p>
-                  ) : (
-                    properties.map((p) => (
-                      <div key={p.id} className="flex items-center gap-2">
-                        <Checkbox
-                          id={`prop-${p.id}`}
-                          checked={selectedPropertyIds.includes(p.id)}
-                          onCheckedChange={() => toggleProperty(p.id)}
-                        />
-                        <label htmlFor={`prop-${p.id}`} className="text-sm cursor-pointer flex-1">
-                          {p.name}
-                          {p.address && <span className="text-muted-foreground ml-1">— {p.address}</span>}
-                        </label>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {selectedPropertyIds.length > 0 && (
-                  <p className="text-xs text-muted-foreground">{selectedPropertyIds.length} selected — a contract will be created for each property</p>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date *</Label>
-                  <Input name="start_date" type="date" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>End Date *</Label>
-                  <Input name="end_date" type="date" required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Visit Frequency</Label>
-                <div className="flex gap-2">
-                  <Select value={String(visitCount)} onValueChange={(v) => setVisitCount(Number(v))}>
-                    <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
-                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={visitType} onValueChange={setVisitType}>
-                    <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WEEK">per Week</SelectItem>
-                      <SelectItem value="MONTH">per Month</SelectItem>
-                      <SelectItem value="YEAR">per Year</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Billing Frequency</Label>
-                <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="WEEKLY">Weekly</SelectItem>
-                    <SelectItem value="MONTHLY">Monthly</SelectItem>
-                    <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full">Create Contract</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" onClick={() => setContractOpen(true)}><Plus className="h-4 w-4 mr-1" /> New Contract</Button>
       </div>
+
+      <CreatePipelineItemDialog
+        open={contractOpen}
+        onOpenChange={setContractOpen}
+        type="contract"
+        defaultCustomerId={customerId}
+        onCreated={load}
+      />
 
       {contracts.length === 0 ? (
         <p className="text-muted-foreground text-center py-6">No contracts yet — create one to activate this client.</p>
