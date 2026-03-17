@@ -34,13 +34,18 @@ export default function Dashboard() {
     const today = new Date();
     const threeDaysAgo = format(subDays(today, 3), "yyyy-MM-dd'T'HH:mm:ss");
 
-    const [custRes, contRes, pendingOffRes, visitsRes, feedbackRes, inspRes, staleInspRes, offersRes, contractsRes, visitsCountRes] = await Promise.all([
+    const ytdStart = format(new Date(today.getFullYear(), 0, 1), "yyyy-MM-dd");
+
+    const [custRes, contRes, visitsDeliveredRes, offersSentRes, feedbackRes, inspRes, staleInspRes, offersRes, contractsRes, visitsCountRes] = await Promise.all([
       tq.from("customers").select("id", { count: "exact", head: true }),
       supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "ACTIVE"),
-      tq.from("offers").select("id", { count: "exact", head: true }).eq("status", "SENT_TO_CLIENT"),
       supabase.from("service_orders").select("id", { count: "exact", head: true })
-        .gte("scheduled_date", format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd")),
-      supabase.from("feedback").select("rating_stars"),
+        .in("status", ["COMPLETED", "APPROVED", "SENT_TO_CLIENT"])
+        .gte("performed_date", ytdStart),
+      tq.from("offers").select("id", { count: "exact", head: true })
+        .in("status", ["SENT_TO_CLIENT", "ACCEPTED", "REJECTED", "EXPIRED"])
+        .gte("created_at", ytdStart),
+      supabase.from("feedback").select("rating_stars").gte("created_at", ytdStart),
       tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]),
       tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]).lt("created_at", threeDaysAgo),
       tq.from("offers").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "IN_PROGRESS", "SENT_TO_CLIENT"]),
@@ -55,9 +60,10 @@ export default function Dashboard() {
     setKpis({
       activeCustomers: custRes.count ?? 0,
       activeContracts: contRes.count ?? 0,
-      pendingOffers: pendingOffRes.count ?? 0,
-      visitsThisMonth: visitsRes.count ?? 0,
+      visitsDelivered: visitsDeliveredRes.count ?? 0,
+      offersSent: offersSentRes.count ?? 0,
       avgRating: Math.round(avgRating * 10) / 10,
+      feedbackCount: feedbackRes.data?.length ?? 0,
       draftInspections: inspRes.count ?? 0,
       staleInspections: staleInspRes.count ?? 0,
     });
