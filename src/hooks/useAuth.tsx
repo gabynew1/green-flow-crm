@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, unique_client_id, tenant_id, email, customer_id, phone")
+      .select("full_name, unique_client_id, tenant_id, email, customer_id, phone, company_name, cui, contact_email, contact_phone, provider_permission")
       .eq("user_id", userId)
       .single();
     if (data) {

@@ -42,6 +42,10 @@ export function ProviderSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { signOut, profile, isSuperAdmin } = useAuth();
+  const permission = (profile as any)?.provider_permission || "full_admin";
+  const navItems = allNavItems.filter(
+    (item) => item.requiredPermission === null || item.requiredPermission === permission || permission === "full_admin"
+  );
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
