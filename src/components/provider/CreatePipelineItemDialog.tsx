@@ -51,8 +51,11 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (open) loadData();
-  }, [open]);
+    if (open) {
+      loadData();
+      if (defaultCustomerId) setSelectedCustomerId(defaultCustomerId);
+    }
+  }, [open, defaultCustomerId]);
 
   const loadData = async () => {
     const [custRes, propRes] = await Promise.all([
