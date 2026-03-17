@@ -26,6 +26,7 @@ import FeedbackPage from "./pages/provider/Feedback";
 import InspectionDetail from "./pages/provider/InspectionDetail";
 import OfferDetail from "./pages/provider/OfferDetail";
 import SalesPipeline from "./pages/provider/SalesPipeline";
+import ProviderSettings from "./pages/provider/Settings";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
@@ -123,6 +124,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
         <Route path="feedback" element={<FeedbackPage />} />
+        <Route path="settings" element={<ProviderSettings />} />
       </Route>
 
       {/* Client routes — block providers */}
