@@ -262,6 +262,7 @@ export default function ContractDetail() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 

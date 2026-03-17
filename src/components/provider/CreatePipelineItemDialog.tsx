@@ -181,6 +181,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
         toast.success(`${inserts.length} contract(s) created!`);
         resetForm();
         onOpenChange(false);
+        onCreated?.();
         if (created && created.length === 1) {
           navigate(`/provider/contracts/${created[0].id}`);
         }

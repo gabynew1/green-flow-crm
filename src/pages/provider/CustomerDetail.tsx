@@ -366,6 +366,11 @@ export default function CustomerDetail() {
                               <XCircle className="h-3 w-3 mr-1" /> Close
                             </Button>
                           )}
+                          {c.status === "CLOSED" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => renewContract(c)}>
+                              <RotateCcw className="h-3 w-3 mr-1" /> Renew
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );
