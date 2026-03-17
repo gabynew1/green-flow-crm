@@ -104,9 +104,9 @@ export default function Dashboard() {
   const kpiCards = [
     { label: "Active Customers", value: kpis.activeCustomers, icon: Users, color: "text-primary" },
     { label: "Active Contracts", value: kpis.activeContracts, icon: FileText, color: "text-info" },
-    { label: "Pending Offers", value: kpis.pendingOffers, icon: Clock, color: "text-warning", highlight: kpis.pendingOffers > 0 },
-    { label: "Visits This Month", value: kpis.visitsThisMonth, icon: ClipboardList, color: "text-primary" },
-    { label: "Avg. Rating", value: kpis.avgRating > 0 ? `${kpis.avgRating} ★` : "—", icon: Star, color: "text-accent" },
+    { label: "Visits Delivered (YTD)", value: kpis.visitsDelivered, icon: ClipboardList, color: "text-primary" },
+    { label: "Offers Sent (YTD)", value: kpis.offersSent, icon: FileOutput, color: "text-warning" },
+    { label: `Feedback (${kpis.feedbackCount})`, value: kpis.avgRating > 0 ? `${kpis.avgRating} ★` : "—", icon: Star, color: "text-accent" },
   ];
 
   const pipelineSteps = [
