@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText, FileOutput } from "lucide-react";
+import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText, FileOutput, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
