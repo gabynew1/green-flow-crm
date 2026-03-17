@@ -27,13 +27,14 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
-  { title: "Dashboard", url: "/provider", icon: LayoutDashboard },
-  { title: "Customers", url: "/provider/customers", icon: Users },
-  { title: "Sales Pipeline", url: "/provider/pipeline", icon: ClipboardCheck },
-  { title: "Service Visits", url: "/provider/visits", icon: ClipboardList },
-  { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen },
-  { title: "Feedback", url: "/provider/feedback", icon: MessageSquare },
+const allNavItems = [
+  { title: "Dashboard", url: "/provider", icon: LayoutDashboard, requiredPermission: null },
+  { title: "Customers", url: "/provider/customers", icon: Users, requiredPermission: "full_admin" as const },
+  { title: "Sales Pipeline", url: "/provider/pipeline", icon: ClipboardCheck, requiredPermission: "full_admin" as const },
+  { title: "Service Visits", url: "/provider/visits", icon: ClipboardList, requiredPermission: null },
+  { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen, requiredPermission: "full_admin" as const },
+  { title: "Feedback", url: "/provider/feedback", icon: MessageSquare, requiredPermission: "full_admin" as const },
+  { title: "Settings", url: "/provider/settings", icon: Settings, requiredPermission: "full_admin" as const },
 ];
 
 export function ProviderSidebar() {
