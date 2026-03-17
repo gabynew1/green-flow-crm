@@ -209,6 +209,23 @@ export default function ContractDetail() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Line Items</h2>
         {editable && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={async () => {
+              const existingIds = new Set(lineItems.map(li => li.service_catalog_id));
+              const toAdd = catalog.filter(s => !existingIds.has(s.id));
+              if (toAdd.length === 0) { toast.info("All catalog services already added"); return; }
+              const inserts = toAdd.map(s => ({
+                contract_id: contractId!,
+                service_catalog_id: s.id,
+                quantity: 1,
+                frequency_type: "PER_VISIT" as const,
+                unit: s.default_unit || "visit",
+              }));
+              const { error } = await supabase.from("contract_line_items").insert(inserts);
+              if (error) { toast.error(error.message); return; }
+              toast.success(`${toAdd.length} service(s) added`);
+              load();
+            }}>Add All</Button>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
             <DialogContent>
@@ -245,6 +262,7 @@ export default function ContractDetail() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         )}
       </div>
 

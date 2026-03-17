@@ -23,9 +23,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: "inspection" | "offer" | "contract";
+  defaultCustomerId?: string;
+  onCreated?: () => void;
 }
 
-export default function CreatePipelineItemDialog({ open, onOpenChange, type }: Props) {
+export default function CreatePipelineItemDialog({ open, onOpenChange, type, defaultCustomerId, onCreated }: Props) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<any[]>([]);
@@ -49,8 +51,11 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   useEffect(() => {
-    if (open) loadData();
-  }, [open]);
+    if (open) {
+      loadData();
+      if (defaultCustomerId) setSelectedCustomerId(defaultCustomerId);
+    }
+  }, [open, defaultCustomerId]);
 
   const loadData = async () => {
     const [custRes, propRes] = await Promise.all([
@@ -176,6 +181,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type }: P
         toast.success(`${inserts.length} contract(s) created!`);
         resetForm();
         onOpenChange(false);
+        onCreated?.();
         if (created && created.length === 1) {
           navigate(`/provider/contracts/${created[0].id}`);
         }
