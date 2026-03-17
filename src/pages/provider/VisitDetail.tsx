@@ -10,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Send, Save, Play, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -34,6 +37,8 @@ const statusLabels: Record<string, string> = {
   CANCELED: "Canceled",
 };
 
+const allStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL", "APPROVED", "SENT_TO_CLIENT", "CANCELED"];
+
 export default function VisitDetail() {
   const { visitId } = useParams();
   const [order, setOrder] = useState<any>(null);
@@ -41,6 +46,13 @@ export default function VisitDetail() {
   const [catalog, setCatalog] = useState<any[]>([]);
   const [notes, setNotes] = useState("");
   const [addOpen, setAddOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  // Editable fields
+  const [editScheduledDate, setEditScheduledDate] = useState<Date | undefined>();
+  const [editPerformedDate, setEditPerformedDate] = useState<Date | undefined>();
+  const [editPeriodLabel, setEditPeriodLabel] = useState("");
+  const [editPeriodType, setEditPeriodType] = useState("");
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -52,6 +64,12 @@ export default function VisitDetail() {
       .single();
     setOrder(o);
     setNotes(o?.notes || "");
+    if (o) {
+      setEditScheduledDate(o.scheduled_date ? parseISO(o.scheduled_date) : undefined);
+      setEditPerformedDate(o.performed_date ? parseISO(o.performed_date) : undefined);
+      setEditPeriodLabel(o.period_label || "");
+      setEditPeriodType(o.period_type || "WEEK");
+    }
 
     const { data: itms } = await supabase
       .from("service_order_items")
@@ -69,22 +87,29 @@ export default function VisitDetail() {
     load();
   };
 
-  const updateStatus = async (status: string) => {
-    const updates: any = { status };
-    if (status === "IN_PROGRESS" || status === "COMPLETED") {
-      updates.notes = notes;
-    }
-    if (status === "COMPLETED") {
+  const changeStatus = async (newStatus: string) => {
+    const updates: any = { status: newStatus };
+    if (newStatus === "COMPLETED" && !order.performed_date) {
       updates.performed_date = new Date().toISOString().split("T")[0];
     }
     await supabase.from("service_orders").update(updates).eq("id", visitId!);
-    toast.success(`Visit ${statusLabels[status]?.toLowerCase() || status}`);
+    toast.success(`Status changed to ${statusLabels[newStatus] || newStatus}`);
     load();
   };
 
-  const saveDraft = async () => {
-    await supabase.from("service_orders").update({ notes }).eq("id", visitId!);
-    toast.success("Saved!");
+  const saveAll = async () => {
+    const updates: any = {
+      notes,
+      scheduled_date: editScheduledDate ? format(editScheduledDate, "yyyy-MM-dd") : null,
+      performed_date: editPerformedDate ? format(editPerformedDate, "yyyy-MM-dd") : null,
+      period_label: editPeriodLabel || null,
+      period_type: editPeriodType,
+    };
+    const { error } = await supabase.from("service_orders").update(updates).eq("id", visitId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Visit updated!");
+    setEditing(false);
+    load();
   };
 
   const handleAddAdHoc = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -108,10 +133,9 @@ export default function VisitDetail() {
 
   if (!order) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
-  const canEdit = order.status === "SCHEDULED" || order.status === "IN_PROGRESS";
-
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <Link to="/provider/visits"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <div className="flex-1">
@@ -120,16 +144,93 @@ export default function VisitDetail() {
             {(order.properties as any)?.name} · {(order.properties as any)?.customers?.name}
           </p>
         </div>
-        <Badge className={statusColor[order.status]} variant="secondary">{statusLabels[order.status] || order.status.replace(/_/g, " ")}</Badge>
+        {/* Status dropdown */}
+        <Select value={order.status} onValueChange={changeStatus}>
+          <SelectTrigger className={cn("w-[180px] font-medium", statusColor[order.status])}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {allStatuses.map(s => (
+              <SelectItem key={s} value={s}>
+                <span className={cn("inline-block rounded px-1.5 py-0.5 text-xs", statusColor[s])}>
+                  {statusLabels[s]}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Details card */}
       <Card>
-        <CardContent className="pt-6 flex flex-wrap gap-4 text-sm">
-          <div><span className="text-muted-foreground">Period:</span> {order.period_label} ({order.period_type})</div>
-          <div><span className="text-muted-foreground">Scheduled:</span> {order.scheduled_date}</div>
-          <div><span className="text-muted-foreground">Performed:</span> {order.performed_date || "—"}</div>
-          {(order.contracts as any)?.contract_name && (
-            <div><span className="text-muted-foreground">Contract:</span> {(order.contracts as any).contract_name}</div>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Details</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => setEditing(!editing)}>
+            <Pencil className="h-4 w-4 mr-1" /> {editing ? "Cancel" : "Edit"}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {editing ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Scheduled Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editScheduledDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editScheduledDate ? format(editScheduledDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={editScheduledDate} onSelect={setEditScheduledDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Performed Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !editPerformedDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {editPerformedDate ? format(editPerformedDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={editPerformedDate} onSelect={setEditPerformedDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Period Label</Label>
+                <Input value={editPeriodLabel} onChange={e => setEditPeriodLabel(e.target.value)} placeholder="e.g. Week 12" />
+              </div>
+              <div className="space-y-2">
+                <Label>Period Type</Label>
+                <Select value={editPeriodType} onValueChange={setEditPeriodType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="WEEK">Week</SelectItem>
+                    <SelectItem value="MONTH">Month</SelectItem>
+                    <SelectItem value="ONE_TIME">One-time</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(order.contracts as any)?.contract_name && (
+                <div className="sm:col-span-2">
+                  <Label>Contract</Label>
+                  <p className="text-sm text-muted-foreground mt-1">{(order.contracts as any).contract_name}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div><span className="text-muted-foreground">Period:</span> {order.period_label} ({order.period_type})</div>
+              <div><span className="text-muted-foreground">Scheduled:</span> {order.scheduled_date}</div>
+              <div><span className="text-muted-foreground">Performed:</span> {order.performed_date || "—"}</div>
+              {(order.contracts as any)?.contract_name && (
+                <div><span className="text-muted-foreground">Contract:</span> {(order.contracts as any).contract_name}</div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -137,31 +238,29 @@ export default function VisitDetail() {
       {/* Items */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Services</h2>
-        {canEdit && (
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Ad-hoc Service</Button></DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Add Ad-hoc Service</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddAdHoc} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>From Catalog (optional)</Label>
-                  <Select name="service_id">
-                    <SelectTrigger><SelectValue placeholder="Select or leave blank" /></SelectTrigger>
-                    <SelectContent>
-                      {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2"><Label>Name</Label><Input name="name" placeholder="Custom name (overrides catalog)" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Qty</Label><Input name="quantity" type="number" defaultValue="1" /></div>
-                  <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
-                </div>
-                <Button type="submit" className="w-full">Add</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Ad-hoc Service</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Ad-hoc Service</DialogTitle></DialogHeader>
+            <form onSubmit={handleAddAdHoc} className="space-y-4">
+              <div className="space-y-2">
+                <Label>From Catalog (optional)</Label>
+                <Select name="service_id">
+                  <SelectTrigger><SelectValue placeholder="Select or leave blank" /></SelectTrigger>
+                  <SelectContent>
+                    {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Name</Label><Input name="name" placeholder="Custom name (overrides catalog)" /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Qty</Label><Input name="quantity" type="number" defaultValue="1" /></div>
+                <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+              </div>
+              <Button type="submit" className="w-full">Add</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="space-y-2">
@@ -171,7 +270,6 @@ export default function VisitDetail() {
               <Checkbox
                 checked={item.is_completed}
                 onCheckedChange={() => toggleItem(item.id, item.is_completed)}
-                disabled={!canEdit}
               />
               <div className="flex-1">
                 <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
@@ -193,48 +291,13 @@ export default function VisitDetail() {
             onChange={e => setNotes(e.target.value)}
             placeholder="Add notes about this visit…"
             rows={4}
-            disabled={!canEdit}
           />
         </CardContent>
       </Card>
 
-      {/* Workflow Actions */}
+      {/* Save button */}
       <div className="flex flex-wrap gap-3">
-        {canEdit && (
-          <Button variant="secondary" onClick={saveDraft}><Save className="h-4 w-4 mr-2" /> Save</Button>
-        )}
-        {order.status === "SCHEDULED" && (
-          <Button onClick={() => updateStatus("IN_PROGRESS")}><Play className="h-4 w-4 mr-2" /> Start Visit</Button>
-        )}
-        {order.status === "IN_PROGRESS" && (
-          <Button onClick={() => updateStatus("COMPLETED")}><CheckCircle className="h-4 w-4 mr-2" /> Complete</Button>
-        )}
-        {order.status === "COMPLETED" && (
-          <Button onClick={() => updateStatus("PENDING_APPROVAL")}><Clock className="h-4 w-4 mr-2" /> Submit for Approval</Button>
-        )}
-        {order.status === "PENDING_APPROVAL" && (
-          <Button onClick={() => updateStatus("APPROVED")}><CheckCircle className="h-4 w-4 mr-2" /> Approve</Button>
-        )}
-        {order.status === "APPROVED" && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button><Send className="h-4 w-4 mr-2" /> Send to Client</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Send to client for review?</AlertDialogTitle>
-                <AlertDialogDescription>The client will be able to review this service visit report.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => updateStatus("SENT_TO_CLIENT")}>Send</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-        {(order.status === "SCHEDULED" || order.status === "IN_PROGRESS") && (
-          <Button variant="destructive" onClick={() => updateStatus("CANCELED")}><XCircle className="h-4 w-4 mr-2" /> Cancel</Button>
-        )}
+        <Button onClick={saveAll}><Save className="h-4 w-4 mr-2" /> Save Changes</Button>
       </div>
     </div>
   );
