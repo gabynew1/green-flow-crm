@@ -26,6 +26,7 @@ import FeedbackPage from "./pages/provider/Feedback";
 import InspectionDetail from "./pages/provider/InspectionDetail";
 import OfferDetail from "./pages/provider/OfferDetail";
 import SalesPipeline from "./pages/provider/SalesPipeline";
+import ProviderSettings from "./pages/provider/Settings";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
