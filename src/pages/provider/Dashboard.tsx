@@ -120,37 +120,41 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Pipeline Summary — To-Do Work */}
-      <div>
-        <p className="text-sm font-medium text-muted-foreground mb-3">Pipeline — Open Work</p>
-        <div className="grid grid-cols-4 gap-4">
-          {pipelineSteps.map((step) => (
-            <Link key={step.label} to={step.url} className="group">
-              <div className="aspect-square rounded-xl bg-muted hover:bg-muted/80 transition-colors flex flex-col items-center justify-center gap-3 p-4">
-                <step.icon className="h-8 w-8 text-primary" />
-                <p className="text-3xl font-bold leading-none">{step.count}</p>
-                <p className="text-xs text-muted-foreground font-medium">{step.label}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+      {/* Pipeline — Open Work */}
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Pipeline — Open Work</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-4">
+            {pipelineSteps.map((step) => (
+              <Link key={step.label} to={step.url} className="group">
+                <div className="aspect-square rounded-xl bg-muted hover:bg-muted/80 transition-colors flex flex-col items-center justify-center gap-3 p-4">
+                  <step.icon className="h-8 w-8 text-primary" />
+                  <p className="text-3xl font-bold leading-none">{step.count}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{step.label}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {kpiCards.map((k) => (
-          <Card key={k.label}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <k.icon className={`h-8 w-8 ${k.color}`} />
+      {/* YTD Delivered */}
+      <Card>
+        <CardHeader><CardTitle className="text-lg">YTD Delivered</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {kpiCards.map((k) => (
+              <div key={k.label} className="flex items-center gap-3 rounded-lg bg-muted p-4">
+                <k.icon className={`h-8 w-8 ${k.color} shrink-0`} />
                 <div>
                   <p className="text-2xl font-bold">{k.value}</p>
                   <p className="text-xs text-muted-foreground">{k.label}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* SLA Alerts */}
