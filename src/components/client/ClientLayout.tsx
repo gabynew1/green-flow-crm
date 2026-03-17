@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText, FileOutput } from "lucide-react";
+import { Leaf, Home, ClipboardList, MessageSquare, LogOut, Copy, Info, UserCircle, FileText, FileOutput, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
@@ -26,6 +26,7 @@ const navItems = [
   { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
+  { title: "Connect Provider", url: "/client/connect", icon: Link2 },
   { title: "My Profile", url: "/client/profile", icon: UserCircle },
 ];
 

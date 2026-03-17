@@ -22,7 +22,9 @@ export default function Auth() {
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const inviteToken = searchParams.get("invite");
+  const connectCode = searchParams.get("connect");
   const [inviteInfo, setInviteInfo] = useState<{ role: string; tenant_name?: string } | null>(null);
+  const [connectProviderName, setConnectProviderName] = useState<string | null>(null);
 
   useEffect(() => {
     if (inviteToken) {
@@ -41,7 +43,17 @@ export default function Auth() {
           }
         });
     }
-  }, [inviteToken]);
+    if (connectCode) {
+      supabase
+        .from("tenants")
+        .select("name")
+        .eq("unique_tenant_id", connectCode.toUpperCase())
+        .single()
+        .then(({ data }) => {
+          if (data) setConnectProviderName(data.name);
+        });
+    }
+  }, [inviteToken, connectCode]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,7 +64,11 @@ export default function Auth() {
     if (error) {
       toast.error(error.message);
     } else {
-      navigate("/");
+      if (connectCode) {
+        navigate(`/client/connect?provider=${connectCode}`);
+      } else {
+        navigate("/");
+      }
     }
   };
 
@@ -73,6 +89,8 @@ export default function Auth() {
 
     if (inviteToken) {
       toast.success("Account created! Check your email to confirm, then sign in to activate your provider account.");
+    } else if (connectCode) {
+      toast.success("Account created! Check your email to confirm, then sign in to connect your properties.");
     } else {
       toast.success("Check your email to confirm your account!");
     }
@@ -135,6 +153,16 @@ export default function Auth() {
             <Badge variant="secondary" className="mt-2">
               Provider Invite: {inviteInfo.tenant_name || "New Tenant"} ({inviteInfo.role})
             </Badge>
+          )}
+          {connectProviderName && !inviteInfo && (
+            <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+              <p className="font-medium text-foreground">
+                You've been invited by <strong>{connectProviderName}</strong>
+              </p>
+              <p className="text-muted-foreground mt-1">
+                Sign up or log in to connect your properties.
+              </p>
+            </div>
           )}
         </CardHeader>
         <CardContent>

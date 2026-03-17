@@ -722,6 +722,7 @@ export type Database = {
           id: string
           name: string
           status: Database["public"]["Enums"]["property_status"]
+          tenant_id: string | null
           unique_property_id: string | null
           updated_at: string
         }
@@ -736,6 +737,7 @@ export type Database = {
           id?: string
           name: string
           status?: Database["public"]["Enums"]["property_status"]
+          tenant_id?: string | null
           unique_property_id?: string | null
           updated_at?: string
         }
@@ -750,6 +752,7 @@ export type Database = {
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["property_status"]
+          tenant_id?: string | null
           unique_property_id?: string | null
           updated_at?: string
         }
@@ -759,6 +762,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1122,6 +1132,7 @@ export type Database = {
           status: string
           subscription_tier: string
           trial_expires_at: string | null
+          unique_tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1135,6 +1146,7 @@ export type Database = {
           status?: string
           subscription_tier?: string
           trial_expires_at?: string | null
+          unique_tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1148,6 +1160,7 @@ export type Database = {
           status?: string
           subscription_tier?: string
           trial_expires_at?: string | null
+          unique_tenant_id?: string | null
           updated_at?: string
         }
         Relationships: []

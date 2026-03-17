@@ -38,6 +38,7 @@ import ClientContractDetail from "./pages/client/ClientContractDetail";
 import ClientOffers from "./pages/client/ClientOffers";
 import ClientOfferDetail from "./pages/client/ClientOfferDetail";
 import ClientProfile from "./pages/client/ClientProfile";
+import ClientConnect from "./pages/client/ClientConnect";
 
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -141,6 +142,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits/:visitId" element={<ClientVisitDetail />} />
         <Route path="feedback" element={<ClientFeedback />} />
         <Route path="profile" element={<ClientProfile />} />
+        <Route path="connect" element={<ClientConnect />} />
       </Route>
 
       {/* Default redirect based on role */}

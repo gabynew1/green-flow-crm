@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug } from "lucide-react";
+import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2 } from "lucide-react";
 
 interface TeamMember {
   id: string;
@@ -55,6 +55,9 @@ export default function Settings() {
     }
   }, [profile]);
 
+  // Tenant invite state
+  const [uniqueTenantId, setUniqueTenantId] = useState<string | null>(null);
+
   // Load team members and tenant info
   useEffect(() => {
     if (!tenantId) return;
@@ -83,6 +86,7 @@ export default function Settings() {
     if (data) {
       setMaxSeats(data.max_provider_seats);
       setSubscriptionTier(data.subscription_tier);
+      setUniqueTenantId((data as any).unique_tenant_id || null);
     }
   };
 
@@ -191,6 +195,64 @@ export default function Settings() {
           <Button className="mt-4" onClick={handleSaveCompany} disabled={savingCompany}>
             {savingCompany ? "Saving…" : "Save Changes"}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Client Invite Link */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-primary" />
+            <CardTitle>Client Invite Link</CardTitle>
+          </div>
+          <CardDescription>Share this Tenant ID or link with clients so they can connect their properties to you.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Your Tenant ID</Label>
+            <div className="flex items-center gap-2">
+              <Input value={uniqueTenantId || "Loading…"} readOnly className="font-mono" />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (uniqueTenantId) {
+                    navigator.clipboard.writeText(uniqueTenantId);
+                    toast.success("Tenant ID copied!");
+                  }
+                }}
+                disabled={!uniqueTenantId}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Invite Link</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={uniqueTenantId ? `${window.location.origin}/auth?connect=${uniqueTenantId}` : "Loading…"}
+                readOnly
+                className="text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  if (uniqueTenantId) {
+                    navigator.clipboard.writeText(`${window.location.origin}/auth?connect=${uniqueTenantId}`);
+                    toast.success("Invite link copied!");
+                  }
+                }}
+                disabled={!uniqueTenantId}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Clients who open this link will be prompted to sign up or log in, then choose which properties to connect to your account.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
