@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenantQuery } from "@/lib/supabase-tenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight } from "lucide-react";
+import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight, Shovel } from "lucide-react";
 import { format, differenceInDays, subDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
