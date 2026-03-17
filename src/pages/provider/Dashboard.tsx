@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 interface KPIs {
   activeCustomers: number;
   activeContracts: number;
-  pendingOffers: number;
-  visitsThisMonth: number;
+  visitsDelivered: number;
+  offersSent: number;
   avgRating: number;
+  feedbackCount: number;
   draftInspections: number;
   staleInspections: number;
 }
