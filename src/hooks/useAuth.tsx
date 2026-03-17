@@ -11,6 +11,11 @@ interface ProfileData {
   email: string | null;
   customer_id: string | null;
   phone: string | null;
+  company_name: string | null;
+  cui: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  provider_permission: string | null;
 }
 
 interface AuthContextType {
