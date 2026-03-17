@@ -43,7 +43,17 @@ export default function Auth() {
           }
         });
     }
-  }, [inviteToken]);
+    if (connectCode) {
+      supabase
+        .from("tenants")
+        .select("name")
+        .eq("unique_tenant_id", connectCode.toUpperCase())
+        .single()
+        .then(({ data }) => {
+          if (data) setConnectProviderName(data.name);
+        });
+    }
+  }, [inviteToken, connectCode]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
