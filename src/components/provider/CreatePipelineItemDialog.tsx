@@ -27,7 +27,7 @@ interface Props {
   onCreated?: () => void;
 }
 
-export default function CreatePipelineItemDialog({ open, onOpenChange, type }: Props) {
+export default function CreatePipelineItemDialog({ open, onOpenChange, type, defaultCustomerId, onCreated }: Props) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<any[]>([]);
