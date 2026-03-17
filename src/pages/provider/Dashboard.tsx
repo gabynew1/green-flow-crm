@@ -21,7 +21,7 @@ interface KPIs {
 
 export default function Dashboard() {
   const tq = useTenantQuery();
-  const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, pendingOffers: 0, visitsThisMonth: 0, avgRating: 0, draftInspections: 0, staleInspections: 0 });
+  const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, visitsDelivered: 0, offersSent: 0, avgRating: 0, feedbackCount: 0, draftInspections: 0, staleInspections: 0 });
   const [pipelineCounts, setPipelineCounts] = useState({ inspections: 0, offers: 0, contracts: 0, visits: 0 });
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
