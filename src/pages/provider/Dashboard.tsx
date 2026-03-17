@@ -113,26 +113,21 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Pipeline Summary */}
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-sm font-medium text-muted-foreground mb-3">Sales Pipeline</p>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {pipelineSteps.map((step, i) => (
-              <div key={step.label} className="flex items-center gap-2">
-                <Link to={step.url} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors min-w-[120px]">
-                  <step.icon className="h-4 w-4 text-primary shrink-0" />
-                  <div>
-                    <p className="text-lg font-bold leading-none">{step.count}</p>
-                    <p className="text-[10px] text-muted-foreground">{step.label}</p>
-                  </div>
-                </Link>
-                {i < pipelineSteps.length - 1 && <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+      {/* Pipeline Summary — To-Do Work */}
+      <div>
+        <p className="text-sm font-medium text-muted-foreground mb-3">Pipeline — Open Work</p>
+        <div className="grid grid-cols-4 gap-4">
+          {pipelineSteps.map((step) => (
+            <Link key={step.label} to={step.url} className="group">
+              <div className="aspect-square rounded-xl bg-muted hover:bg-muted/80 transition-colors flex flex-col items-center justify-center gap-3 p-4">
+                <step.icon className="h-8 w-8 text-primary" />
+                <p className="text-3xl font-bold leading-none">{step.count}</p>
+                <p className="text-xs text-muted-foreground font-medium">{step.label}</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {kpiCards.map((k) => (
