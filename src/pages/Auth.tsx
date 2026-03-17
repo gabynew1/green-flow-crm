@@ -154,6 +154,16 @@ export default function Auth() {
               Provider Invite: {inviteInfo.tenant_name || "New Tenant"} ({inviteInfo.role})
             </Badge>
           )}
+          {connectProviderName && !inviteInfo && (
+            <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+              <p className="font-medium text-foreground">
+                You've been invited by <strong>{connectProviderName}</strong>
+              </p>
+              <p className="text-muted-foreground mt-1">
+                Sign up or log in to connect your properties.
+              </p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {showForgot ? (

@@ -142,6 +142,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits/:visitId" element={<ClientVisitDetail />} />
         <Route path="feedback" element={<ClientFeedback />} />
         <Route path="profile" element={<ClientProfile />} />
+        <Route path="connect" element={<ClientConnect />} />
       </Route>
 
       {/* Default redirect based on role */}
