@@ -23,6 +23,8 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: "inspection" | "offer" | "contract";
+  defaultCustomerId?: string;
+  onCreated?: () => void;
 }
 
 export default function CreatePipelineItemDialog({ open, onOpenChange, type }: Props) {
