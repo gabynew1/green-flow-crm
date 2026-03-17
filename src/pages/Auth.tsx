@@ -89,6 +89,8 @@ export default function Auth() {
 
     if (inviteToken) {
       toast.success("Account created! Check your email to confirm, then sign in to activate your provider account.");
+    } else if (connectCode) {
+      toast.success("Account created! Check your email to confirm, then sign in to connect your properties.");
     } else {
       toast.success("Check your email to confirm your account!");
     }
