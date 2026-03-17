@@ -124,6 +124,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
         <Route path="feedback" element={<FeedbackPage />} />
+        <Route path="settings" element={<ProviderSettings />} />
       </Route>
 
       {/* Client routes — block providers */}
