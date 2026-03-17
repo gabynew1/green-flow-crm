@@ -43,8 +43,8 @@ export default function Dashboard() {
       tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]),
       tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]).lt("created_at", threeDaysAgo),
       tq.from("offers").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "IN_PROGRESS", "SENT_TO_CLIENT"]),
-      supabase.from("contracts").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SENT_TO_CLIENT", "SIGNED", "ACTIVE"]),
-      supabase.from("service_orders").select("id", { count: "exact", head: true }).in("status", ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL"]),
+      supabase.from("contracts").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SENT_TO_CLIENT", "SIGNED"]),
+      supabase.from("service_orders").select("id", { count: "exact", head: true }).in("status", ["SCHEDULED", "IN_PROGRESS", "PENDING_APPROVAL"]),
     ]);
 
     const avgRating = feedbackRes.data?.length
