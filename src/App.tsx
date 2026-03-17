@@ -38,6 +38,7 @@ import ClientContractDetail from "./pages/client/ClientContractDetail";
 import ClientOffers from "./pages/client/ClientOffers";
 import ClientOfferDetail from "./pages/client/ClientOfferDetail";
 import ClientProfile from "./pages/client/ClientProfile";
+import ClientConnect from "./pages/client/ClientConnect";
 
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminDashboard from "./pages/admin/AdminDashboard";
