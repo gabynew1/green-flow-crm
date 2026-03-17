@@ -55,6 +55,9 @@ export default function Settings() {
     }
   }, [profile]);
 
+  // Tenant invite state
+  const [uniqueTenantId, setUniqueTenantId] = useState<string | null>(null);
+
   // Load team members and tenant info
   useEffect(() => {
     if (!tenantId) return;
