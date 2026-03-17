@@ -86,6 +86,7 @@ export default function Settings() {
     if (data) {
       setMaxSeats(data.max_provider_seats);
       setSubscriptionTier(data.subscription_tier);
+      setUniqueTenantId((data as any).unique_tenant_id || null);
     }
   };
 
