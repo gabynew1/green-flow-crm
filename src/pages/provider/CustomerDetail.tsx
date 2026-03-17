@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
+import CreatePipelineItemDialog from "@/components/provider/CreatePipelineItemDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Archive, Trash2, Send, CalendarPlus } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, addYears } from "date-fns";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
