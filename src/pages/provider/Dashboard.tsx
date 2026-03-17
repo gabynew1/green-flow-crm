@@ -138,7 +138,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {kpiCards.map((k) => (
-          <Card key={k.label} className={k.highlight ? "border-warning/50 shadow-sm" : ""}>
+          <Card key={k.label}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <k.icon className={`h-8 w-8 ${k.color}`} />
