@@ -104,8 +104,8 @@ export default function Dashboard() {
   const kpiCards = [
     { label: "Active Customers", value: kpis.activeCustomers, icon: Users, color: "text-primary" },
     { label: "Active Contracts", value: kpis.activeContracts, icon: FileText, color: "text-info" },
-    { label: "Visits Delivered (YTD)", value: kpis.visitsDelivered, icon: ClipboardList, color: "text-primary" },
-    { label: "Offers Sent (YTD)", value: kpis.offersSent, icon: FileOutput, color: "text-warning" },
+    { label: "Visits Delivered", value: kpis.visitsDelivered, icon: Shovel, color: "text-primary" },
+    { label: "Offers Sent", value: kpis.offersSent, icon: FileOutput, color: "text-warning" },
     { label: `Feedback (${kpis.feedbackCount})`, value: kpis.avgRating > 0 ? `${kpis.avgRating} ★` : "—", icon: Star, color: "text-accent" },
   ];
 
