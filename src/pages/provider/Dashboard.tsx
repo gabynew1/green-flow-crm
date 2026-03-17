@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenantQuery } from "@/lib/supabase-tenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight } from "lucide-react";
+import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight, Shovel } from "lucide-react";
 import { format, differenceInDays, subDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -104,8 +104,8 @@ export default function Dashboard() {
   const kpiCards = [
     { label: "Active Customers", value: kpis.activeCustomers, icon: Users, color: "text-primary" },
     { label: "Active Contracts", value: kpis.activeContracts, icon: FileText, color: "text-info" },
-    { label: "Visits Delivered (YTD)", value: kpis.visitsDelivered, icon: ClipboardList, color: "text-primary" },
-    { label: "Offers Sent (YTD)", value: kpis.offersSent, icon: FileOutput, color: "text-warning" },
+    { label: "Visits Delivered", value: kpis.visitsDelivered, icon: Shovel, color: "text-primary" },
+    { label: "Offers Sent", value: kpis.offersSent, icon: FileOutput, color: "text-warning" },
     { label: `Feedback (${kpis.feedbackCount})`, value: kpis.avgRating > 0 ? `${kpis.avgRating} ★` : "—", icon: Star, color: "text-accent" },
   ];
 
@@ -113,44 +113,48 @@ export default function Dashboard() {
     { label: "Inspections", count: pipelineCounts.inspections, url: "/provider/inspections", icon: ClipboardCheck },
     { label: "Offers", count: pipelineCounts.offers, url: "/provider/offers", icon: FileOutput },
     { label: "Contracts", count: pipelineCounts.contracts, url: "/provider/contracts", icon: FileText },
-    { label: "Visits", count: pipelineCounts.visits, url: "/provider/visits", icon: ClipboardList },
+    { label: "Visits", count: pipelineCounts.visits, url: "/provider/visits", icon: Shovel },
   ];
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Pipeline Summary — To-Do Work */}
-      <div>
-        <p className="text-sm font-medium text-muted-foreground mb-3">Pipeline — Open Work</p>
-        <div className="grid grid-cols-4 gap-4">
-          {pipelineSteps.map((step) => (
-            <Link key={step.label} to={step.url} className="group">
-              <div className="aspect-square rounded-xl bg-muted hover:bg-muted/80 transition-colors flex flex-col items-center justify-center gap-3 p-4">
-                <step.icon className="h-8 w-8 text-primary" />
-                <p className="text-3xl font-bold leading-none">{step.count}</p>
-                <p className="text-xs text-muted-foreground font-medium">{step.label}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
+      {/* Pipeline — Open Work */}
+      <Card>
+        <CardHeader><CardTitle className="text-lg">Pipeline — Open Work</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-4">
+            {pipelineSteps.map((step) => (
+              <Link key={step.label} to={step.url} className="group">
+                <div className="aspect-square rounded-xl bg-muted hover:bg-muted/80 transition-colors flex flex-col items-center justify-center gap-3 p-4">
+                  <step.icon className="h-8 w-8 text-primary" />
+                  <p className="text-3xl font-bold leading-none">{step.count}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{step.label}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        {kpiCards.map((k) => (
-          <Card key={k.label}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <k.icon className={`h-8 w-8 ${k.color}`} />
+      {/* YTD Delivered */}
+      <Card>
+        <CardHeader><CardTitle className="text-lg">YTD Delivered</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {kpiCards.map((k) => (
+              <div key={k.label} className="flex items-center gap-3 rounded-lg bg-muted p-4">
+                <k.icon className={`h-8 w-8 ${k.color} shrink-0`} />
                 <div>
                   <p className="text-2xl font-bold">{k.value}</p>
                   <p className="text-xs text-muted-foreground">{k.label}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* SLA Alerts */}
