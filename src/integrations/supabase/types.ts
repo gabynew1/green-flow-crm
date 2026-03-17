@@ -374,6 +374,45 @@ export type Database = {
           },
         ]
       }
+      integrations: {
+        Row: {
+          created_at: string
+          google_access_token: string | null
+          google_connected: boolean
+          google_email: string | null
+          google_refresh_token: string | null
+          google_token_expires_at: string | null
+          id: string
+          last_sync_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          google_access_token?: string | null
+          google_connected?: boolean
+          google_email?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          google_access_token?: string | null
+          google_connected?: boolean
+          google_email?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           created_at: string
@@ -593,7 +632,11 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          company_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
+          cui: string | null
           customer_id: string | null
           email: string | null
           full_name: string | null
@@ -601,6 +644,7 @@ export type Database = {
           is_locked: boolean
           license_type: string
           phone: string | null
+          provider_permission: string | null
           temporary_password: string | null
           tenant_id: string | null
           unique_client_id: string | null
@@ -609,7 +653,11 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          company_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          cui?: string | null
           customer_id?: string | null
           email?: string | null
           full_name?: string | null
@@ -617,6 +665,7 @@ export type Database = {
           is_locked?: boolean
           license_type?: string
           phone?: string | null
+          provider_permission?: string | null
           temporary_password?: string | null
           tenant_id?: string | null
           unique_client_id?: string | null
@@ -625,7 +674,11 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          company_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
+          cui?: string | null
           customer_id?: string | null
           email?: string | null
           full_name?: string | null
@@ -633,6 +686,7 @@ export type Database = {
           is_locked?: boolean
           license_type?: string
           phone?: string | null
+          provider_permission?: string | null
           temporary_password?: string | null
           tenant_id?: string | null
           unique_client_id?: string | null
