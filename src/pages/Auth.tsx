@@ -64,7 +64,11 @@ export default function Auth() {
     if (error) {
       toast.error(error.message);
     } else {
-      navigate("/");
+      if (connectCode) {
+        navigate(`/client/connect?provider=${connectCode}`);
+      } else {
+        navigate("/");
+      }
     }
   };
 
