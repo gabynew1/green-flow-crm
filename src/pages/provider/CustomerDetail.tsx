@@ -111,42 +111,35 @@ export default function CustomerDetail() {
     load();
   };
 
-  const toggleProperty = (id: string) => {
-    setSelectedPropertyIds((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    );
-  };
-
-  const handleCreateContract = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const startDate = form.get("start_date") as string;
-    const endDate = form.get("end_date") as string;
-    const contractName = form.get("contract_name") as string;
-
-    if (selectedPropertyIds.length === 0) { toast.error("Select at least one property"); return; }
-    if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
-
-    // Create one contract per selected property
-    const inserts = selectedPropertyIds.map((propertyId) => ({
-      contract_name: contractName,
-      property_id: propertyId,
-      start_date: startDate,
-      end_date: endDate,
-      billing_cycle: billingCycle,
-      visit_frequency_count: visitCount,
-      visit_frequency_type: visitType,
-      status: "PENDING_NEW" as const,
-    } as any));
-
-    const { error } = await supabase.from("contracts").insert(inserts);
+  const renewContract = async (oldContract: any) => {
+    const today = new Date();
+    const newName = `${oldContract.contract_name} ${today.getFullYear()}`;
+    const { data: newContract, error } = await supabase.from("contracts").insert({
+      contract_name: newName,
+      property_id: oldContract.property_id,
+      start_date: format(today, "yyyy-MM-dd"),
+      end_date: format(addYears(today, 1), "yyyy-MM-dd"),
+      billing_cycle: oldContract.billing_cycle,
+      visit_frequency_count: oldContract.visit_frequency_count,
+      visit_frequency_type: oldContract.visit_frequency_type,
+      status: "ACTIVE" as const,
+    } as any).select().single();
     if (error) { toast.error(error.message); return; }
-    toast.success(`${inserts.length} contract(s) created — pending client approval`);
-    setContractOpen(false);
-    setSelectedPropertyIds([]);
-    setBillingCycle("MONTHLY");
-    setVisitCount(1);
-    setVisitType("WEEK");
+
+    const { data: oldLines } = await supabase.from("contract_line_items").select("*").eq("contract_id", oldContract.id);
+    if (oldLines && oldLines.length > 0) {
+      const newLines = oldLines.map((li: any) => ({
+        contract_id: newContract.id,
+        service_catalog_id: li.service_catalog_id,
+        custom_name: li.custom_name,
+        frequency_type: li.frequency_type,
+        quantity: li.quantity,
+        unit: li.unit,
+        notes: li.notes,
+      }));
+      await supabase.from("contract_line_items").insert(newLines);
+    }
+    toast.success("Contract renewed!");
     load();
   };
 
