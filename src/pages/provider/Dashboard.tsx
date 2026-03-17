@@ -11,16 +11,17 @@ import { Button } from "@/components/ui/button";
 interface KPIs {
   activeCustomers: number;
   activeContracts: number;
-  pendingOffers: number;
-  visitsThisMonth: number;
+  visitsDelivered: number;
+  offersSent: number;
   avgRating: number;
+  feedbackCount: number;
   draftInspections: number;
   staleInspections: number;
 }
 
 export default function Dashboard() {
   const tq = useTenantQuery();
-  const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, pendingOffers: 0, visitsThisMonth: 0, avgRating: 0, draftInspections: 0, staleInspections: 0 });
+  const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, visitsDelivered: 0, offersSent: 0, avgRating: 0, feedbackCount: 0, draftInspections: 0, staleInspections: 0 });
   const [pipelineCounts, setPipelineCounts] = useState({ inspections: 0, offers: 0, contracts: 0, visits: 0 });
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
@@ -33,13 +34,18 @@ export default function Dashboard() {
     const today = new Date();
     const threeDaysAgo = format(subDays(today, 3), "yyyy-MM-dd'T'HH:mm:ss");
 
-    const [custRes, contRes, pendingOffRes, visitsRes, feedbackRes, inspRes, staleInspRes, offersRes, contractsRes, visitsCountRes] = await Promise.all([
+    const ytdStart = format(new Date(today.getFullYear(), 0, 1), "yyyy-MM-dd");
+
+    const [custRes, contRes, visitsDeliveredRes, offersSentRes, feedbackRes, inspRes, staleInspRes, offersRes, contractsRes, visitsCountRes] = await Promise.all([
       tq.from("customers").select("id", { count: "exact", head: true }),
       supabase.from("contracts").select("id", { count: "exact", head: true }).eq("status", "ACTIVE"),
-      tq.from("offers").select("id", { count: "exact", head: true }).eq("status", "SENT_TO_CLIENT"),
       supabase.from("service_orders").select("id", { count: "exact", head: true })
-        .gte("scheduled_date", format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "yyyy-MM-dd")),
-      supabase.from("feedback").select("rating_stars"),
+        .in("status", ["COMPLETED", "APPROVED", "SENT_TO_CLIENT"])
+        .gte("performed_date", ytdStart),
+      tq.from("offers").select("id", { count: "exact", head: true })
+        .in("status", ["SENT_TO_CLIENT", "ACCEPTED", "REJECTED", "EXPIRED"])
+        .gte("created_at", ytdStart),
+      supabase.from("feedback").select("rating_stars").gte("created_at", ytdStart),
       tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]),
       tq.from("inspections").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "SCHEDULED"]).lt("created_at", threeDaysAgo),
       tq.from("offers").select("id", { count: "exact", head: true }).in("status", ["DRAFT", "IN_PROGRESS", "SENT_TO_CLIENT"]),
@@ -54,9 +60,10 @@ export default function Dashboard() {
     setKpis({
       activeCustomers: custRes.count ?? 0,
       activeContracts: contRes.count ?? 0,
-      pendingOffers: pendingOffRes.count ?? 0,
-      visitsThisMonth: visitsRes.count ?? 0,
+      visitsDelivered: visitsDeliveredRes.count ?? 0,
+      offersSent: offersSentRes.count ?? 0,
       avgRating: Math.round(avgRating * 10) / 10,
+      feedbackCount: feedbackRes.data?.length ?? 0,
       draftInspections: inspRes.count ?? 0,
       staleInspections: staleInspRes.count ?? 0,
     });
@@ -97,9 +104,9 @@ export default function Dashboard() {
   const kpiCards = [
     { label: "Active Customers", value: kpis.activeCustomers, icon: Users, color: "text-primary" },
     { label: "Active Contracts", value: kpis.activeContracts, icon: FileText, color: "text-info" },
-    { label: "Pending Offers", value: kpis.pendingOffers, icon: Clock, color: "text-warning", highlight: kpis.pendingOffers > 0 },
-    { label: "Visits This Month", value: kpis.visitsThisMonth, icon: ClipboardList, color: "text-primary" },
-    { label: "Avg. Rating", value: kpis.avgRating > 0 ? `${kpis.avgRating} ★` : "—", icon: Star, color: "text-accent" },
+    { label: "Visits Delivered (YTD)", value: kpis.visitsDelivered, icon: ClipboardList, color: "text-primary" },
+    { label: "Offers Sent (YTD)", value: kpis.offersSent, icon: FileOutput, color: "text-warning" },
+    { label: `Feedback (${kpis.feedbackCount})`, value: kpis.avgRating > 0 ? `${kpis.avgRating} ★` : "—", icon: Star, color: "text-accent" },
   ];
 
   const pipelineSteps = [
@@ -131,7 +138,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {kpiCards.map((k) => (
-          <Card key={k.label} className={k.highlight ? "border-warning/50 shadow-sm" : ""}>
+          <Card key={k.label}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
                 <k.icon className={`h-8 w-8 ${k.color}`} />
