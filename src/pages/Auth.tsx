@@ -22,7 +22,9 @@ export default function Auth() {
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const inviteToken = searchParams.get("invite");
+  const connectCode = searchParams.get("connect");
   const [inviteInfo, setInviteInfo] = useState<{ role: string; tenant_name?: string } | null>(null);
+  const [connectProviderName, setConnectProviderName] = useState<string | null>(null);
 
   useEffect(() => {
     if (inviteToken) {
