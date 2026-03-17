@@ -309,11 +309,11 @@ export default function Settings() {
         </CardHeader>
         <CardContent>
           {seatLimitReached && (
-            <div className="mb-4 flex items-start gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 text-destructive" />
               <div className="text-sm">
-                <p className="font-medium text-yellow-800 dark:text-yellow-300">Seat limit reached</p>
-                <p className="text-yellow-700 dark:text-yellow-400">
+                <p className="font-medium text-destructive">Seat limit reached</p>
+                <p className="text-muted-foreground">
                   Your <strong>{subscriptionTier}</strong> plan allows {maxSeats} provider seats. Contact support to upgrade.
                 </p>
               </div>
