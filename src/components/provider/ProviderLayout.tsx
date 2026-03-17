@@ -2,9 +2,13 @@ import { Outlet, Link } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ProviderSidebar } from "./ProviderSidebar";
 import { AIChatBox } from "@/components/AIChatBox";
+import { useAuth } from "@/hooks/useAuth";
 import { Plus, ClipboardCheck, FileOutput, LayoutDashboard } from "lucide-react";
 
 export function ProviderLayout() {
+  const { profile } = useAuth();
+  const workspaceLabel = (profile as any)?.company_name || "Provider Workspace";
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full flex-col md:flex-row">
@@ -12,7 +16,7 @@ export function ProviderLayout() {
         <div className="flex-1 flex flex-col pb-20 md:pb-0">
           <header className="h-14 flex items-center border-b px-4 bg-card sticky top-0 z-10">
             <SidebarTrigger className="mr-4" />
-            <span className="text-sm font-medium text-muted-foreground">Provider Workspace</span>
+            <span className="text-sm font-medium text-muted-foreground">{workspaceLabel}</span>
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">
             <Outlet />
