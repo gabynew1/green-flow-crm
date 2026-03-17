@@ -113,7 +113,7 @@ export default function Dashboard() {
     { label: "Inspections", count: pipelineCounts.inspections, url: "/provider/inspections", icon: ClipboardCheck },
     { label: "Offers", count: pipelineCounts.offers, url: "/provider/offers", icon: FileOutput },
     { label: "Contracts", count: pipelineCounts.contracts, url: "/provider/contracts", icon: FileText },
-    { label: "Visits", count: pipelineCounts.visits, url: "/provider/visits", icon: ClipboardList },
+    { label: "Visits", count: pipelineCounts.visits, url: "/provider/visits", icon: Shovel },
   ];
 
   return (
