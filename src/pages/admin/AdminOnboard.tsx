@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
   Building2,
@@ -19,6 +19,9 @@ import {
   Send,
   RotateCcw,
   LayoutDashboard,
+  TreePine,
+  Leaf,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -132,24 +135,113 @@ function getCustomerEmailHtml(recipientName: string, providerName: string, invit
 </body></html>`;
 }
 
+// Leaf confetti component
+function LeafConfetti() {
+  const leaves = useMemo(
+    () =>
+      Array.from({ length: 24 }, (_, i) => ({
+        id: i,
+        emoji: ["🍃", "🌿", "🌱", "☘️"][i % 4],
+        left: `${Math.random() * 100}%`,
+        delay: `${Math.random() * 2}s`,
+        duration: `${3 + Math.random() * 4}s`,
+        size: `${18 + Math.random() * 14}px`,
+      })),
+    []
+  );
+
+  return (
+    <div className="leaf-confetti-container">
+      {leaves.map((l) => (
+        <span
+          key={l.id}
+          className="leaf"
+          style={{
+            left: l.left,
+            animationDelay: l.delay,
+            animationDuration: l.duration,
+            fontSize: l.size,
+            animationName: "leaf-fall",
+          }}
+        >
+          {l.emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Floating label input
+function FloatingInput({
+  id,
+  label,
+  value,
+  onChange,
+  type = "text",
+  required,
+  prefix,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  required?: boolean;
+  prefix?: string;
+}) {
+  return (
+    <div className="floating-label-group relative">
+      {prefix && (
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium z-10">
+          {prefix}
+        </span>
+      )}
+      <Input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder=" "
+        className={cn("peer pt-4 pb-2 h-12", prefix && "pl-12")}
+      />
+      <label
+        htmlFor={id}
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none transition-all duration-200",
+          prefix ? "left-12" : "left-3",
+          "peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-xs peer-focus:text-primary peer-focus:bg-background peer-focus:px-1",
+          value && "top-2 translate-y-0 text-xs text-primary bg-background px-1"
+        )}
+      >
+        {label}{required && " *"}
+      </label>
+      {value && (
+        <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-success" />
+      )}
+    </div>
+  );
+}
+
+const STEP_LABELS = ["Welcome", "Type", "Method", "Details", "Done"];
+
 export default function AdminOnboard() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0-indexed, 0 = welcome
+  const [direction, setDirection] = useState<"next" | "back">("next");
   const [entityType, setEntityType] = useState<EntityType>(null);
   const [method, setMethod] = useState<OnboardMethod>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [generatedLink, setGeneratedLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  // Invite data
   const [inviteData, setInviteData] = useState<InviteData>({
     recipientName: "",
     recipientEmail: "",
     companyName: "",
   });
 
-  // Manual data
   const [providerData, setProviderData] = useState<ManualProviderData>({
     companyName: "",
     fullName: "",
@@ -164,15 +256,21 @@ export default function AdminOnboard() {
     phone: "",
   });
 
-  // Confirmation data
   const [confirmationData, setConfirmationData] = useState<any>(null);
 
-  const totalSteps = 4;
+  const totalSteps = 5;
+  const progressValue = ((step + 1) / totalSteps) * 100;
+
+  const goNext = (nextStep: number) => {
+    setDirection("next");
+    setStep(nextStep);
+  };
 
   const goBack = () => {
-    if (step === 1) {
+    if (step === 0) {
       navigate("/admin/tenants");
     } else {
+      setDirection("back");
       setStep(step - 1);
     }
   };
@@ -180,12 +278,12 @@ export default function AdminOnboard() {
   const handleTypeSelect = (type: EntityType) => {
     setEntityType(type);
     setMethod(null);
-    setStep(2);
+    goNext(2);
   };
 
   const handleMethodSelect = (m: OnboardMethod) => {
     setMethod(m);
-    setStep(3);
+    goNext(3);
   };
 
   const handleInviteSubmit = async () => {
@@ -205,8 +303,6 @@ export default function AdminOnboard() {
         setShowEmailPreview(true);
         toast.success("Invite link generated!");
       } else {
-        // For customers, we need a tenant to get its connect code
-        // Use a placeholder connect link
         const link = `${window.location.origin}/auth`;
         setGeneratedLink(link);
         setShowEmailPreview(true);
@@ -230,7 +326,8 @@ export default function AdminOnboard() {
       if (error) throw error;
 
       setConfirmationData(data);
-      setStep(4);
+      setShowConfetti(true);
+      goNext(4);
       toast.success(`${entityType === "provider" ? "Provider" : "Customer"} created successfully!`);
     } catch (err: any) {
       toast.error(err.message || "Failed to create user");
@@ -240,7 +337,6 @@ export default function AdminOnboard() {
   };
 
   const handleSendInvite = () => {
-    // Stubbed — email sending not configured yet
     toast.info("Email sending will be available after domain setup. Link has been copied instead.");
     copyLink();
     setConfirmationData({
@@ -250,7 +346,8 @@ export default function AdminOnboard() {
       recipientEmail: inviteData.recipientEmail,
       link: generatedLink,
     });
-    setStep(4);
+    setShowConfetti(true);
+    goNext(4);
   };
 
   const copyLink = () => {
@@ -261,178 +358,275 @@ export default function AdminOnboard() {
   };
 
   const resetWizard = () => {
-    setStep(1);
+    setStep(0);
+    setDirection("next");
     setEntityType(null);
     setMethod(null);
     setGeneratedLink("");
     setShowEmailPreview(false);
     setCopied(false);
+    setShowConfetti(false);
     setInviteData({ recipientName: "", recipientEmail: "", companyName: "" });
     setProviderData({ companyName: "", fullName: "", email: "", phone: "", cui: "" });
     setCustomerData({ name: "", contactPerson: "", email: "", phone: "" });
     setConfirmationData(null);
   };
 
+  // Hide confetti after a few seconds
+  useEffect(() => {
+    if (showConfetti) {
+      const t = setTimeout(() => setShowConfetti(false), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [showConfetti]);
+
   const emailHtml = entityType === "provider"
     ? getProviderEmailHtml(inviteData.recipientName || "there", generatedLink || "#")
     : getCustomerEmailHtml(inviteData.recipientName || "there", inviteData.companyName || "Your Provider", generatedLink || "#");
 
+  const animClass = direction === "next" ? "animate-slide-in-right" : "animate-slide-in-left";
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <Button variant="ghost" size="icon" onClick={goBack} className="shrink-0">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Add to Platform</h1>
-            <p className="text-sm text-muted-foreground">
-              {step === 1 && "Choose who you'd like to onboard"}
-              {step === 2 && "How would you like to onboard them?"}
-              {step === 3 && method === "invite" && "Configure the invitation"}
-              {step === 3 && method === "manual" && "Enter their details"}
-              {step === 4 && "All done!"}
-            </p>
+      {showConfetti && <LeafConfetti />}
+
+      {/* Progress bar — hidden on welcome */}
+      {step > 0 && (
+        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border px-4 py-3">
+          <div className="max-w-3xl mx-auto">
+            <Progress value={progressValue} className="h-1.5 mb-2" />
+            <div className="flex justify-between">
+              {STEP_LABELS.map((label, i) => (
+                <span
+                  key={label}
+                  className={cn(
+                    "text-xs font-medium transition-colors",
+                    i <= step ? "text-primary" : "text-muted-foreground/40"
+                  )}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Progress dots */}
-        <div className="flex items-center justify-center gap-2 mb-10">
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-2 rounded-full transition-all duration-300",
-                i + 1 === step ? "w-8 bg-primary" : i + 1 < step ? "w-2 bg-primary/60" : "w-2 bg-muted-foreground/20"
-              )}
-            />
-          ))}
-        </div>
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        {/* Step 0: Welcome Hero */}
+        {step === 0 && (
+          <div key="welcome" className={cn("text-center py-12 sm:py-20", animClass)}>
+            {/* Decorative illustration */}
+            <div className="relative mx-auto mb-10 w-32 h-32">
+              <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse-glow" />
+              <div className="absolute inset-2 rounded-full bg-primary/5 flex items-center justify-center">
+                <TreePine className="h-16 w-16 text-primary" strokeWidth={1.5} />
+              </div>
+              <Leaf className="absolute -top-2 -right-2 h-8 w-8 text-primary/60 rotate-45" />
+              <Leaf className="absolute -bottom-1 -left-3 h-6 w-6 text-primary/40 -rotate-12" />
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground mb-4">
+              Your business,{" "}
+              <span className="text-primary">in full bloom.</span>
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-lg mx-auto mb-10 leading-relaxed">
+              The all-in-one tool to manage designs, irrigation, and maintenance — without the paperwork.
+            </p>
+
+            <Button
+              size="lg"
+              onClick={() => goNext(1)}
+              className="text-lg px-10 py-6 rounded-2xl shadow-lg hover:scale-105 transition-transform duration-200"
+            >
+              Let's get started
+              <ArrowRight className="h-5 w-5 ml-2" />
+            </Button>
+
+            <div className="mt-16 flex items-center justify-center gap-8 text-muted-foreground/50">
+              <div className="flex flex-col items-center gap-1">
+                <Building2 className="h-5 w-5" />
+                <span className="text-xs">Providers</span>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div className="flex flex-col items-center gap-1">
+                <Users className="h-5 w-5" />
+                <span className="text-xs">Customers</span>
+              </div>
+              <div className="h-8 w-px bg-border" />
+              <div className="flex flex-col items-center gap-1">
+                <Sparkles className="h-5 w-5" />
+                <span className="text-xs">Contracts</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Step 1: Choose Type */}
         {step === 1 && (
-          <div className="grid gap-4 sm:grid-cols-2 animate-in fade-in duration-500">
-            <Card
-              className={cn(
-                "group cursor-pointer p-8 text-center transition-all duration-200 hover:ring-2 hover:ring-primary hover:shadow-lg",
-                entityType === "provider" && "ring-2 ring-primary"
-              )}
-              onClick={() => handleTypeSelect("provider")}
-            >
-              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Building2 className="h-8 w-8 text-primary" />
+          <div key="type" className={animClass}>
+            <div className="flex items-center gap-3 mb-8">
+              <Button variant="ghost" size="icon" onClick={goBack} className="shrink-0">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Who are you onboarding?</h2>
+                <p className="text-sm text-muted-foreground">Choose the type of account to create</p>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Service Provider</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                A landscaping company or independent professional who delivers services to clients.
-              </p>
-            </Card>
+            </div>
 
-            <Card
-              className={cn(
-                "group cursor-pointer p-8 text-center transition-all duration-200 hover:ring-2 hover:ring-primary hover:shadow-lg",
-                entityType === "customer" && "ring-2 ring-primary"
-              )}
-              onClick={() => handleTypeSelect("customer")}
-            >
-              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Customer</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                A property owner or household who receives services from a provider.
-              </p>
-            </Card>
+            <div className="grid gap-5 sm:grid-cols-2">
+              {[
+                {
+                  type: "provider" as const,
+                  icon: Building2,
+                  title: "Service Provider",
+                  desc: "A landscaping company or independent professional who delivers services to clients.",
+                  accent: "🌿",
+                },
+                {
+                  type: "customer" as const,
+                  icon: Users,
+                  title: "Customer",
+                  desc: "A property owner or household who receives services from a provider.",
+                  accent: "🏡",
+                },
+              ].map((item) => (
+                <div
+                  key={item.type}
+                  className="gradient-border-card cursor-pointer group"
+                  onClick={() => handleTypeSelect(item.type)}
+                >
+                  <Card className="p-8 text-center border-2 border-transparent transition-all duration-300 hover:shadow-xl hover:border-primary/20">
+                    <div className="mx-auto mb-5 h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:animate-bounce-subtle transition-all">
+                      <item.icon className="h-10 w-10 text-primary" />
+                    </div>
+                    <span className="text-2xl mb-3 block">{item.accent}</span>
+                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </Card>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Step 2: Choose Method */}
         {step === 2 && (
-          <div className="grid gap-4 sm:grid-cols-2 animate-in fade-in duration-500">
-            <Card
-              className="group cursor-pointer p-8 text-center transition-all duration-200 hover:ring-2 hover:ring-primary hover:shadow-lg"
-              onClick={() => handleMethodSelect("invite")}
-            >
-              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <Mail className="h-8 w-8 text-primary" />
+          <div key="method" className={animClass}>
+            <div className="flex items-center gap-3 mb-8">
+              <Button variant="ghost" size="icon" onClick={goBack} className="shrink-0">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">How would you like to onboard?</h2>
+                <p className="text-sm text-muted-foreground">
+                  Choose how to set up the {entityType === "provider" ? "provider" : "customer"}
+                </p>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Send Invite Link</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Send a personalized email with an onboarding link. They'll set up their own account.
-              </p>
-            </Card>
+            </div>
 
-            <Card
-              className="group cursor-pointer p-8 text-center transition-all duration-200 hover:ring-2 hover:ring-primary hover:shadow-lg"
-              onClick={() => handleMethodSelect("manual")}
-            >
-              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                <PenLine className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Manual Setup</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Enter their details now and create their account immediately. You'll get a temporary password.
-              </p>
-            </Card>
+            <div className="grid gap-5 sm:grid-cols-2">
+              {[
+                {
+                  method: "invite" as const,
+                  icon: Mail,
+                  title: "Send Invite Link",
+                  desc: "Send a personalized email with an onboarding link. They'll set up their own account.",
+                  accent: "📧",
+                },
+                {
+                  method: "manual" as const,
+                  icon: PenLine,
+                  title: "Manual Setup",
+                  desc: "Enter their details now and create their account immediately. You'll get a temporary password.",
+                  accent: "✍️",
+                },
+              ].map((item) => (
+                <div
+                  key={item.method}
+                  className="gradient-border-card cursor-pointer group"
+                  onClick={() => handleMethodSelect(item.method)}
+                >
+                  <Card className="p-8 text-center border-2 border-transparent transition-all duration-300 hover:shadow-xl hover:border-primary/20">
+                    <div className="mx-auto mb-5 h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:animate-bounce-subtle transition-all">
+                      <item.icon className="h-10 w-10 text-primary" />
+                    </div>
+                    <span className="text-2xl mb-3 block">{item.accent}</span>
+                    <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </Card>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Step 3a: Invite Flow */}
         {step === 3 && method === "invite" && (
-          <div className="animate-in fade-in duration-500 space-y-6">
+          <div key="invite" className={cn(animClass, "space-y-6")}>
+            <div className="flex items-center gap-3 mb-2">
+              <Button variant="ghost" size="icon" onClick={goBack} className="shrink-0">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Configure the invitation</h2>
+                <p className="text-sm text-muted-foreground">We'll generate a personalized invite</p>
+              </div>
+            </div>
+
             {!showEmailPreview ? (
-              <Card className="p-6 space-y-5">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Card className="p-6 sm:p-8 space-y-6 border-2">
+                <div className="flex items-center gap-3 pb-4 border-b border-border">
+                  <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Mail className="h-5 w-5 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-semibold">
                       Invite a {entityType === "provider" ? "Service Provider" : "Customer"}
                     </h3>
-                    <p className="text-sm text-muted-foreground">We'll generate a personalized invite for them</p>
+                    <p className="text-sm text-muted-foreground">Fill in the recipient details</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Recipient Name *</Label>
-                    <Input
-                      value={inviteData.recipientName}
-                      onChange={(e) => setInviteData({ ...inviteData, recipientName: e.target.value })}
-                      placeholder="e.g. John Smith"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Recipient Email *</Label>
-                    <Input
-                      type="email"
-                      value={inviteData.recipientEmail}
-                      onChange={(e) => setInviteData({ ...inviteData, recipientEmail: e.target.value })}
-                      placeholder="e.g. john@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{entityType === "provider" ? "Company Name" : "Provider / Household Name"}</Label>
-                    <Input
-                      value={inviteData.companyName}
-                      onChange={(e) => setInviteData({ ...inviteData, companyName: e.target.value })}
-                      placeholder={entityType === "provider" ? "e.g. Green Gardens LLC" : "e.g. Smith Residence"}
-                    />
-                  </div>
+                <div className="space-y-5">
+                  <FloatingInput
+                    id="recipientName"
+                    label="Recipient Name"
+                    value={inviteData.recipientName}
+                    onChange={(v) => setInviteData({ ...inviteData, recipientName: v })}
+                    required
+                  />
+                  <FloatingInput
+                    id="recipientEmail"
+                    label="Recipient Email"
+                    value={inviteData.recipientEmail}
+                    onChange={(v) => setInviteData({ ...inviteData, recipientEmail: v })}
+                    type="email"
+                    required
+                  />
+                  <FloatingInput
+                    id="companyName"
+                    label={entityType === "provider" ? "Company Name" : "Provider / Household Name"}
+                    value={inviteData.companyName}
+                    onChange={(v) => setInviteData({ ...inviteData, companyName: v })}
+                  />
                 </div>
 
-                <Button onClick={handleInviteSubmit} disabled={isLoading} className="w-full">
+                <Button
+                  onClick={handleInviteSubmit}
+                  disabled={isLoading}
+                  className="w-full h-12 text-base rounded-xl hover:scale-[1.02] transition-transform"
+                >
                   {isLoading ? "Generating…" : "Generate Invite"}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Card>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 animate-slide-in-right">
                 {/* Link copy bar */}
-                <Card className="p-4">
-                  <Label className="text-xs text-muted-foreground mb-2 block">Invite Link</Label>
+                <Card className="p-4 border-2">
+                  <label className="text-xs text-muted-foreground mb-2 block font-medium">Invite Link</label>
                   <div className="flex gap-2">
                     <Input value={generatedLink} readOnly className="text-xs font-mono" />
                     <Button variant="outline" size="icon" onClick={copyLink}>
@@ -444,16 +638,19 @@ export default function AdminOnboard() {
                 {/* Email preview */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Email Preview</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Email Preview
+                    </h3>
                     <span className="text-xs text-muted-foreground">
                       To: {inviteData.recipientEmail}
                     </span>
                   </div>
-                  <Card className="overflow-hidden">
-                    <div className="border-b bg-muted/50 px-4 py-2 flex items-center gap-2">
+                  <Card className="overflow-hidden border-2">
+                    <div className="border-b bg-muted/50 px-4 py-2.5 flex items-center gap-2">
                       <Mail className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className="text-xs font-medium text-muted-foreground">
-                        Subject: {entityType === "provider"
+                        Subject:{" "}
+                        {entityType === "provider"
                           ? "You're invited to join GreenCRM"
                           : `${inviteData.companyName || "Your Provider"} invited you to connect`}
                       </span>
@@ -470,11 +667,21 @@ export default function AdminOnboard() {
 
                 {/* Actions */}
                 <div className="flex gap-3">
-                  <Button onClick={handleSendInvite} className="flex-1">
+                  <Button
+                    onClick={handleSendInvite}
+                    className="flex-1 h-12 rounded-xl hover:scale-[1.02] transition-transform"
+                  >
                     <Send className="h-4 w-4 mr-2" />
                     Send Invite
                   </Button>
-                  <Button variant="outline" onClick={() => { setShowEmailPreview(false); setGeneratedLink(""); }}>
+                  <Button
+                    variant="outline"
+                    className="h-12 rounded-xl"
+                    onClick={() => {
+                      setShowEmailPreview(false);
+                      setGeneratedLink("");
+                    }}
+                  >
                     Edit Details
                   </Button>
                 </div>
@@ -485,109 +692,113 @@ export default function AdminOnboard() {
 
         {/* Step 3b: Manual Flow */}
         {step === 3 && method === "manual" && (
-          <div className="animate-in fade-in duration-500">
-            <Card className="p-6 space-y-5">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div key="manual" className={animClass}>
+            <div className="flex items-center gap-3 mb-8">
+              <Button variant="ghost" size="icon" onClick={goBack} className="shrink-0">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight">Enter their details</h2>
+                <p className="text-sm text-muted-foreground">Create the account right now</p>
+              </div>
+            </div>
+
+            <Card className="p-6 sm:p-8 space-y-6 border-2">
+              <div className="flex items-center gap-3 pb-4 border-b border-border">
+                <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center">
                   <PenLine className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-semibold">
                     Create {entityType === "provider" ? "Provider" : "Customer"} Manually
                   </h3>
-                  <p className="text-sm text-muted-foreground">Fill in their details to create the account now</p>
+                  <p className="text-sm text-muted-foreground">Fill in their details to create the account</p>
                 </div>
               </div>
 
               {entityType === "provider" ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Company Name *</Label>
-                    <Input
-                      value={providerData.companyName}
-                      onChange={(e) => setProviderData({ ...providerData, companyName: e.target.value })}
-                      placeholder="e.g. Green Gardens LLC"
+                <div className="space-y-5">
+                  <FloatingInput
+                    id="pCompany"
+                    label="Company Name"
+                    value={providerData.companyName}
+                    onChange={(v) => setProviderData({ ...providerData, companyName: v })}
+                    required
+                  />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FloatingInput
+                      id="pFullName"
+                      label="Admin Full Name"
+                      value={providerData.fullName}
+                      onChange={(v) => setProviderData({ ...providerData, fullName: v })}
+                      required
+                    />
+                    <FloatingInput
+                      id="pEmail"
+                      label="Admin Email"
+                      value={providerData.email}
+                      onChange={(v) => setProviderData({ ...providerData, email: v })}
+                      type="email"
+                      required
                     />
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Admin Full Name *</Label>
-                      <Input
-                        value={providerData.fullName}
-                        onChange={(e) => setProviderData({ ...providerData, fullName: e.target.value })}
-                        placeholder="e.g. John Smith"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Admin Email *</Label>
-                      <Input
-                        type="email"
-                        value={providerData.email}
-                        onChange={(e) => setProviderData({ ...providerData, email: e.target.value })}
-                        placeholder="e.g. john@company.com"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input
-                        value={providerData.phone}
-                        onChange={(e) => setProviderData({ ...providerData, phone: e.target.value })}
-                        placeholder="e.g. +40 712 345 678"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>CUI (Tax ID)</Label>
-                      <Input
-                        value={providerData.cui}
-                        onChange={(e) => setProviderData({ ...providerData, cui: e.target.value })}
-                        placeholder="e.g. RO12345678"
-                      />
-                    </div>
+                    <FloatingInput
+                      id="pPhone"
+                      label="Phone"
+                      value={providerData.phone}
+                      onChange={(v) => setProviderData({ ...providerData, phone: v })}
+                      prefix="+40"
+                    />
+                    <FloatingInput
+                      id="pCui"
+                      label="CUI (Tax ID)"
+                      value={providerData.cui}
+                      onChange={(v) => setProviderData({ ...providerData, cui: v })}
+                    />
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Customer / Household Name *</Label>
-                    <Input
-                      value={customerData.name}
-                      onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
-                      placeholder="e.g. Smith Residence"
-                    />
-                  </div>
+                <div className="space-y-5">
+                  <FloatingInput
+                    id="cName"
+                    label="Customer / Household Name"
+                    value={customerData.name}
+                    onChange={(v) => setCustomerData({ ...customerData, name: v })}
+                    required
+                  />
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Contact Person *</Label>
-                      <Input
-                        value={customerData.contactPerson}
-                        onChange={(e) => setCustomerData({ ...customerData, contactPerson: e.target.value })}
-                        placeholder="e.g. Jane Smith"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email *</Label>
-                      <Input
-                        type="email"
-                        value={customerData.email}
-                        onChange={(e) => setCustomerData({ ...customerData, email: e.target.value })}
-                        placeholder="e.g. jane@email.com"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input
-                      value={customerData.phone}
-                      onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
-                      placeholder="e.g. +40 712 345 678"
+                    <FloatingInput
+                      id="cContact"
+                      label="Contact Person"
+                      value={customerData.contactPerson}
+                      onChange={(v) => setCustomerData({ ...customerData, contactPerson: v })}
+                      required
+                    />
+                    <FloatingInput
+                      id="cEmail"
+                      label="Email"
+                      value={customerData.email}
+                      onChange={(v) => setCustomerData({ ...customerData, email: v })}
+                      type="email"
+                      required
                     />
                   </div>
+                  <FloatingInput
+                    id="cPhone"
+                    label="Phone"
+                    value={customerData.phone}
+                    onChange={(v) => setCustomerData({ ...customerData, phone: v })}
+                    prefix="+40"
+                  />
                 </div>
               )}
 
-              <Button onClick={handleManualSubmit} disabled={isLoading} className="w-full">
+              <Button
+                onClick={handleManualSubmit}
+                disabled={isLoading}
+                className="w-full h-12 text-base rounded-xl hover:scale-[1.02] transition-transform"
+              >
                 {isLoading ? "Creating…" : `Create ${entityType === "provider" ? "Provider" : "Customer"}`}
                 <Sparkles className="h-4 w-4 ml-2" />
               </Button>
@@ -595,64 +806,87 @@ export default function AdminOnboard() {
           </div>
         )}
 
-        {/* Step 4: Confirmation */}
+        {/* Step 4: Celebration */}
         {step === 4 && (
-          <div className="animate-in fade-in duration-500 text-center">
-            <Card className="p-10">
-              <div className="mx-auto mb-6 h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <Check className="h-10 w-10 text-primary" />
+          <div key="done" className={cn("text-center py-12", animClass)}>
+            {/* Success icon with glow */}
+            <div className="relative mx-auto mb-8 w-28 h-28">
+              <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse-glow" />
+              <div className="absolute inset-3 rounded-full bg-primary/20 flex items-center justify-center">
+                <Check className="h-14 w-14 text-primary" strokeWidth={2.5} />
               </div>
-              <h2 className="text-2xl font-bold mb-2">
-                {confirmationData?.method === "invite" ? "Invite Sent!" : "Account Created!"}
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {confirmationData?.method === "invite"
-                  ? `An invite link has been prepared for ${confirmationData?.recipientName || "the recipient"}.`
-                  : `The ${entityType} account has been successfully created.`}
-              </p>
+            </div>
 
-              {/* Show details */}
-              {confirmationData && confirmationData.method !== "invite" && (
-                <div className="bg-muted rounded-xl p-5 text-left space-y-3 mb-6 max-w-sm mx-auto">
-                  {confirmationData.email && (
-                    <div>
-                      <span className="text-xs text-muted-foreground">Email</span>
-                      <p className="font-mono text-sm">{confirmationData.email}</p>
-                    </div>
-                  )}
-                  {confirmationData.temporaryPassword && (
-                    <div>
-                      <span className="text-xs text-muted-foreground">Temporary Password</span>
-                      <div className="flex items-center gap-2">
-                        <p className="font-mono text-sm bg-background px-2 py-1 rounded">{confirmationData.temporaryPassword}</p>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            navigator.clipboard.writeText(confirmationData.temporaryPassword);
-                            toast.success("Password copied!");
-                          }}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+              {confirmationData?.method === "invite"
+                ? "Invite Ready! 🎉"
+                : "Congratulations! 🌱"}
+            </h2>
+            <p className="text-lg text-muted-foreground mb-2">
+              {confirmationData?.method === "invite"
+                ? "Your digital garden is growing."
+                : "Your digital garden is ready."}
+            </p>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              {confirmationData?.method === "invite"
+                ? `An invite link has been prepared for ${confirmationData?.recipientName || "the recipient"}.`
+                : `The ${entityType} account has been successfully created.`}
+            </p>
 
-              <div className="flex gap-3 justify-center">
-                <Button onClick={resetWizard} variant="outline">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Create Another
-                </Button>
-                <Button onClick={() => navigate("/admin/tenants")}>
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </div>
-            </Card>
+            {/* Details card */}
+            {confirmationData && confirmationData.method !== "invite" && (
+              <Card className="bg-muted/50 border-2 rounded-2xl p-6 text-left space-y-4 mb-8 max-w-sm mx-auto">
+                {confirmationData.email && (
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Email
+                    </span>
+                    <p className="font-mono text-sm mt-1">{confirmationData.email}</p>
+                  </div>
+                )}
+                {confirmationData.temporaryPassword && (
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Temporary Password
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="font-mono text-sm bg-background px-3 py-1.5 rounded-lg border">
+                        {confirmationData.temporaryPassword}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          navigator.clipboard.writeText(confirmationData.temporaryPassword);
+                          toast.success("Password copied!");
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
+
+            <div className="flex gap-3 justify-center">
+              <Button
+                onClick={resetWizard}
+                variant="outline"
+                className="h-12 rounded-xl hover:scale-[1.02] transition-transform"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Create Another
+              </Button>
+              <Button
+                onClick={() => navigate("/admin/tenants")}
+                className="h-12 rounded-xl hover:scale-[1.02] transition-transform"
+              >
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Enter Platform
+              </Button>
+            </div>
           </div>
         )}
       </div>
