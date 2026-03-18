@@ -178,7 +178,7 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    navigate(`/auth?email=${encodeURIComponent(email)}`);
+    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
   };
 
   const handleStartFreeSubmit = () => {
@@ -192,7 +192,7 @@ export default function LandingPage() {
       return;
     }
     setStartFreeOpen(false);
-    navigate(`/auth?email=${encodeURIComponent(email)}&tab=signup`);
+    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
   };
 
   return (
@@ -476,7 +476,7 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="mt-8 h-14 rounded-full bg-white text-landing-coral font-bold text-lg px-10 shadow-xl hover:bg-white/90"
-            onClick={() => setStartFreeOpen(true)}
+            onClick={() => navigate("/onboard?source=landing")}
           >
             Start Free — No Credit Card <ArrowRight className="ml-2 h-5 w-5" />
           </Button>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,10 +222,15 @@ function FloatingInput({
   );
 }
 
-const STEP_LABELS = ["Welcome", "Type", "Method", "Details", "Done"];
+const STEP_LABELS_FULL = ["Welcome", "Type", "Method", "Details", "Done"];
+const STEP_LABELS_PUBLIC = ["Welcome", "Type", "Details", "Done"];
 
 export default function AdminOnboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPublic = searchParams.get("source") === "landing";
+  const prefilledEmail = searchParams.get("email") || "";
+
   const [step, setStep] = useState(0); // 0-indexed, 0 = welcome
   const [direction, setDirection] = useState<"next" | "back">("next");
   const [entityType, setEntityType] = useState<EntityType>(null);
@@ -245,21 +250,24 @@ export default function AdminOnboard() {
   const [providerData, setProviderData] = useState<ManualProviderData>({
     companyName: "",
     fullName: "",
-    email: "",
+    email: prefilledEmail,
     phone: "",
     cui: "",
   });
   const [customerData, setCustomerData] = useState<ManualCustomerData>({
     name: "",
     contactPerson: "",
-    email: "",
+    email: prefilledEmail,
     phone: "",
   });
 
   const [confirmationData, setConfirmationData] = useState<any>(null);
 
-  const totalSteps = 5;
-  const progressValue = ((step + 1) / totalSteps) * 100;
+  const stepLabels = isPublic ? STEP_LABELS_PUBLIC : STEP_LABELS_FULL;
+  const totalSteps = stepLabels.length;
+  // Map internal step to display step for progress
+  const displayStep = isPublic && step > 1 ? step - 1 : step;
+  const progressValue = ((displayStep + 1) / totalSteps) * 100;
 
   const goNext = (nextStep: number) => {
     setDirection("next");
@@ -268,7 +276,11 @@ export default function AdminOnboard() {
 
   const goBack = () => {
     if (step === 0) {
-      navigate("/admin/tenants");
+      navigate(isPublic ? "/" : "/admin/tenants");
+    } else if (isPublic && step === 3) {
+      // Skip back over the method step in public mode
+      setDirection("back");
+      setStep(1);
     } else {
       setDirection("back");
       setStep(step - 1);
@@ -278,7 +290,13 @@ export default function AdminOnboard() {
   const handleTypeSelect = (type: EntityType) => {
     setEntityType(type);
     setMethod(null);
-    goNext(2);
+    if (isPublic) {
+      // Skip method selection, go directly to details
+      setMethod("manual");
+      goNext(3);
+    } else {
+      goNext(2);
+    }
   };
 
   const handleMethodSelect = (m: OnboardMethod) => {
@@ -396,12 +414,12 @@ export default function AdminOnboard() {
           <div className="max-w-3xl mx-auto">
             <Progress value={progressValue} className="h-1.5 mb-2" />
             <div className="flex justify-between">
-              {STEP_LABELS.map((label, i) => (
+              {stepLabels.map((label, i) => (
                 <span
                   key={label}
                   className={cn(
                     "text-xs font-medium transition-colors",
-                    i <= step ? "text-primary" : "text-muted-foreground/40"
+                    (isPublic && i > 1 ? i + 1 : i) <= step ? "text-primary" : "text-muted-foreground/40"
                   )}
                 >
                   {label}
@@ -538,7 +556,7 @@ export default function AdminOnboard() {
                 {
                   method: "manual" as const,
                   icon: PenLine,
-                  title: "Manual Setup",
+                  title: "Enter Details",
                   desc: "Enter their details now and create their account immediately. You'll get a temporary password.",
                   accent: "✍️",
                 },
@@ -880,7 +898,7 @@ export default function AdminOnboard() {
                 Create Another
               </Button>
               <Button
-                onClick={() => navigate("/admin/tenants")}
+                onClick={() => navigate(isPublic ? "/auth" : "/admin/tenants")}
                 className="h-12 rounded-xl hover:scale-[1.02] transition-transform"
               >
                 <LayoutDashboard className="h-4 w-4 mr-2" />
