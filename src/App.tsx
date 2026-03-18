@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 import Auth from "./pages/Auth";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import { ProviderLayout } from "./components/provider/ProviderLayout";
 import { ClientLayout } from "./components/client/ClientLayout";
