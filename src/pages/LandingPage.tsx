@@ -178,7 +178,7 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    navigate(`/auth?email=${encodeURIComponent(email)}`);
+    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
   };
 
   const handleStartFreeSubmit = () => {
