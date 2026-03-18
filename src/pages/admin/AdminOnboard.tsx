@@ -276,7 +276,11 @@ export default function AdminOnboard() {
 
   const goBack = () => {
     if (step === 0) {
-      navigate("/admin/tenants");
+      navigate(isPublic ? "/" : "/admin/tenants");
+    } else if (isPublic && step === 3) {
+      // Skip back over the method step in public mode
+      setDirection("back");
+      setStep(1);
     } else {
       setDirection("back");
       setStep(step - 1);
@@ -286,7 +290,13 @@ export default function AdminOnboard() {
   const handleTypeSelect = (type: EntityType) => {
     setEntityType(type);
     setMethod(null);
-    goNext(2);
+    if (isPublic) {
+      // Skip method selection, go directly to details
+      setMethod("manual");
+      goNext(3);
+    } else {
+      goNext(2);
+    }
   };
 
   const handleMethodSelect = (m: OnboardMethod) => {
