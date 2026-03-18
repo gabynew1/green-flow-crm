@@ -187,7 +187,7 @@ export default function LandingPage() {
     }
   };
 
-  const handleStartFreeSubmit = () => {
+  const handleStartFreeSubmit = async () => {
     const email = startFreeEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -198,7 +198,12 @@ export default function LandingPage() {
       return;
     }
     setStartFreeOpen(false);
-    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+    if (exists) {
+      navigate(`/auth?email=${encodeURIComponent(email)}`);
+    } else {
+      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    }
   };
 
   return (
