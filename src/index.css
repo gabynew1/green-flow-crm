@@ -102,6 +102,39 @@
   }
 }
 
+/* Hand-drawn icon style */
+.icon-hand-drawn {
+  stroke-width: 2.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(1px 1px 0px hsl(var(--primary) / 0.1));
+}
+
+/* Blob border-radius */
+.rounded-blob {
+  border-radius: 42% 58% 55% 45% / 50% 45% 55% 50%;
+}
+
+/* Floating animations */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(6deg); }
+}
+@keyframes float-med {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(-4deg); }
+}
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+.animate-float-med { animation: float-med 4.5s ease-in-out infinite; }
+
+/* Wiggle animation for logo icon */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+.animate-wiggle { animation: wiggle 0.5s ease-in-out; }
+
 /* Leaf confetti */
 .leaf-confetti-container {
   position: fixed;
