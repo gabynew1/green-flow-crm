@@ -103,6 +103,7 @@ function AppRoutes(): JSX.Element {
           <Route path="audit" element={<AuditCompliance />} />
           <Route path="security" element={<SecurityMonitor />} />
           <Route path="invites" element={<AdminInvites />} />
+          <Route path="onboard" element={<AdminOnboard />} />
         </Route>
       )}
 

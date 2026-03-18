@@ -36,6 +36,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 export default function TenantManagement() {
+    const navigate = useNavigate();
     const { data: tenants, isLoading, refetch } = useQuery({
         queryKey: ["admin-tenants"],
         queryFn: async () => {
