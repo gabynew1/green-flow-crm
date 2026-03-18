@@ -199,7 +199,7 @@ export default function Auth() {
                 <form onSubmit={inviteToken ? handleSignInWithInvite : handleSignIn} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
-                    <Input id="signin-email" name="email" type="email" required />
+                    <Input id="signin-email" name="email" type="email" required defaultValue={prefillEmail} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Password</Label>
