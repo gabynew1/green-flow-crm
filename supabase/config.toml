@@ -2,3 +2,6 @@ project_id = "xmklfvepyiiiurokpvub"
 
 [functions.invite-team-member]
 verify_jwt = false
+
+[functions.create-manual-user]
+verify_jwt = false
