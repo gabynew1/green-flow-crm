@@ -41,6 +41,7 @@ import ClientProfile from "./pages/client/ClientProfile";
 import ClientConnect from "./pages/client/ClientConnect";
 
 import AdminInvites from "./pages/admin/AdminInvites";
+import AdminOnboard from "./pages/admin/AdminOnboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import TenantManagement from "./pages/admin/TenantManagement";
 import GlobalUserManagement from "./pages/admin/GlobalUserManagement";
