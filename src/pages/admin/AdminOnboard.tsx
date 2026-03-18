@@ -556,7 +556,7 @@ export default function AdminOnboard() {
                 {
                   method: "manual" as const,
                   icon: PenLine,
-                  title: "Manual Setup",
+                  title: "Enter Details",
                   desc: "Enter their details now and create their account immediately. You'll get a temporary password.",
                   accent: "✍️",
                 },
