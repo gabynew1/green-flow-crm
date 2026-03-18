@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 import Auth from "./pages/Auth";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import { ProviderLayout } from "./components/provider/ProviderLayout";
 import { ClientLayout } from "./components/client/ClientLayout";
@@ -66,9 +67,10 @@ function AppRoutes(): JSX.Element {
   if (!user) {
     return (
       <Routes>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="*" element={<Navigate to="/auth" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }

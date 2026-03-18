@@ -69,6 +69,13 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+        landing: {
+          coral: "hsl(var(--landing-coral))",
+          yellow: "hsl(var(--landing-yellow))",
+          sky: "hsl(var(--landing-sky))",
+          lavender: "hsl(var(--landing-lavender))",
+          mint: "hsl(var(--landing-mint))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
