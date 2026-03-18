@@ -404,7 +404,8 @@ export default function AdminOnboard() {
           <div className="max-w-3xl mx-auto">
             <Progress value={progressValue} className="h-1.5 mb-2" />
             <div className="flex justify-between">
-              {STEP_LABELS.map((label, i) => (
+              {stepLabels.map((label, i) => {
+                const stepIndex = isPublic && i > 1 ? i + 1 : i;
                 <span
                   key={label}
                   className={cn(
