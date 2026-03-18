@@ -222,10 +222,15 @@ function FloatingInput({
   );
 }
 
-const STEP_LABELS = ["Welcome", "Type", "Method", "Details", "Done"];
+const STEP_LABELS_FULL = ["Welcome", "Type", "Method", "Details", "Done"];
+const STEP_LABELS_PUBLIC = ["Welcome", "Type", "Details", "Done"];
 
 export default function AdminOnboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPublic = searchParams.get("source") === "landing";
+  const prefilledEmail = searchParams.get("email") || "";
+
   const [step, setStep] = useState(0); // 0-indexed, 0 = welcome
   const [direction, setDirection] = useState<"next" | "back">("next");
   const [entityType, setEntityType] = useState<EntityType>(null);
@@ -245,21 +250,24 @@ export default function AdminOnboard() {
   const [providerData, setProviderData] = useState<ManualProviderData>({
     companyName: "",
     fullName: "",
-    email: "",
+    email: prefilledEmail,
     phone: "",
     cui: "",
   });
   const [customerData, setCustomerData] = useState<ManualCustomerData>({
     name: "",
     contactPerson: "",
-    email: "",
+    email: prefilledEmail,
     phone: "",
   });
 
   const [confirmationData, setConfirmationData] = useState<any>(null);
 
-  const totalSteps = 5;
-  const progressValue = ((step + 1) / totalSteps) * 100;
+  const stepLabels = isPublic ? STEP_LABELS_PUBLIC : STEP_LABELS_FULL;
+  const totalSteps = stepLabels.length;
+  // Map internal step to display step for progress
+  const displayStep = isPublic && step > 1 ? step - 1 : step;
+  const progressValue = ((displayStep + 1) / totalSteps) * 100;
 
   const goNext = (nextStep: number) => {
     setDirection("next");
