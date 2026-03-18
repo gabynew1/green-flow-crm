@@ -23,6 +23,8 @@ export default function Auth() {
   const [forgotEmail, setForgotEmail] = useState("");
   const inviteToken = searchParams.get("invite");
   const connectCode = searchParams.get("connect");
+  const prefillEmail = searchParams.get("email") || "";
+  const prefillTab = searchParams.get("tab");
   const [inviteInfo, setInviteInfo] = useState<{ role: string; tenant_name?: string } | null>(null);
   const [connectProviderName, setConnectProviderName] = useState<string | null>(null);
 
@@ -188,7 +190,7 @@ export default function Auth() {
               </Button>
             </div>
           ) : (
-            <Tabs defaultValue={inviteToken ? "signup" : "signin"}>
+            <Tabs defaultValue={inviteToken ? "signup" : prefillTab === "signup" ? "signup" : "signin"}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -197,7 +199,7 @@ export default function Auth() {
                 <form onSubmit={inviteToken ? handleSignInWithInvite : handleSignIn} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
-                    <Input id="signin-email" name="email" type="email" required />
+                    <Input id="signin-email" name="email" type="email" required defaultValue={prefillEmail} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Password</Label>
@@ -245,7 +247,7 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" name="email" type="email" required />
+                    <Input id="signup-email" name="email" type="email" required defaultValue={prefillEmail} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>

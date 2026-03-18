@@ -1,7 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Leaf,
   Users,
@@ -17,8 +25,10 @@ import {
   Flower2,
   Menu,
   X,
+  Mail,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 /* ------------------------------------------------------------------ */
 /*  Inline SVG doodles                                                 */
@@ -143,6 +153,9 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [heroEmail, setHeroEmail] = useState("");
+  const [startFreeOpen, setStartFreeOpen] = useState(false);
+  const [startFreeEmail, setStartFreeEmail] = useState("");
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -155,6 +168,33 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleGetGrowing = () => {
+    const email = heroEmail.trim();
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    navigate(`/auth?email=${encodeURIComponent(email)}`);
+  };
+
+  const handleStartFreeSubmit = () => {
+    const email = startFreeEmail.trim();
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setStartFreeOpen(false);
+    navigate(`/auth?email=${encodeURIComponent(email)}&tab=signup`);
+  };
+
   return (
     <div className="min-h-screen bg-background font-sans scroll-smooth overflow-x-hidden">
       {/* ===== NAVBAR ===== */}
@@ -164,13 +204,11 @@ export default function LandingPage() {
         }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          {/* Logo */}
           <button onClick={() => scrollTo("hero")} className="group flex items-center gap-2 text-xl font-bold text-primary">
             <Leaf className="h-7 w-7 transition-transform group-hover:animate-wiggle icon-hand-drawn text-primary" />
             <span>GreenGrass</span>
           </button>
 
-          {/* Desktop links */}
           <div className="hidden items-center gap-6 md:flex">
             {["features", "how", "testimonials"].map((s) => (
               <button key={s} onClick={() => scrollTo(s)} className="text-sm font-medium capitalize text-foreground/70 hover:text-primary transition-colors">
@@ -180,18 +218,20 @@ export default function LandingPage() {
             <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
               Sign In
             </Button>
-            <Button size="sm" className="rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white shadow-md" onClick={() => navigate("/auth")}>
+            <Button
+              size="sm"
+              className="rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white shadow-md"
+              onClick={() => setStartFreeOpen(true)}
+            >
               Start Free
             </Button>
           </div>
 
-          {/* Mobile hamburger */}
           <button className="md:hidden text-foreground" onClick={() => setMobileMenu(!mobileMenu)}>
             {mobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Mobile menu */}
         {mobileMenu && (
           <div className="md:hidden bg-background/95 backdrop-blur border-t border-border px-4 pb-4 space-y-2">
             {["features", "how", "testimonials"].map((s) => (
@@ -200,14 +240,67 @@ export default function LandingPage() {
               </button>
             ))}
             <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate("/auth")}>Sign In</Button>
-            <Button size="sm" className="w-full rounded-full bg-landing-coral text-white" onClick={() => navigate("/auth")}>Start Free</Button>
+            <Button
+              size="sm"
+              className="w-full rounded-full bg-landing-coral text-white"
+              onClick={() => { setMobileMenu(false); setStartFreeOpen(true); }}
+            >
+              Start Free
+            </Button>
           </div>
         )}
       </nav>
 
+      {/* ===== START FREE DIALOG ===== */}
+      <Dialog open={startFreeOpen} onOpenChange={setStartFreeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sprout className="h-6 w-6 text-primary icon-hand-drawn" />
+              Start Growing Your Business
+            </DialogTitle>
+            <DialogDescription>
+              Enter your email to create your free provider account.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleStartFreeSubmit();
+            }}
+            className="space-y-4 pt-2"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="start-free-email">Work Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="start-free-email"
+                  type="email"
+                  placeholder="you@yourbusiness.com"
+                  value={startFreeEmail}
+                  onChange={(e) => setStartFreeEmail(e.target.value)}
+                  className="pl-10 h-11"
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full h-11 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold"
+            >
+              Get Started Free 🌱
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              No credit card required • Free forever for solo operators
+            </p>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* ===== HERO ===== */}
       <section id="hero" className="relative pt-28 pb-20 sm:pt-36 sm:pb-28 overflow-hidden">
-        {/* Background doodles */}
         <div className="pointer-events-none absolute inset-0 opacity-[0.07] select-none" aria-hidden>
           <LeafDoodle className="absolute top-16 left-[10%] w-16 h-16 text-primary rotate-12" />
           <FlowerDoodle className="absolute top-32 right-[15%] w-12 h-12 text-landing-coral" />
@@ -215,7 +308,6 @@ export default function LandingPage() {
           <FlowerDoodle className="absolute bottom-10 left-[20%] w-14 h-14 text-landing-yellow" />
         </div>
 
-        {/* Floating animated elements */}
         <div className="pointer-events-none absolute inset-0 select-none" aria-hidden>
           <Leaf className="absolute top-24 right-[25%] w-6 h-6 text-primary/20 animate-float-slow" />
           <Flower2 className="absolute top-40 left-[12%] w-5 h-5 text-landing-coral/20 animate-float-med" />
@@ -240,19 +332,28 @@ export default function LandingPage() {
             The CRM that grows with you — schedule jobs, delight customers, get paid. All in one sunny place.
           </p>
 
-          <div className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleGetGrowing();
+            }}
+            className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
+          >
             <Input
               placeholder="Enter your email"
+              type="email"
+              value={heroEmail}
+              onChange={(e) => setHeroEmail(e.target.value)}
               className="h-12 rounded-full border-2 border-border bg-card px-5 text-base shadow-sm focus-visible:ring-primary"
             />
             <Button
+              type="submit"
               size="lg"
               className="h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-lg px-8 whitespace-nowrap"
-              onClick={() => navigate("/auth")}
             >
               Get Growing 🌱
             </Button>
-          </div>
+          </form>
         </div>
       </section>
 
@@ -311,7 +412,6 @@ export default function LandingPage() {
           </h2>
 
           <div className="grid gap-10 sm:grid-cols-3 relative">
-            {/* Dashed connecting line (desktop) */}
             <div className="hidden sm:block absolute top-10 left-[20%] right-[20%] border-t-2 border-dashed border-primary/30" />
 
             {steps.map((s) => {
@@ -376,7 +476,7 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="mt-8 h-14 rounded-full bg-white text-landing-coral font-bold text-lg px-10 shadow-xl hover:bg-white/90"
-            onClick={() => navigate("/auth")}
+            onClick={() => setStartFreeOpen(true)}
           >
             Start Free — No Credit Card <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
