@@ -23,6 +23,8 @@ export default function Auth() {
   const [forgotEmail, setForgotEmail] = useState("");
   const inviteToken = searchParams.get("invite");
   const connectCode = searchParams.get("connect");
+  const prefillEmail = searchParams.get("email") || "";
+  const prefillTab = searchParams.get("tab");
   const [inviteInfo, setInviteInfo] = useState<{ role: string; tenant_name?: string } | null>(null);
   const [connectProviderName, setConnectProviderName] = useState<string | null>(null);
 
