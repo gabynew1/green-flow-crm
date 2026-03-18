@@ -898,7 +898,7 @@ export default function AdminOnboard() {
                 Create Another
               </Button>
               <Button
-                onClick={() => navigate("/admin/tenants")}
+                onClick={() => navigate(isPublic ? "/auth" : "/admin/tenants")}
                 className="h-12 rounded-xl hover:scale-[1.02] transition-transform"
               >
                 <LayoutDashboard className="h-4 w-4 mr-2" />
