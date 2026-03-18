@@ -190,7 +190,7 @@ export default function Auth() {
               </Button>
             </div>
           ) : (
-            <Tabs defaultValue={inviteToken ? "signup" : "signin"}>
+            <Tabs defaultValue={inviteToken ? "signup" : prefillTab === "signup" ? "signup" : "signin"}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
