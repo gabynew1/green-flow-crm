@@ -108,7 +108,7 @@ export default function TenantManagement() {
                     <h2 className="text-3xl font-bold tracking-tight">Tenant Management</h2>
                     <p className="text-muted-foreground mt-1 font-medium">Configure lifecycles and licensing for all organizations.</p>
                 </div>
-                <Button className="shadow-lg shadow-primary/20">
+                <Button className="shadow-lg shadow-primary/20" onClick={() => navigate("/admin/onboard")}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Create New Tenant
                 </Button>
