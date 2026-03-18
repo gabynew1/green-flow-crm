@@ -192,7 +192,7 @@ export default function LandingPage() {
       return;
     }
     setStartFreeOpen(false);
-    navigate(`/auth?email=${encodeURIComponent(email)}&tab=signup`);
+    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
   };
 
   return (
