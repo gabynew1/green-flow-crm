@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export default function TenantManagement() {
     const { data: tenants, isLoading, refetch } = useQuery({
