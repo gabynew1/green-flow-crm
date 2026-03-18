@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,7 +169,7 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleGetGrowing = () => {
+  const handleGetGrowing = async () => {
     const email = heroEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -178,10 +179,15 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+    if (exists) {
+      navigate(`/auth?email=${encodeURIComponent(email)}`);
+    } else {
+      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    }
   };
 
-  const handleStartFreeSubmit = () => {
+  const handleStartFreeSubmit = async () => {
     const email = startFreeEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -192,7 +198,12 @@ export default function LandingPage() {
       return;
     }
     setStartFreeOpen(false);
-    navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+    if (exists) {
+      navigate(`/auth?email=${encodeURIComponent(email)}`);
+    } else {
+      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    }
   };
 
   return (
