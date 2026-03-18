@@ -51,6 +51,13 @@
     --warning-foreground: 43 90% 15%;
     --info: 200 80% 50%;
     --info-foreground: 0 0% 100%;
+
+    /* Landing page playful palette */
+    --landing-coral: 0 100% 71%;
+    --landing-yellow: 47 100% 62%;
+    --landing-sky: 210 76% 67%;
+    --landing-lavender: 258 91% 87%;
+    --landing-mint: 160 60% 90%;
   }
 
   .dark {
