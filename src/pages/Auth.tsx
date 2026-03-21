@@ -15,24 +15,55 @@ import { toast } from "sonner";
 
 function GoogleIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0">
       <path
-        fill="currentColor"
+        fill="#4285F4"
         d="M21.81 12.23c0-.72-.06-1.25-.19-1.8H12.2v3.56h5.53c-.11.88-.71 2.2-2.04 3.09l-.02.12 2.85 2.21.2.02c1.84-1.7 2.89-4.2 2.89-7.2Z"
       />
       <path
-        fill="currentColor"
+        fill="#34A853"
         d="M12.2 22c2.71 0 4.98-.89 6.64-2.41l-3.17-2.46c-.85.59-1.99 1-3.47 1-2.65 0-4.89-1.74-5.69-4.15l-.11.01-2.96 2.3-.04.11A10.03 10.03 0 0 0 12.2 22Z"
       />
       <path
-        fill="currentColor"
+        fill="#FBBC05"
         d="M6.51 13.98A6.03 6.03 0 0 1 6.17 12c0-.69.12-1.36.32-1.98l-.01-.13-3-2.34-.1.05A10 10 0 0 0 2.2 12c0 1.6.38 3.11 1.06 4.4l3.25-2.42Z"
       />
       <path
-        fill="currentColor"
+        fill="#EA4335"
         d="M12.2 5.87c1.87 0 3.13.81 3.84 1.48l2.8-2.73C17.16 3.07 14.9 2 12.2 2a10.03 10.03 0 0 0-8.82 5.6l3.11 2.42c.81-2.41 3.04-4.15 5.7-4.15Z"
       />
     </svg>
+  );
+}
+
+function GoogleSignInSection({
+  isLoading,
+  onClick,
+}: {
+  isLoading: boolean;
+  onClick: () => Promise<void>;
+}) {
+  return (
+    <div className="space-y-4 pt-4">
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11 w-full justify-center gap-3 border-border bg-background font-medium text-foreground shadow-sm hover:bg-muted"
+        onClick={() => void onClick()}
+        disabled={isLoading}
+      >
+        <GoogleIcon />
+        Continue with Google
+      </Button>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase tracking-[0.2em]">
+          <span className="bg-background px-3 text-muted-foreground">Or use email</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -234,6 +265,9 @@ export default function Auth() {
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
               <TabsContent value="signin">
+                {!inviteToken && (
+                  <GoogleSignInSection isLoading={isLoading} onClick={handleGoogleSignIn} />
+                )}
                 <form onSubmit={inviteToken ? handleSignInWithInvite : handleSignIn} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="signin-email">Email</Label>
@@ -276,24 +310,11 @@ export default function Auth() {
                     {isLoading ? "Signing in…" : inviteToken ? "Sign In & Accept Invite" : "Sign In"}
                   </Button>
                 </form>
-                {!inviteToken && (
-                  <div className="space-y-4 pt-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                      </div>
-                    </div>
-                    <Button type="button" variant="outline" className="w-full gap-2" onClick={handleGoogleSignIn} disabled={isLoading}>
-                      <GoogleIcon />
-                      Continue with Google
-                    </Button>
-                  </div>
-                )}
               </TabsContent>
               <TabsContent value="signup">
+                {!inviteToken && (
+                  <GoogleSignInSection isLoading={isLoading} onClick={handleGoogleSignIn} />
+                )}
                 <form onSubmit={handleSignUp} className="space-y-4 pt-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
@@ -328,22 +349,6 @@ export default function Auth() {
                     {isLoading ? "Creating account…" : inviteToken ? "Create Provider Account" : "Create Account"}
                   </Button>
                 </form>
-                {!inviteToken && (
-                  <div className="space-y-4 pt-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                      </div>
-                    </div>
-                    <Button type="button" variant="outline" className="w-full gap-2" onClick={handleGoogleSignIn} disabled={isLoading}>
-                      <GoogleIcon />
-                      Continue with Google
-                    </Button>
-                  </div>
-                )}
               </TabsContent>
             </Tabs>
           )}
