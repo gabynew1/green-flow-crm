@@ -134,21 +134,23 @@ export function ClientLayout() {
       )}
     >
       <div className="flex flex-col gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-sm font-bold text-primary">
-          {initials}
-        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-bold text-primary">
+            {initials}
+          </div>
 
-        <div className="min-w-0 space-y-1">
-          <h1 className="truncate text-lg font-semibold leading-tight text-foreground">
-            {profile?.full_name || "Welcome"}
-          </h1>
+          <div className="min-w-0 flex-1 space-y-1">
+            <h1 className="text-lg font-semibold leading-tight text-foreground">
+              {profile?.full_name || "Welcome"}
+            </h1>
+          </div>
         </div>
 
         <button
           onClick={() => setShowIdInfo(true)}
-          className="flex w-full items-center justify-between gap-2 rounded-2xl border border-border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="flex w-full items-start justify-between gap-2 rounded-2xl border border-border bg-background px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          <span className="truncate">
+          <span className="min-w-0 break-all leading-relaxed">
             Client number:{" "}
             <span className="font-mono font-semibold text-foreground">
               {profile?.unique_client_id || "..."}
