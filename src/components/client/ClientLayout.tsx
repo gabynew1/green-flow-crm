@@ -126,41 +126,54 @@ export function ClientLayout() {
     </nav>
   );
 
-const ClientIdentityCard = ({ compact = false }: { compact?: boolean }) => (
-  <div
-    className={cn(
-      "rounded-3xl border bg-card text-card-foreground shadow-sm",
-      compact ? "p-4" : "p-5"
-    )}
-  >
-    <div className="flex items-start gap-3">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-bold text-primary">
-        {initials}
-      </div>
+  const ClientIdentityCard = ({ compact = false }: { compact?: boolean }) => (
+    <div
+      className={cn(
+        "rounded-3xl border bg-card text-card-foreground shadow-sm",
+        compact ? "p-4" : "p-5",
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-bold text-primary">
+          {initials}
+        </div>
 
-      <div className="min-w-0 flex-1 space-y-1">
-        {/* Removed “Client portal” */}
-        <h1 className="truncate text-lg font-semibold text-foreground leading-tight">
-          {profile?.full_name || "Welcome"}
-        </h1>
+        <div className="min-w-0 flex-1 space-y-1">
+          <h1 className="truncate text-lg font-semibold leading-tight text-foreground">
+            {profile?.full_name || "Welcome"}
+          </h1>
 
-        <button
-          onClick={() => setShowIdInfo(true)}
-          className="flex items-center gap-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <span className="truncate">
-            Client number:{" "}
-            <span className="font-mono font-semibold text-foreground">
-              {profile?.unique_client_id || "..."}
+          <button
+            onClick={() => setShowIdInfo(true)}
+            className="flex items-center gap-2 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <span className="truncate">
+              Client number:{" "}
+              <span className="font-mono font-semibold text-foreground">
+                {profile?.unique_client_id || "..."}
+              </span>
             </span>
-          </span>
-          <Info className="h-4 w-4 shrink-0" />
-        </button>
+            <Info className="h-4 w-4 shrink-0" />
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="flex min-h-screen">
+        <aside className="hidden w-[300px] shrink-0 border-r bg-muted/20 md:block">
+          <div className="sticky top-0 flex h-screen flex-col gap-6 px-5 py-6">
+            <Link to="/client" className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                <Leaf className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-foreground">GreenCRM</p>
+                <p className="text-sm text-muted-foreground">Client dashboard</p>
+              </div>
+            </Link>
 
             <ClientIdentityCard />
 
@@ -184,7 +197,9 @@ const ClientIdentityCard = ({ compact = false }: { compact?: boolean }) => (
                 </Button>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{profile?.full_name || "Client portal"}</p>
-                  <p className="truncate text-xs text-muted-foreground">{profile?.unique_client_id || "Loading client number..."}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {profile?.unique_client_id || "Loading client number..."}
+                  </p>
                 </div>
               </div>
 
@@ -237,7 +252,7 @@ const ClientIdentityCard = ({ compact = false }: { compact?: boolean }) => (
                 <ClientIdentityCard compact />
               </div>
               <ConnectionRequests />
-              <div className="min-w-0"> 
+              <div className="min-w-0">
                 <Outlet />
               </div>
             </div>
