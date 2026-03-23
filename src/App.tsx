@@ -49,6 +49,7 @@ import GlobalUserManagement from "./pages/admin/GlobalUserManagement";
 import AuditCompliance from "./pages/admin/AuditCompliance";
 import SecurityMonitor from "./pages/admin/SecurityMonitor";
 import ResetPassword from "./pages/ResetPassword";
+import Unsubscribe from "./pages/Unsubscribe";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ function AppRoutes(): JSX.Element {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/onboard" element={<AdminOnboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -158,6 +160,7 @@ function AppRoutes(): JSX.Element {
               <Navigate to="/auth" replace />
       } />
 
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
