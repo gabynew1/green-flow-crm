@@ -71,6 +71,7 @@ function AppRoutes(): JSX.Element {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/onboard" element={<AdminOnboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
