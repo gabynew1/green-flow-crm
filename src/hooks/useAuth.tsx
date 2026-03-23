@@ -16,6 +16,14 @@ interface ProfileData {
   contact_email: string | null;
   contact_phone: string | null;
   provider_permission: string | null;
+  client_type: string;
+  cnp: string | null;
+  vat_id: string | null;
+  address_county: string | null;
+  address_city: string | null;
+  address_street: string | null;
+  address_number: string | null;
+  fiscal_representative: string | null;
 }
 
 interface AuthContextType {
