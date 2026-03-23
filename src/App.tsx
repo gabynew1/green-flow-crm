@@ -160,6 +160,7 @@ function AppRoutes(): JSX.Element {
               <Navigate to="/auth" replace />
       } />
 
+      <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
