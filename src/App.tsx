@@ -49,6 +49,7 @@ import GlobalUserManagement from "./pages/admin/GlobalUserManagement";
 import AuditCompliance from "./pages/admin/AuditCompliance";
 import SecurityMonitor from "./pages/admin/SecurityMonitor";
 import ResetPassword from "./pages/ResetPassword";
+import Unsubscribe from "./pages/Unsubscribe";
 
 const queryClient = new QueryClient();
 
