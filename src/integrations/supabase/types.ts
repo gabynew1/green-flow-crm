@@ -718,7 +718,13 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_city: string | null
+          address_county: string | null
+          address_number: string | null
+          address_street: string | null
           avatar_url: string | null
+          client_type: string
+          cnp: string | null
           company_name: string | null
           contact_email: string | null
           contact_phone: string | null
@@ -726,6 +732,7 @@ export type Database = {
           cui: string | null
           customer_id: string | null
           email: string | null
+          fiscal_representative: string | null
           full_name: string | null
           id: string
           is_locked: boolean
@@ -737,9 +744,16 @@ export type Database = {
           unique_client_id: string | null
           updated_at: string
           user_id: string
+          vat_id: string | null
         }
         Insert: {
+          address_city?: string | null
+          address_county?: string | null
+          address_number?: string | null
+          address_street?: string | null
           avatar_url?: string | null
+          client_type?: string
+          cnp?: string | null
           company_name?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -747,6 +761,7 @@ export type Database = {
           cui?: string | null
           customer_id?: string | null
           email?: string | null
+          fiscal_representative?: string | null
           full_name?: string | null
           id?: string
           is_locked?: boolean
@@ -758,9 +773,16 @@ export type Database = {
           unique_client_id?: string | null
           updated_at?: string
           user_id: string
+          vat_id?: string | null
         }
         Update: {
+          address_city?: string | null
+          address_county?: string | null
+          address_number?: string | null
+          address_street?: string | null
           avatar_url?: string | null
+          client_type?: string
+          cnp?: string | null
           company_name?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -768,6 +790,7 @@ export type Database = {
           cui?: string | null
           customer_id?: string | null
           email?: string | null
+          fiscal_representative?: string | null
           full_name?: string | null
           id?: string
           is_locked?: boolean
@@ -779,6 +802,7 @@ export type Database = {
           unique_client_id?: string | null
           updated_at?: string
           user_id?: string
+          vat_id?: string | null
         }
         Relationships: [
           {
