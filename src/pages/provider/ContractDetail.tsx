@@ -139,7 +139,7 @@ export default function ContractDetail() {
 
   if (!contract) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
-  const editable = contract.status === "DRAFT";
+  const editable = !["CLOSED", "REJECTED"].includes(contract.status);
   const canRevert = ["SENT_TO_CLIENT", "SIGNED", "REJECTED"].includes(contract.status);
 
   return (
