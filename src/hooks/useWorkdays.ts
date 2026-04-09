@@ -72,5 +72,11 @@ export function useWorkdays(tenantId: string | null) {
     await load();
   };
 
-  return { holidays, tenantNonWorkdays, loading, isWorkday, getNonWorkdayLabel, addNonWorkday, removeNonWorkday, reload: load };
+  const updateNonWorkday = async (id: string, date: string, title: string) => {
+    const { error } = await supabase.from("tenant_non_workdays").update({ date, title } as any).eq("id", id);
+    if (error) throw error;
+    await load();
+  };
+
+  return { holidays, tenantNonWorkdays, loading, isWorkday, getNonWorkdayLabel, addNonWorkday, removeNonWorkday, updateNonWorkday, reload: load };
 }
