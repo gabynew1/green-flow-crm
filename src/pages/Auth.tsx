@@ -133,23 +133,60 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
     const form = new FormData(e.currentTarget);
-    const { error } = await signUp(
-      form.get("email") as string,
-      form.get("password") as string,
-      form.get("fullName") as string
-    );
-    setIsLoading(false);
-    if (error) {
-      toast.error(error.message);
+    const email = form.get("email") as string;
+    const password = form.get("password") as string;
+    const fullName = form.get("fullName") as string;
+
+    // Client-side password strength check
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      toast.error("Password must contain at least one uppercase letter and one number");
+      setIsLoading(false);
       return;
     }
 
+    const { error } = await signUp(email, password, fullName);
+    setIsLoading(false);
+    if (error) {
+      const msg = error.message?.toLowerCase() || "";
+      if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("user already exists")) {
+        toast.error("An account with this email already exists. Try signing in or resetting your password.", {
+          action: {
+            label: "Reset Password",
+            onClick: () => {
+              setForgotEmail(email);
+              setShowForgot(true);
+            },
+          },
+          duration: 8000,
+        });
+      } else if (msg.includes("password") && (msg.includes("weak") || msg.includes("short") || msg.includes("strength"))) {
+        toast.error("Password is too weak. Use at least 6 characters with uppercase letters, numbers, and symbols.");
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+
+    // With auto-confirm, user is immediately signed in
     if (inviteToken) {
-      toast.success("Account created! Check your email to confirm, then sign in to activate your provider account.");
+      try {
+        await supabase.functions.invoke("accept-provider-invite", { body: { inviteToken } });
+        toast.success("Account created & provider invite accepted!");
+      } catch {
+        toast.success("Account created! Sign in to activate your provider account.");
+      }
+      navigate("/");
     } else if (connectCode) {
-      toast.success("Account created! Check your email to confirm, then sign in to connect your properties.");
+      toast.success("Account created! Redirecting to connect your properties...");
+      navigate(`/client/connect?provider=${connectCode}`);
     } else {
-      toast.success("Check your email to confirm your account!");
+      toast.success("Account created successfully!");
+      navigate("/");
     }
   };
 
