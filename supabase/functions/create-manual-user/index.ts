@@ -83,10 +83,25 @@ Deno.serve(async (req) => {
       // Check if email already exists
       const { data: emailExists } = await adminClient.rpc("email_exists", { _email: email });
       if (emailExists) {
-        return new Response(JSON.stringify({ error: "A user with this email already exists" }), {
+        return new Response(JSON.stringify({ error: "A user with this email already exists. Try signing in or resetting your password." }), {
           status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Check if CUI already exists (if provided)
+      if (cui) {
+        const { data: cuiMatch } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("cui", cui)
+          .maybeSingle();
+        if (cuiMatch) {
+          return new Response(JSON.stringify({ error: "A company with this CUI (Tax ID) already exists in the system." }), {
+            status: 409,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // 1. Create tenant
