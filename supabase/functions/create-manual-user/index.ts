@@ -21,48 +21,53 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate caller is super admin
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const anonClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const callerUserId = claimsData.claims.sub;
-
-    // Check super admin
-    const { data: isAdmin } = await anonClient.rpc("is_super_admin", { _user_id: callerUserId });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden: super admin only" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { type, data } = await req.json();
+    const body = await req.json();
+    const { type, data, source } = body;
+    const isPublic = source === "public";
 
     // Service role client for admin operations
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    let callerUserId: string | null = null;
+
+    if (!isPublic) {
+      // Validate caller is super admin for internal usage
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const anonClient = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      callerUserId = claimsData.claims.sub;
+
+      const { data: isAdmin } = await anonClient.rpc("is_super_admin", { _user_id: callerUserId });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden: super admin only" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const tempPassword = generateTempPassword();
 
@@ -71,6 +76,15 @@ Deno.serve(async (req) => {
       if (!companyName || !fullName || !email) {
         return new Response(JSON.stringify({ error: "companyName, fullName, and email are required" }), {
           status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if email already exists
+      const { data: emailExists } = await adminClient.rpc("email_exists", { _email: email });
+      if (emailExists) {
+        return new Response(JSON.stringify({ error: "A user with this email already exists" }), {
+          status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -139,6 +153,15 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Check if email already exists
+      const { data: emailExists } = await adminClient.rpc("email_exists", { _email: email });
+      if (emailExists) {
+        return new Response(JSON.stringify({ error: "A user with this email already exists" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // 1. Create auth user
       const { data: authUser, error: authErr } = await adminClient.auth.admin.createUser({
         email,
@@ -169,8 +192,6 @@ Deno.serve(async (req) => {
         })
         .eq("user_id", userId);
       if (profileErr) throw profileErr;
-
-      // Role is already CLIENT_USER from trigger
 
       return new Response(
         JSON.stringify({
