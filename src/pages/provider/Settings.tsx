@@ -80,7 +80,7 @@ export default function Settings() {
     if (!tenantId) return;
     const { data } = await supabase
       .from("tenants")
-      .select("max_provider_seats, subscription_tier")
+      .select("max_provider_seats, subscription_tier, unique_tenant_id")
       .eq("id", tenantId)
       .single();
     if (data) {
