@@ -1174,6 +1174,24 @@ export type Database = {
         }
         Relationships: []
       }
+      super_admins: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppressed_emails: {
         Row: {
           created_at: string
@@ -1351,6 +1369,22 @@ export type Database = {
           _target_type?: string
         }
         Returns: undefined
+      }
+      lookup_invite_by_token: {
+        Args: { _token: string }
+        Returns: {
+          expires_at: string
+          role: string
+          tenant_name: string
+        }[]
+      }
+      lookup_tenant_by_code: {
+        Args: { _code: string }
+        Returns: {
+          id: string
+          name: string
+          unique_tenant_id: string
+        }[]
       }
       move_to_dlq: {
         Args: {

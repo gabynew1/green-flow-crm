@@ -80,13 +80,13 @@ export default function Settings() {
     if (!tenantId) return;
     const { data } = await supabase
       .from("tenants")
-      .select("max_provider_seats, subscription_tier")
+      .select("max_provider_seats, subscription_tier, unique_tenant_id")
       .eq("id", tenantId)
       .single();
     if (data) {
       setMaxSeats(data.max_provider_seats);
       setSubscriptionTier(data.subscription_tier);
-      setUniqueTenantId((data as any).unique_tenant_id || null);
+      setUniqueTenantId(data.unique_tenant_id || null);
     }
   };
 

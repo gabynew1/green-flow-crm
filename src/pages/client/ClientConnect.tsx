@@ -53,24 +53,22 @@ export default function ClientConnect() {
     setProviderTenantId(null);
 
     const { data, error } = await supabase
-      .from("tenants")
-      .select("id, name, unique_tenant_id")
-      .eq("unique_tenant_id", code.trim().toUpperCase())
-      .single();
+      .rpc("lookup_tenant_by_code", { _code: code.trim().toUpperCase() });
 
-    if (error || !data) {
+    if (error || !data || data.length === 0) {
       setLookupError("No provider found with that ID. Please check and try again.");
       setLookingUp(false);
       return;
     }
 
-    setProviderName(data.name);
-    setProviderTenantId(data.id);
-    setResolvedCode(data.unique_tenant_id!);
+    setProviderName(data[0].name);
+    setProviderTenantId(data[0].id);
+    setResolvedCode(data[0].unique_tenant_id!);
+    setLookingUp(false);
     setLookingUp(false);
 
     // Load properties
-    loadProperties(data.id);
+    loadProperties(data[0].id);
   };
 
   const loadProperties = async (tenantId: string) => {

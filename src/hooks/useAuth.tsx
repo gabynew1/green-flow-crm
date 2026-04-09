@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchRoles = async (userId: string) => {
@@ -72,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchSuperAdmin = async (userId: string) => {
+    const { data } = await supabase.rpc("is_super_admin", { _user_id: userId });
+    setIsSuperAdmin(!!data);
+  };
+
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
@@ -85,10 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => {
             fetchRoles(session.user.id);
             fetchProfile(session.user.id);
+            fetchSuperAdmin(session.user.id);
           }, 0);
         } else {
           setRoles([]);
           setProfile(null);
+          setIsSuperAdmin(false);
         }
         setIsLoading(false);
       }
@@ -100,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         fetchRoles(session.user.id);
         fetchProfile(session.user.id);
+        fetchSuperAdmin(session.user.id);
       }
       setIsLoading(false);
     });
@@ -129,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isProvider = roles.some((r) => r === "PROVIDER_ADMIN" || r === "PROVIDER_STAFF");
   const isClient = roles.includes("CLIENT_USER");
-  const isSuperAdmin = profile?.email === "sidor.gabriel@gmail.com";
   const tenantId = profile?.tenant_id ?? null;
 
   return (
