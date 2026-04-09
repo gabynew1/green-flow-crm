@@ -341,14 +341,32 @@ export default function AdminOnboard() {
         : { type: "customer", data: customerData, ...(isPublic && { source: "public" }) };
 
       const { data, error } = await supabase.functions.invoke("create-manual-user", { body });
-      if (error) throw error;
+      
+      // Check for non-2xx response with error in data
+      if (error) {
+        throw error;
+      }
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setConfirmationData(data);
       setShowConfetti(true);
       goNext(4);
       toast.success(`${entityType === "provider" ? "Provider" : "Customer"} created successfully!`);
     } catch (err: any) {
-      toast.error(err.message || "Failed to create user");
+      const msg = err.message?.toLowerCase() || "";
+      if (msg.includes("email already exists")) {
+        toast.error("This email is already registered. The user should sign in or reset their password.", {
+          duration: 6000,
+        });
+      } else if (msg.includes("cui") || msg.includes("tax id")) {
+        toast.error("A company with this CUI (Tax ID) already exists in the system.", {
+          duration: 6000,
+        });
+      } else {
+        toast.error(err.message || "Failed to create user");
+      }
     } finally {
       setIsLoading(false);
     }
