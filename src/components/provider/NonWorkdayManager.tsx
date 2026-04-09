@@ -20,8 +20,9 @@ import {
 } from "@/components/ui/table";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 interface Props {
   tenantId: string | null;
@@ -59,14 +60,17 @@ export default function NonWorkdayManager({ tenantId }: Props) {
   const {
     holidays, tenantNonWorkdays, loading,
     addNonWorkday, removeNonWorkday, updateNonWorkday,
+    addGlobalHoliday, updateGlobalHoliday, removeGlobalHoliday,
   } = useWorkdays(tenantId);
 
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<UnifiedEntry | null>(null);
   const [formDate, setFormDate] = useState<Date | undefined>();
+  const [formDateRange, setFormDateRange] = useState<DateRange | undefined>();
   const [formTitle, setFormTitle] = useState("");
   const [formType, setFormType] = useState<DayType>("blocked");
+  const [useRange, setUseRange] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Build unified list sorted by date
@@ -82,7 +86,6 @@ export default function NonWorkdayManager({ tenantId }: Props) {
         source: "global" as const,
       })),
     ...tenantNonWorkdays.map(d => {
-      // Infer type from title prefix convention or default to blocked
       let type: DayType = "blocked";
       if (d.title.startsWith("[vacation]")) type = "vacation";
       else if (d.title.startsWith("[bank_holiday]")) type = "bank_holiday";
@@ -103,32 +106,94 @@ export default function NonWorkdayManager({ tenantId }: Props) {
   const openAdd = () => {
     setEditingEntry(null);
     setFormDate(undefined);
+    setFormDateRange(undefined);
     setFormTitle("");
     setFormType("blocked");
+    setUseRange(false);
     setDialogOpen(true);
   };
 
   const openEdit = (entry: UnifiedEntry) => {
     setEditingEntry(entry);
     setFormDate(parseISO(entry.date));
+    setFormDateRange(undefined);
     setFormTitle(entry.name);
     setFormType(entry.type);
+    setUseRange(false);
     setDialogOpen(true);
   };
 
+  const buildStoredTitle = (type: DayType, title: string) => {
+    return type === "blocked" ? title : `[${type}] ${title}`;
+  };
+
   const handleSave = async () => {
-    if (!formDate || !formTitle.trim()) {
-      toast.error("Please provide a date and title");
+    if (!formTitle.trim()) {
+      toast.error("Please provide a title");
+      return;
+    }
+
+    // Range mode (create only)
+    if (useRange && !editingEntry) {
+      if (!formDateRange?.from) {
+        toast.error("Please select a start date");
+        return;
+      }
+      const from = formDateRange.from;
+      const to = formDateRange.to || from;
+      const days = differenceInDays(to, from) + 1;
+      if (days > 60) {
+        toast.error("Range too large (max 60 days)");
+        return;
+      }
+      setSaving(true);
+      const storedTitle = buildStoredTitle(formType, formTitle.trim());
+      let created = 0;
+      let skipped = 0;
+      for (let i = 0; i < days; i++) {
+        const d = addDays(from, i);
+        const dateStr = format(d, "yyyy-MM-dd");
+        try {
+          if (formType === "bank_holiday") {
+            await addGlobalHoliday(dateStr, formTitle.trim());
+          } else {
+            await addNonWorkday(dateStr, storedTitle);
+          }
+          created++;
+        } catch (e: any) {
+          if (e?.code === "23505") skipped++;
+          else { toast.error("Failed to save some entries"); break; }
+        }
+      }
+      toast.success(`Added ${created} day${created !== 1 ? "s" : ""}${skipped ? ` (${skipped} skipped, already exist)` : ""}`);
+      setDialogOpen(false);
+      setSaving(false);
+      return;
+    }
+
+    // Single date mode
+    if (!formDate) {
+      toast.error("Please select a date");
       return;
     }
     setSaving(true);
-    const storedTitle = formType === "blocked" ? formTitle.trim() : `[${formType}] ${formTitle.trim()}`;
+    const dateStr = format(formDate, "yyyy-MM-dd");
+    const storedTitle = buildStoredTitle(formType, formTitle.trim());
+
     try {
       if (editingEntry) {
-        await updateNonWorkday(editingEntry.id, format(formDate, "yyyy-MM-dd"), storedTitle);
+        if (editingEntry.source === "global") {
+          await updateGlobalHoliday(editingEntry.id, dateStr, formTitle.trim());
+        } else {
+          await updateNonWorkday(editingEntry.id, dateStr, storedTitle);
+        }
         toast.success("Entry updated");
       } else {
-        await addNonWorkday(format(formDate, "yyyy-MM-dd"), storedTitle);
+        if (formType === "bank_holiday") {
+          await addGlobalHoliday(dateStr, formTitle.trim());
+        } else {
+          await addNonWorkday(dateStr, storedTitle);
+        }
         toast.success("Non-workday added");
       }
       setDialogOpen(false);
@@ -140,7 +205,11 @@ export default function NonWorkdayManager({ tenantId }: Props) {
 
   const handleRemove = async (entry: UnifiedEntry) => {
     try {
-      await removeNonWorkday(entry.id);
+      if (entry.source === "global") {
+        await removeGlobalHoliday(entry.id);
+      } else {
+        await removeNonWorkday(entry.id);
+      }
       toast.success("Entry removed");
     } catch {
       toast.error("Failed to remove");
@@ -148,8 +217,7 @@ export default function NonWorkdayManager({ tenantId }: Props) {
   };
 
   const navigateToDate = (dateStr: string) => {
-    const d = parseISO(dateStr);
-    setCalendarMonth(d);
+    setCalendarMonth(parseISO(dateStr));
   };
 
   const fmtDate = (d: string) => {
@@ -219,7 +287,7 @@ export default function NonWorkdayManager({ tenantId }: Props) {
                     <TableHead>Date</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead className="w-20 text-right">Actions</TableHead>
+                    <TableHead className="w-24 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -246,18 +314,14 @@ export default function NonWorkdayManager({ tenantId }: Props) {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {entry.source === "tenant" ? (
-                          <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(entry)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemove(entry)}>
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground">Global</span>
-                        )}
+                        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(entry)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemove(entry)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -287,29 +351,93 @@ export default function NonWorkdayManager({ tenantId }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn("w-full justify-start text-left font-normal", !formDate && "text-muted-foreground")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formDate ? format(formDate, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formDate}
-                      onSelect={setFormDate}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+
+              {/* Date range toggle (only for new entries) */}
+              {!editingEntry && (
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm">Date range</Label>
+                  <Button
+                    type="button"
+                    variant={useRange ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setUseRange(!useRange);
+                      setFormDate(undefined);
+                      setFormDateRange(undefined);
+                    }}
+                  >
+                    {useRange ? "Range ON" : "Single day"}
+                  </Button>
+                </div>
+              )}
+
+              {/* Single date picker */}
+              {(!useRange || editingEntry) && (
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full justify-start text-left font-normal", !formDate && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formDate ? format(formDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formDate}
+                        onSelect={setFormDate}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              {/* Date range picker */}
+              {useRange && !editingEntry && (
+                <div className="space-y-2">
+                  <Label>Date Range</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full justify-start text-left font-normal", !formDateRange?.from && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formDateRange?.from ? (
+                          formDateRange.to ? (
+                            `${format(formDateRange.from, "MMM d")} – ${format(formDateRange.to, "MMM d, yyyy")}`
+                          ) : (
+                            format(formDateRange.from, "PPP")
+                          )
+                        ) : "Pick a date range"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="range"
+                        selected={formDateRange}
+                        onSelect={setFormDateRange}
+                        numberOfMonths={2}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {formDateRange?.from && formDateRange?.to && (
+                    <p className="text-xs text-muted-foreground">
+                      {differenceInDays(formDateRange.to, formDateRange.from) + 1} days selected
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Title</Label>
                 <Input
@@ -321,7 +449,10 @@ export default function NonWorkdayManager({ tenantId }: Props) {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving || !formDate || !formTitle.trim()}>
+              <Button
+                onClick={handleSave}
+                disabled={saving || !formTitle.trim() || (useRange && !editingEntry ? !formDateRange?.from : !formDate)}
+              >
                 {saving ? "Saving…" : editingEntry ? "Update" : "Add"}
               </Button>
             </DialogFooter>

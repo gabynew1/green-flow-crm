@@ -54,6 +54,7 @@ export function useWorkdays(tenantId: string | null) {
     return null;
   };
 
+  // Tenant non-workdays CRUD
   const addNonWorkday = async (date: string, title: string) => {
     if (!tenantId) return;
     const { error } = await supabase.from("tenant_non_workdays").insert({
@@ -78,5 +79,30 @@ export function useWorkdays(tenantId: string | null) {
     await load();
   };
 
-  return { holidays, tenantNonWorkdays, loading, isWorkday, getNonWorkdayLabel, addNonWorkday, removeNonWorkday, updateNonWorkday, reload: load };
+  // Global holidays CRUD
+  const addGlobalHoliday = async (date: string, name: string) => {
+    const { error } = await supabase.from("global_holidays").insert({ date, name } as any);
+    if (error) throw error;
+    await load();
+  };
+
+  const updateGlobalHoliday = async (id: string, date: string, name: string) => {
+    const { error } = await supabase.from("global_holidays").update({ date, name } as any).eq("id", id);
+    if (error) throw error;
+    await load();
+  };
+
+  const removeGlobalHoliday = async (id: string) => {
+    const { error } = await supabase.from("global_holidays").delete().eq("id", id);
+    if (error) throw error;
+    await load();
+  };
+
+  return {
+    holidays, tenantNonWorkdays, loading,
+    isWorkday, getNonWorkdayLabel,
+    addNonWorkday, removeNonWorkday, updateNonWorkday,
+    addGlobalHoliday, updateGlobalHoliday, removeGlobalHoliday,
+    reload: load,
+  };
 }
