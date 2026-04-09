@@ -138,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isProvider = roles.some((r) => r === "PROVIDER_ADMIN" || r === "PROVIDER_STAFF");
   const isClient = roles.includes("CLIENT_USER");
-  const isSuperAdmin = profile?.email === "sidor.gabriel@gmail.com";
   const tenantId = profile?.tenant_id ?? null;
 
   return (
