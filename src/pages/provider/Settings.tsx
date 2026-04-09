@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2 } from "lucide-react";
+import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 
 interface TeamMember {
   id: string;
@@ -420,6 +421,9 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Workday Settings */}
+      <NonWorkdayManager tenantId={tenantId} />
 
       {/* Connected Services — Placeholder */}
       <Card>
