@@ -13,21 +13,28 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
+import { useWorkdays } from "@/hooks/useWorkdays";
+import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
-  const { user } = useAuth();
+  const { user, tenantId } = useAuth();
   const navigate = useNavigate();
+  const { isWorkday } = useWorkdays(tenantId);
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [activating, setActivating] = useState(false);
 
   useEffect(() => { load(); }, [contractId]);
+  useEffect(() => { loadTeams(); }, [tenantId]);
 
   const load = async () => {
     const { data: c } = await supabase
@@ -48,10 +55,111 @@ export default function ContractDetail() {
     setCatalog(cat ?? []);
   };
 
+  const loadTeams = async () => {
+    if (!tenantId) return;
+    const { data } = await supabase.from("teams").select("*").eq("tenant_id", tenantId).order("created_at");
+    const t = data ?? [];
+    setTeams(t);
+    if (t.length > 0 && !selectedTeamId) setSelectedTeamId(t[0].id);
+  };
+
   const updateStatus = async (status: string) => {
     await supabase.from("contracts").update({ status, rejection_comment: null } as any).eq("id", contractId!);
     toast.success(`Contract ${status.replace(/_/g, " ").toLowerCase()}`);
     load();
+  };
+
+  const handleActivate = async () => {
+    if (!contract || !user) return;
+    setActivating(true);
+
+    try {
+      // Update status to ACTIVE
+      await supabase.from("contracts").update({ status: "ACTIVE", rejection_comment: null } as any).eq("id", contractId!);
+
+      const freqCount = contract.visit_frequency_count || 0;
+      const freqType = contract.visit_frequency_type || "WEEK";
+
+      if (freqCount > 0 && lineItems.length > 0 && selectedTeamId) {
+        // Build existing visit occupancy map for the team
+        const { data: existingOrders } = await supabase
+          .from("service_orders")
+          .select("scheduled_date, team_id")
+          .eq("team_id", selectedTeamId)
+          .not("scheduled_date", "is", null);
+
+        const occupancy: ExistingVisitMap = {};
+        for (const o of existingOrders ?? []) {
+          const key = `${o.scheduled_date}_${o.team_id}`;
+          occupancy[key] = (occupancy[key] || 0) + 1;
+        }
+
+        const itemsForSchedule = lineItems.map(li => ({
+          id: li.id,
+          service_catalog_id: li.service_catalog_id,
+          name: li.custom_name || (li.service_catalog as any)?.name || "Service",
+          quantity: li.quantity,
+          unit: li.unit,
+        }));
+
+        const visits = generateSchedule(
+          {
+            startDate: contract.start_date,
+            endDate: contract.end_date,
+            frequencyCount: freqCount,
+            frequencyType: freqType,
+            teamId: selectedTeamId,
+            contractId: contractId!,
+            propertyId: (contract.properties as any).id,
+            userId: user.id,
+            contractName: contract.contract_name,
+            lineItems: itemsForSchedule,
+          },
+          { isWorkday },
+          occupancy
+        );
+
+        if (visits.length > 0) {
+          // Batch insert service orders
+          const { data: createdOrders, error: soError } = await supabase
+            .from("service_orders")
+            .insert(visits)
+            .select("id");
+
+          if (soError) throw soError;
+
+          // Create service order items for each visit
+          const allItems = (createdOrders ?? []).flatMap(so =>
+            itemsForSchedule.map(li => ({
+              service_order_id: so.id,
+              contract_line_item_id: li.id,
+              service_catalog_id: li.service_catalog_id,
+              name: li.name,
+              quantity: li.quantity,
+              unit: li.unit,
+              source: "CONTRACT" as const,
+            }))
+          );
+
+          if (allItems.length > 0) {
+            await supabase.from("service_order_items").insert(allItems);
+          }
+
+          const teamName = teams.find(t => t.id === selectedTeamId)?.name || "Team";
+          toast.success(`Contract activated! ${visits.length} visits scheduled for ${teamName}`);
+        } else {
+          toast.success("Contract activated (no visits could be scheduled)");
+        }
+      } else {
+        toast.success("Contract activated");
+      }
+
+      load();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActivating(false);
+    }
   };
 
   const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -80,9 +188,7 @@ export default function ContractDetail() {
 
   const recreateFromOffer = async () => {
     if (!contract?.offer_id) return;
-    // Delete existing contract line items
     await supabase.from("contract_line_items").delete().eq("contract_id", contractId!);
-    // Fetch offer line items
     const { data: offerLines } = await supabase
       .from("offer_line_items")
       .select("*, service_catalog(name, code)")
@@ -119,6 +225,7 @@ export default function ContractDetail() {
       period_label: periodLabel,
       status: "SCHEDULED",
       created_by_user_id: user?.id,
+      team_id: selectedTeamId || null,
     }).select().single();
 
     if (error) { toast.error(error.message); return; }
@@ -168,7 +275,26 @@ export default function ContractDetail() {
         <CardContent className="pt-6 flex flex-wrap gap-4 text-sm">
           <div><span className="text-muted-foreground">Period:</span> {contract.start_date} → {contract.end_date || "Ongoing"}</div>
           <div><span className="text-muted-foreground">Billing:</span> {contract.billing_cycle}</div>
-          <div className="flex gap-2 ml-auto flex-wrap">
+          <div><span className="text-muted-foreground">Frequency:</span> {contract.visit_frequency_count ?? 1}x / {contract.visit_frequency_type || "WEEK"}</div>
+          <div className="flex gap-2 ml-auto flex-wrap items-center">
+            {/* Team selector for activation */}
+            {contract.status === "SIGNED" && teams.length > 0 && (
+              <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: t.color }} />
+                        {t.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {canRevert && (
               <Button size="sm" variant="ghost" onClick={() => updateStatus("DRAFT")}>
                 <Undo2 className="h-3 w-3 mr-1" /> Revert to Draft
@@ -195,7 +321,11 @@ export default function ContractDetail() {
             )}
             {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("SENT_TO_CLIENT")}><Send className="h-3 w-3 mr-1" /> Send to Client</Button>}
             {contract.status === "SENT_TO_CLIENT" && <Button size="sm" onClick={() => updateStatus("SIGNED")}><Check className="h-3 w-3 mr-1" /> Mark Signed</Button>}
-            {contract.status === "SIGNED" && <Button size="sm" onClick={() => updateStatus("ACTIVE")}><Play className="h-3 w-3 mr-1" /> Activate</Button>}
+            {contract.status === "SIGNED" && (
+              <Button size="sm" onClick={handleActivate} disabled={activating}>
+                {activating ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Scheduling…</> : <><Play className="h-3 w-3 mr-1" /> Activate</>}
+              </Button>
+            )}
             {contract.status === "ACTIVE" && (
               <Button size="sm" variant="destructive" onClick={() => updateStatus("CLOSED")}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
             )}
