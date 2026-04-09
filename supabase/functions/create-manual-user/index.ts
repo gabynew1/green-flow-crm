@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       // Check if email already exists
       const { data: emailExists } = await adminClient.rpc("email_exists", { _email: email });
       if (emailExists) {
-        return new Response(JSON.stringify({ error: "A user with this email already exists" }), {
+        return new Response(JSON.stringify({ error: "A user with this email already exists. Try signing in or resetting your password." }), {
           status: 409,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
