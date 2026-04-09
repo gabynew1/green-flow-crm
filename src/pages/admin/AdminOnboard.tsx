@@ -337,8 +337,8 @@ export default function AdminOnboard() {
     setIsLoading(true);
     try {
       const body = entityType === "provider"
-        ? { type: "provider", data: providerData }
-        : { type: "customer", data: customerData };
+        ? { type: "provider", data: providerData, ...(isPublic && { source: "public" }) }
+        : { type: "customer", data: customerData, ...(isPublic && { source: "public" }) };
 
       const { data, error } = await supabase.functions.invoke("create-manual-user", { body });
       if (error) throw error;
