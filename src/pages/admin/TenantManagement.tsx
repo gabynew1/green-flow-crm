@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -27,30 +28,59 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
+
+type TenantRow = {
+    id: string;
+    name: string;
+    subscription_tier: string;
+    status: string;
+    created_at: string;
+    max_provider_seats: number;
+    max_client_seats: number;
+    providerCount: number;
+    clientCount: number;
+};
 
 export default function TenantManagement() {
     const navigate = useNavigate();
+    const [changeTierTenant, setChangeTierTenant] = useState<TenantRow | null>(null);
+    const [selectedTier, setSelectedTier] = useState("");
+    const [extendTrialTenant, setExtendTrialTenant] = useState<TenantRow | null>(null);
+    const [trialDays, setTrialDays] = useState("14");
+    const [decommissionTenant, setDecommissionTenant] = useState<TenantRow | null>(null);
+    const [decommissionConfirm, setDecommissionConfirm] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+
     const { data: tenants, isLoading, refetch } = useQuery({
         queryKey: ["admin-tenants"],
         queryFn: async () => {
             const { data: tenantsData, error } = await supabase
                 .from("tenants")
-                .select(`
-          id, 
-          name, 
-          subscription_tier, 
-          status, 
-          created_at,
-          max_provider_seats,
-          max_client_seats
-        `);
+                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, trial_expires_at`);
 
             if (error) throw error;
 
@@ -84,10 +114,79 @@ export default function TenantManagement() {
         }
     };
 
+    const handleChangeTier = async () => {
+        if (!changeTierTenant || !selectedTier) return;
+        setIsProcessing(true);
+        const { error } = await supabase
+            .from("tenants")
+            .update({ subscription_tier: selectedTier } as any)
+            .eq("id", changeTierTenant.id);
+
+        if (error) {
+            toast.error(error.message);
+        } else {
+            toast.success(`Billing tier changed to ${selectedTier}`);
+            refetch();
+        }
+        setIsProcessing(false);
+        setChangeTierTenant(null);
+        setSelectedTier("");
+    };
+
+    const handleExtendTrial = async () => {
+        if (!extendTrialTenant || !trialDays) return;
+        setIsProcessing(true);
+        const days = parseInt(trialDays, 10);
+        if (isNaN(days) || days < 1) {
+            toast.error("Enter a valid number of days");
+            setIsProcessing(false);
+            return;
+        }
+        const newExpiry = addDays(new Date(), days).toISOString();
+        const { error } = await supabase
+            .from("tenants")
+            .update({ trial_expires_at: newExpiry, status: "trial" } as any)
+            .eq("id", extendTrialTenant.id);
+
+        if (error) {
+            toast.error(error.message);
+        } else {
+            toast.success(`Trial extended by ${days} days (expires ${format(new Date(newExpiry), "MMM d, yyyy")})`);
+            refetch();
+        }
+        setIsProcessing(false);
+        setExtendTrialTenant(null);
+        setTrialDays("14");
+    };
+
+    const handleDecommission = async () => {
+        if (!decommissionTenant) return;
+        if (decommissionConfirm.toLowerCase() !== decommissionTenant.name.toLowerCase()) {
+            toast.error("Organization name does not match");
+            return;
+        }
+        setIsProcessing(true);
+        const { error } = await supabase
+            .from("tenants")
+            .update({ status: "decommissioned" } as any)
+            .eq("id", decommissionTenant.id);
+
+        if (error) {
+            toast.error(error.message);
+        } else {
+            toast.success(`${decommissionTenant.name} has been decommissioned`);
+            refetch();
+        }
+        setIsProcessing(false);
+        setDecommissionTenant(null);
+        setDecommissionConfirm("");
+    };
+
     const getTierBadge = (tier: string) => {
         switch (tier) {
             case "enterprise": return <Badge className="bg-purple-600 hover:bg-purple-700">Enterprise</Badge>;
             case "pro": return <Badge className="bg-blue-600 hover:bg-blue-700">Pro</Badge>;
+            case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
             default: return <Badge variant="secondary">Free</Badge>;
         }
     };
@@ -97,6 +196,7 @@ export default function TenantManagement() {
             case "active": return <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Active</Badge>;
             case "suspended": return <Badge variant="destructive">Suspended</Badge>;
             case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
+            case "decommissioned": return <Badge variant="outline" className="text-gray-500 border-gray-200 bg-gray-50">Decommissioned</Badge>;
             default: return <Badge variant="outline">{status}</Badge>;
         }
     };
@@ -200,25 +300,29 @@ export default function TenantManagement() {
                                         <DropdownMenuContent align="end" className="w-56">
                                             <DropdownMenuLabel>Management Actions</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'active')}>
+                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'active')} disabled={tenant.status === 'active'}>
                                                 <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
                                                 Activate Account
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'suspended')}>
+                                            <DropdownMenuItem onClick={() => updateStatus(tenant.id, 'suspended')} disabled={tenant.status === 'suspended'}>
                                                 <Ban className="h-4 w-4 mr-2 text-destructive" />
                                                 Suspend Account
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => { setChangeTierTenant(tenant); setSelectedTier(tenant.subscription_tier); }}>
                                                 <CreditCard className="h-4 w-4 mr-2" />
                                                 Change Billing Tier
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setExtendTrialTenant(tenant)}>
                                                 <Calendar className="h-4 w-4 mr-2" />
                                                 Extend Trial
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-destructive font-semibold">
+                                            <DropdownMenuItem
+                                                className="text-destructive font-semibold"
+                                                disabled={tenant.status === 'decommissioned'}
+                                                onClick={() => setDecommissionTenant(tenant)}
+                                            >
                                                 <Shield className="h-4 w-4 mr-2" />
                                                 Decommission Organization
                                             </DropdownMenuItem>
@@ -230,6 +334,105 @@ export default function TenantManagement() {
                     </TableBody>
                 </Table>
             </Card>
+
+            {/* Change Billing Tier Dialog */}
+            <Dialog open={!!changeTierTenant} onOpenChange={(open) => { if (!open) setChangeTierTenant(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Change Billing Tier</DialogTitle>
+                        <DialogDescription>
+                            Update the subscription tier for <strong>{changeTierTenant?.name}</strong>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <Label>Subscription Tier</Label>
+                        <Select value={selectedTier} onValueChange={setSelectedTier}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="trial">Trial</SelectItem>
+                                <SelectItem value="free">Free</SelectItem>
+                                <SelectItem value="pro">Pro</SelectItem>
+                                <SelectItem value="enterprise">Enterprise</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setChangeTierTenant(null)}>Cancel</Button>
+                        <Button onClick={handleChangeTier} disabled={isProcessing || selectedTier === changeTierTenant?.subscription_tier}>
+                            {isProcessing ? "Saving…" : "Save Changes"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Extend Trial Dialog */}
+            <Dialog open={!!extendTrialTenant} onOpenChange={(open) => { if (!open) setExtendTrialTenant(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Extend Trial</DialogTitle>
+                        <DialogDescription>
+                            Set a new trial period for <strong>{extendTrialTenant?.name}</strong>. This will set the status to "trial" and update the expiration date.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <Label>Number of days from today</Label>
+                        <Input
+                            type="number"
+                            min="1"
+                            max="365"
+                            value={trialDays}
+                            onChange={(e) => setTrialDays(e.target.value)}
+                            placeholder="14"
+                        />
+                        {trialDays && !isNaN(parseInt(trialDays)) && parseInt(trialDays) > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                                Trial will expire on {format(addDays(new Date(), parseInt(trialDays)), "MMM d, yyyy")}
+                            </p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setExtendTrialTenant(null)}>Cancel</Button>
+                        <Button onClick={handleExtendTrial} disabled={isProcessing}>
+                            {isProcessing ? "Extending…" : "Extend Trial"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Decommission Dialog */}
+            <Dialog open={!!decommissionTenant} onOpenChange={(open) => { if (!open) { setDecommissionTenant(null); setDecommissionConfirm(""); } }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="text-destructive">Decommission Organization</DialogTitle>
+                        <DialogDescription>
+                            This action will mark <strong>{decommissionTenant?.name}</strong> as decommissioned. All users will lose access. This cannot be easily undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 py-2">
+                        <Label>Type the organization name to confirm</Label>
+                        <Input
+                            value={decommissionConfirm}
+                            onChange={(e) => setDecommissionConfirm(e.target.value)}
+                            placeholder={decommissionTenant?.name}
+                        />
+                        {decommissionConfirm && decommissionConfirm.toLowerCase() !== decommissionTenant?.name.toLowerCase() && (
+                            <p className="text-sm text-destructive">Name does not match</p>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setDecommissionTenant(null); setDecommissionConfirm(""); }}>Cancel</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDecommission}
+                            disabled={isProcessing || decommissionConfirm.toLowerCase() !== decommissionTenant?.name.toLowerCase()}
+                        >
+                            {isProcessing ? "Decommissioning…" : "Decommission"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
