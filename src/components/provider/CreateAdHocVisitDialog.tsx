@@ -47,32 +47,49 @@ interface ContractWithItems {
   serviceIds: string[];
 }
 
+interface Team {
+  id: string;
+  name: string;
+  color: string;
+}
+
+const TIME_SLOTS = [
+  { value: "08:00", label: "08:00 – 10:00" },
+  { value: "10:00", label: "10:00 – 12:00" },
+  { value: "12:00", label: "12:00 – 14:00" },
+  { value: "14:00", label: "14:00 – 16:00" },
+];
+
 export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, defaultCustomerId, defaultPropertyId }: Props) {
-  const { user } = useAuth();
+  const { user, tenantId } = useAuth();
   const navigate = useNavigate();
 
   const [customers, setCustomers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [saving, setSaving] = useState(false);
 
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedTime, setSelectedTime] = useState("09:00");
+  const [selectedSlot, setSelectedSlot] = useState("08:00");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [notes, setNotes] = useState("");
 
   // Contract-aware state
   const [propertyContracts, setPropertyContracts] = useState<ContractWithItems[]>([]);
-  const [selectedSource, setSelectedSource] = useState<string>("ad_hoc"); // "ad_hoc" or contract id
+  const [selectedSource, setSelectedSource] = useState<string>("ad_hoc");
+
+  // Capacity check
+  const [daySlotCount, setDaySlotCount] = useState(0);
 
   useEffect(() => {
     if (open) loadData();
   }, [open]);
 
-  // Fetch contracts when property changes
   useEffect(() => {
     if (selectedPropertyId) {
       loadContracts(selectedPropertyId);
@@ -82,19 +99,29 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     }
   }, [selectedPropertyId]);
 
+  // Check capacity when date or team changes
+  useEffect(() => {
+    if (selectedDate && selectedTeamId) {
+      checkCapacity();
+    }
+  }, [selectedDate, selectedTeamId]);
+
   const loadData = async () => {
-    const [custRes, propRes, svcRes] = await Promise.all([
+    const [custRes, propRes, svcRes, teamRes] = await Promise.all([
       supabase.from("customers").select("id, name, company_name").order("name"),
       supabase.from("properties").select("id, name, customer_id").order("name"),
       supabase.from("service_catalog").select("id, name, code").eq("is_active", true).order("name"),
+      tenantId ? supabase.from("teams").select("id, name, color").eq("tenant_id", tenantId).order("created_at") : Promise.resolve({ data: [] }),
     ]);
     const loadedCustomers = custRes.data ?? [];
     const loadedProperties = propRes.data ?? [];
+    const loadedTeams = (teamRes.data ?? []) as Team[];
     setCustomers(loadedCustomers);
     setProperties(loadedProperties);
     setServices(svcRes.data ?? []);
+    setTeams(loadedTeams);
+    if (loadedTeams.length > 0 && !selectedTeamId) setSelectedTeamId(loadedTeams[0].id);
 
-    // Apply defaults
     if (defaultCustomerId && loadedCustomers.some((c: any) => c.id === defaultCustomerId)) {
       setSelectedCustomerId(defaultCustomerId);
       const custProps = loadedProperties.filter((p: any) => p.customer_id === defaultCustomerId);
@@ -120,7 +147,6 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
       return;
     }
 
-    // Fetch line items for all contracts
     const contractIds = contracts.map((c) => c.id);
     const { data: lineItems } = await supabase
       .from("contract_line_items")
@@ -137,19 +163,26 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     }));
 
     setPropertyContracts(enriched);
-    // Pre-select the first contract
     setSelectedSource(enriched[0].id);
     applyContractServices(enriched[0]);
   };
 
+  const checkCapacity = async () => {
+    if (!selectedDate || !selectedTeamId) return;
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const { count } = await supabase
+      .from("service_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", selectedTeamId)
+      .eq("scheduled_date", dateStr);
+    setDaySlotCount(count ?? 0);
+  };
+
   const applyContractServices = (contract: ContractWithItems) => {
     setSelectedServiceIds(contract.serviceIds);
-    // Auto-select the first category that has a contract service
     const contractServiceSet = new Set(contract.serviceIds);
     const firstMatchingCategory = services.find((s) => contractServiceSet.has(s.id))?.code;
-    if (firstMatchingCategory) {
-      setSelectedCategory(firstMatchingCategory);
-    }
+    if (firstMatchingCategory) setSelectedCategory(firstMatchingCategory);
   };
 
   const handleSourceChange = (value: string) => {
@@ -177,37 +210,51 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setSelectedCustomerId("");
     setSelectedPropertyId("");
     setSelectedDate(undefined);
-    setSelectedTime("09:00");
+    setSelectedSlot("08:00");
     setSelectedServiceIds([]);
     setSelectedCategory("");
     setNotes("");
     setPropertyContracts([]);
     setSelectedSource("ad_hoc");
+    setDaySlotCount(0);
   };
 
   const isContractSource = selectedSource !== "ad_hoc";
   const activeContract = propertyContracts.find((c) => c.id === selectedSource);
+  const capacityFull = daySlotCount >= 4;
+
+  const getSlotEnd = (start: string) => {
+    const [h, m] = start.split(":").map(Number);
+    return `${String(h + 2).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
 
   const handleCreate = async () => {
     if (!selectedPropertyId || !selectedCustomerId || !selectedDate || selectedServiceIds.length === 0) {
       toast.error("Please fill in all required fields and select at least one service");
       return;
     }
+    if (capacityFull) {
+      toast.error("This team has reached max capacity (4 visits) for this day");
+      return;
+    }
 
     setSaving(true);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-
       const periodType = isContractSource ? "WEEK" as const : "ONE_TIME" as const;
+      const slotLabel = TIME_SLOTS.find(s => s.value === selectedSlot)?.label || selectedSlot;
       const periodLabel = isContractSource && activeContract
-        ? `${activeContract.contract_name} – ${format(selectedDate, "MMM d, yyyy")} at ${selectedTime}`
-        : `Ad hoc – ${format(selectedDate, "MMM d, yyyy")} at ${selectedTime}`;
+        ? `${activeContract.contract_name} – ${format(selectedDate, "MMM d, yyyy")} ${slotLabel}`
+        : `Ad hoc – ${format(selectedDate, "MMM d, yyyy")} ${slotLabel}`;
 
       const { data: order, error } = await supabase
         .from("service_orders")
         .insert({
           property_id: selectedPropertyId,
           scheduled_date: dateStr,
+          scheduled_start_time: selectedSlot,
+          scheduled_end_time: getSlotEnd(selectedSlot),
+          team_id: selectedTeamId || null,
           status: "SCHEDULED",
           period_type: periodType,
           period_label: periodLabel,
@@ -309,7 +356,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             </div>
           )}
 
-          {/* Source selector – only shown when contracts exist */}
+          {/* Source selector */}
           {selectedPropertyId && propertyContracts.length > 0 && (
             <div className="space-y-2">
               <Label>Source</Label>
@@ -329,7 +376,29 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             </div>
           )}
 
-          {/* Date & Time */}
+          {/* Team selector */}
+          {teams.length > 0 && (
+            <div className="space-y-2">
+              <Label>Team</Label>
+              <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: t.color }} />
+                        {t.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Date & Time Slot */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Date *</Label>
@@ -359,20 +428,30 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
               </Popover>
             </div>
             <div className="space-y-2">
-              <Label>Time *</Label>
-              <Input
-                type="time"
-                value={selectedTime}
-                onChange={(e) => setSelectedTime(e.target.value)}
-              />
+              <Label>Time Slot *</Label>
+              <Select value={selectedSlot} onValueChange={setSelectedSlot}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_SLOTS.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {capacityFull && (
+                <p className="text-xs text-destructive">Team at max capacity (4/4 slots) for this day</p>
+              )}
+              {!capacityFull && daySlotCount > 0 && (
+                <p className="text-xs text-muted-foreground">{daySlotCount}/4 slots used for this team</p>
+              )}
             </div>
           </div>
 
-          {/* Services – category-first picker */}
+          {/* Services */}
           <div className="space-y-2">
             <Label>Services * <span className="text-xs text-muted-foreground font-normal">(select category, then check services)</span></Label>
             
-            {/* Category dropdown */}
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
@@ -384,7 +463,6 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
               </SelectContent>
             </Select>
 
-            {/* Filtered services for selected category */}
             {selectedCategory && (
               <div className="border rounded-md max-h-40 overflow-y-auto p-2 space-y-1">
                 {filteredServices.length > 0 ? filteredServices.map((svc) => (
@@ -404,7 +482,6 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
               </div>
             )}
 
-            {/* Selected services summary */}
             {selectedServiceIds.length > 0 && (
               <div className="border rounded-md p-2 space-y-1 bg-muted/30">
                 <p className="text-xs font-medium text-muted-foreground mb-1">Selected services ({selectedServiceIds.length})</p>
@@ -441,7 +518,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             />
           </div>
 
-          <Button className="w-full" onClick={handleCreate} disabled={saving}>
+          <Button className="w-full" onClick={handleCreate} disabled={saving || capacityFull}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating…

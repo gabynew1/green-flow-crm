@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from "@/components/ui/separator";
 import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2 } from "lucide-react";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
+import TeamManager from "@/components/provider/TeamManager";
 
 interface TeamMember {
   id: string;
@@ -421,6 +422,9 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Teams */}
+      <TeamManager tenantId={tenantId} />
 
       {/* Workday Settings */}
       <NonWorkdayManager tenantId={tenantId} />

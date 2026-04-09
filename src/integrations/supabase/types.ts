@@ -1118,7 +1118,10 @@ export type Database = {
           period_type: Database["public"]["Enums"]["period_type"]
           property_id: string
           scheduled_date: string | null
+          scheduled_end_time: string | null
+          scheduled_start_time: string | null
           status: Database["public"]["Enums"]["service_order_status"]
+          team_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1133,7 +1136,10 @@ export type Database = {
           period_type?: Database["public"]["Enums"]["period_type"]
           property_id: string
           scheduled_date?: string | null
+          scheduled_end_time?: string | null
+          scheduled_start_time?: string | null
           status?: Database["public"]["Enums"]["service_order_status"]
+          team_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1148,7 +1154,10 @@ export type Database = {
           period_type?: Database["public"]["Enums"]["period_type"]
           property_id?: string
           scheduled_date?: string | null
+          scheduled_end_time?: string | null
+          scheduled_start_time?: string | null
           status?: Database["public"]["Enums"]["service_order_status"]
+          team_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1164,6 +1173,13 @@ export type Database = {
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -1293,6 +1309,67 @@ export type Database = {
             columns: ["service_order_id"]
             isOneToOne: false
             referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
