@@ -353,7 +353,7 @@ export default function TenantManagement() {
                             <SelectContent>
                                 <SelectItem value="trial">Trial</SelectItem>
                                 <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="pro">Pro</SelectItem>
+                                <SelectItem value="professional">Professional</SelectItem>
                                 <SelectItem value="enterprise">Enterprise</SelectItem>
                             </SelectContent>
                         </Select>
