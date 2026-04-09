@@ -185,7 +185,7 @@ export default function TenantManagement() {
     const getTierBadge = (tier: string) => {
         switch (tier) {
             case "enterprise": return <Badge className="bg-purple-600 hover:bg-purple-700">Enterprise</Badge>;
-            case "pro": return <Badge className="bg-blue-600 hover:bg-blue-700">Pro</Badge>;
+            case "professional": return <Badge className="bg-blue-600 hover:bg-blue-700">Professional</Badge>;
             case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
             default: return <Badge variant="secondary">Free</Badge>;
         }
