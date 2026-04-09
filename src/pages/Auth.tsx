@@ -349,43 +349,59 @@ export default function Auth() {
                 </form>
               </TabsContent>
               <TabsContent value="signup">
-                {!inviteToken && (
-                  <GoogleSignInSection isLoading={isLoading} onClick={handleGoogleSignIn} />
+                {inviteToken ? (
+                  <>
+                    {!inviteToken && (
+                      <GoogleSignInSection isLoading={isLoading} onClick={handleGoogleSignIn} />
+                    )}
+                    <form onSubmit={handleSignUp} className="space-y-4 pt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-name">Full Name</Label>
+                        <Input id="signup-name" name="fullName" required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email</Label>
+                        <Input id="signup-email" name="email" type="email" required defaultValue={prefillEmail} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-password">Password</Label>
+                        <div className="relative">
+                          <Input
+                            id="signup-password"
+                            name="password"
+                            type={showSignUpPw ? "text" : "password"}
+                            required
+                            minLength={6}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSignUpPw(!showSignUpPw)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            tabIndex={-1}
+                          >
+                            {showSignUpPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Creating account…" : "Create Provider Account"}
+                      </Button>
+                    </form>
+                  </>
+                ) : (
+                  <div className="space-y-4 pt-6 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Create your account through our guided setup wizard to get started with GreenCRM.
+                    </p>
+                    <Button
+                      className="w-full"
+                      onClick={() => navigate("/onboard")}
+                    >
+                      Start Setup Wizard
+                    </Button>
+                  </div>
                 )}
-                <form onSubmit={handleSignUp} className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input id="signup-name" name="fullName" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" name="email" type="email" required defaultValue={prefillEmail} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        name="password"
-                        type={showSignUpPw ? "text" : "password"}
-                        required
-                        minLength={6}
-                        className="pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignUpPw(!showSignUpPw)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showSignUpPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating account…" : inviteToken ? "Create Provider Account" : "Create Account"}
-                  </Button>
-                </form>
               </TabsContent>
             </Tabs>
           )}
