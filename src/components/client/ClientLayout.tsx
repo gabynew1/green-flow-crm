@@ -35,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "My Properties", url: "/client", icon: Home, exact: true },
+  { title: "My Properties", url: "/client", icon: Home, matchPaths: ["/client", "/client/properties"] },
   { title: "Offers", url: "/client/offers", icon: FileOutput },
   { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
@@ -82,8 +82,12 @@ export function ClientLayout() {
         .slice(0, 2)
     : "?";
 
-  const isActiveRoute = (url: string, exact?: boolean) =>
-    exact ? location.pathname === url : location.pathname === url || location.pathname.startsWith(`${url}/`);
+  const isActiveRoute = (url: string, matchPaths?: string[]) => {
+    if (matchPaths) {
+      return matchPaths.some(p => location.pathname === p || location.pathname.startsWith(`${p}/`));
+    }
+    return location.pathname === url || location.pathname.startsWith(`${url}/`);
+  };
 
   const renderBadge = (badgeKey?: "contracts") => {
     if (badgeKey === "contracts" && pendingContracts > 0) {
@@ -112,7 +116,7 @@ export function ClientLayout() {
           <span
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-colors",
-              isActiveRoute(item.url, item.exact) && "border-primary/20 bg-primary/10 text-primary"
+              isActiveRoute(item.url, (item as any).matchPaths) && "border-primary/20 bg-primary/10 text-primary"
             )}
           >
             <item.icon className="h-4 w-4" />
