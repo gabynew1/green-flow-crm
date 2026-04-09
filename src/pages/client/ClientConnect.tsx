@@ -68,7 +68,7 @@ export default function ClientConnect() {
     setLookingUp(false);
 
     // Load properties
-    loadProperties(data.id);
+    loadProperties(data[0].id);
   };
 
   const loadProperties = async (tenantId: string) => {
