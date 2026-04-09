@@ -40,6 +40,13 @@ interface Props {
   defaultPropertyId?: string;
 }
 
+interface ContractWithItems {
+  id: string;
+  contract_name: string;
+  status: string;
+  serviceIds: string[];
+}
+
 export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, defaultCustomerId, defaultPropertyId }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -57,9 +64,23 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   const [selectedCategory, setSelectedCategory] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Contract-aware state
+  const [propertyContracts, setPropertyContracts] = useState<ContractWithItems[]>([]);
+  const [selectedSource, setSelectedSource] = useState<string>("ad_hoc"); // "ad_hoc" or contract id
+
   useEffect(() => {
     if (open) loadData();
   }, [open]);
+
+  // Fetch contracts when property changes
+  useEffect(() => {
+    if (selectedPropertyId) {
+      loadContracts(selectedPropertyId);
+    } else {
+      setPropertyContracts([]);
+      setSelectedSource("ad_hoc");
+    }
+  }, [selectedPropertyId]);
 
   const loadData = async () => {
     const [custRes, propRes, svcRes] = await Promise.all([
@@ -85,6 +106,63 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     }
   };
 
+  const loadContracts = async (propertyId: string) => {
+    const { data: contracts } = await supabase
+      .from("contracts")
+      .select("id, contract_name, status")
+      .eq("property_id", propertyId)
+      .in("status", ["ACTIVE", "SIGNED"])
+      .order("contract_name");
+
+    if (!contracts || contracts.length === 0) {
+      setPropertyContracts([]);
+      setSelectedSource("ad_hoc");
+      return;
+    }
+
+    // Fetch line items for all contracts
+    const contractIds = contracts.map((c) => c.id);
+    const { data: lineItems } = await supabase
+      .from("contract_line_items")
+      .select("contract_id, service_catalog_id")
+      .in("contract_id", contractIds);
+
+    const enriched: ContractWithItems[] = contracts.map((c) => ({
+      id: c.id,
+      contract_name: c.contract_name,
+      status: c.status,
+      serviceIds: (lineItems ?? [])
+        .filter((li) => li.contract_id === c.id)
+        .map((li) => li.service_catalog_id),
+    }));
+
+    setPropertyContracts(enriched);
+    // Pre-select the first contract
+    setSelectedSource(enriched[0].id);
+    applyContractServices(enriched[0]);
+  };
+
+  const applyContractServices = (contract: ContractWithItems) => {
+    setSelectedServiceIds(contract.serviceIds);
+    // Auto-select the first category that has a contract service
+    const contractServiceSet = new Set(contract.serviceIds);
+    const firstMatchingCategory = services.find((s) => contractServiceSet.has(s.id))?.code;
+    if (firstMatchingCategory) {
+      setSelectedCategory(firstMatchingCategory);
+    }
+  };
+
+  const handleSourceChange = (value: string) => {
+    setSelectedSource(value);
+    if (value === "ad_hoc") {
+      setSelectedServiceIds([]);
+      setSelectedCategory("");
+    } else {
+      const contract = propertyContracts.find((c) => c.id === value);
+      if (contract) applyContractServices(contract);
+    }
+  };
+
   const filteredProperties = properties.filter((p) => p.customer_id === selectedCustomerId);
   const categories = [...new Set(services.map((s) => s.code as string))].sort();
   const filteredServices = services.filter((s) => s.code === selectedCategory);
@@ -103,7 +181,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setSelectedServiceIds([]);
     setSelectedCategory("");
     setNotes("");
+    setPropertyContracts([]);
+    setSelectedSource("ad_hoc");
   };
+
+  const isContractSource = selectedSource !== "ad_hoc";
+  const activeContract = propertyContracts.find((c) => c.id === selectedSource);
 
   const handleCreate = async () => {
     if (!selectedPropertyId || !selectedCustomerId || !selectedDate || selectedServiceIds.length === 0) {
@@ -113,27 +196,31 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
     setSaving(true);
     try {
-      // Build scheduled_date with time
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
-      // Create the service order
+      const periodType = isContractSource ? "WEEK" as const : "ONE_TIME" as const;
+      const periodLabel = isContractSource && activeContract
+        ? `${activeContract.contract_name} – ${format(selectedDate, "MMM d, yyyy")} at ${selectedTime}`
+        : `Ad hoc – ${format(selectedDate, "MMM d, yyyy")} at ${selectedTime}`;
+
       const { data: order, error } = await supabase
         .from("service_orders")
         .insert({
           property_id: selectedPropertyId,
           scheduled_date: dateStr,
           status: "SCHEDULED",
-          period_type: "ONE_TIME",
-          period_label: `Ad hoc – ${format(selectedDate, "MMM d, yyyy")} at ${selectedTime}`,
+          period_type: periodType,
+          period_label: periodLabel,
           notes: notes.trim() || null,
           created_by_user_id: user!.id,
+          contract_id: isContractSource ? selectedSource : null,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Create service order items from selected services
+      const itemSource = isContractSource ? "CONTRACT" as const : "AD_HOC" as const;
       const serviceItems = selectedServiceIds.map((svcId) => {
         const svc = services.find((s) => s.id === svcId);
         return {
@@ -141,7 +228,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
           service_catalog_id: svcId,
           name: svc?.name ?? "Service",
           quantity: 1,
-          source: "AD_HOC" as const,
+          source: itemSource,
         };
       });
 
@@ -151,7 +238,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
       if (itemsError) throw itemsError;
 
-      toast.success("Ad-hoc visit created!");
+      toast.success("Visit created!");
       resetForm();
       onOpenChange(false);
       onCreated?.();
@@ -167,9 +254,9 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Ad-hoc Visit</DialogTitle>
+          <DialogTitle>Create Visit</DialogTitle>
           <DialogDescription>
-            Schedule a one-time service visit for a client property
+            Schedule a service visit for a client property
           </DialogDescription>
         </DialogHeader>
 
@@ -217,6 +304,26 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
                       No properties for this customer
                     </div>
                   )}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Source selector – only shown when contracts exist */}
+          {selectedPropertyId && propertyContracts.length > 0 && (
+            <div className="space-y-2">
+              <Label>Source</Label>
+              <Select value={selectedSource} onValueChange={handleSourceChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select source" />
+                </SelectTrigger>
+                <SelectContent>
+                  {propertyContracts.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.contract_name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="ad_hoc">Ad-hoc</SelectItem>
                 </SelectContent>
               </Select>
             </div>
