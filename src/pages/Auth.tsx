@@ -86,28 +86,21 @@ export default function Auth() {
   useEffect(() => {
     if (inviteToken) {
       supabase
-        .from("provider_invites")
-        .select("role, tenant_id, tenants(name)")
-        .eq("token", inviteToken)
-        .is("used_by", null)
-        .single()
+        .rpc("lookup_invite_by_token", { _token: inviteToken })
         .then(({ data }) => {
-          if (data) {
+          if (data && data.length > 0) {
             setInviteInfo({
-              role: data.role,
-              tenant_name: (data as any).tenants?.name,
+              role: data[0].role,
+              tenant_name: data[0].tenant_name,
             });
           }
         });
     }
     if (connectCode) {
       supabase
-        .from("tenants")
-        .select("name")
-        .eq("unique_tenant_id", connectCode.toUpperCase())
-        .single()
+        .rpc("lookup_tenant_by_code", { _code: connectCode.toUpperCase() })
         .then(({ data }) => {
-          if (data) setConnectProviderName(data.name);
+          if (data && data.length > 0) setConnectProviderName(data[0].name);
         });
     }
   }, [inviteToken, connectCode]);
