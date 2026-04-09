@@ -9,6 +9,8 @@ import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight } from "luc
 import { Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import { startOfWeek, endOfWeek, addDays, addWeeks, format, isSameDay, isToday, parseISO } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkdays } from "@/hooks/useWorkdays";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -31,6 +33,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function ServiceVisits() {
+  const { tenantId } = useAuth();
+  const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -154,22 +158,25 @@ export default function ServiceVisits() {
               </Button>
             </div>
             <div className="grid grid-cols-7 gap-1 min-h-[200px]">
-              {weekDays.map(day => {
-                const dayVisits = getOrdersForDate(day);
-                const today = isToday(day);
-                const selected = isSameDay(day, selectedDate);
-                return (
-                  <div
-                    key={day.toISOString()}
-                    className={`rounded-lg border p-2 cursor-pointer transition-colors ${
-                      selected ? "border-primary bg-primary/5" : today ? "border-primary/40 bg-primary/[0.02]" : "border-border"
-                    }`}
-                    onClick={() => setSelectedDate(day)}
-                  >
-                    <div className="text-center mb-2">
-                      <p className="text-xs text-muted-foreground">{format(day, "EEE")}</p>
-                      <p className={`text-sm font-semibold ${today ? "text-primary" : ""}`}>{format(day, "d")}</p>
-                    </div>
+                {weekDays.map(day => {
+                  const dayVisits = getOrdersForDate(day);
+                  const today = isToday(day);
+                  const selected = isSameDay(day, selectedDate);
+                  const workday = isWorkday(day);
+                  const nonWorkLabel = getNonWorkdayLabel(day);
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={`rounded-lg border p-2 cursor-pointer transition-colors ${
+                        selected ? "border-primary bg-primary/5" : today ? "border-primary/40 bg-primary/[0.02]" : !workday ? "border-border bg-muted/40" : "border-border"
+                      }`}
+                      onClick={() => setSelectedDate(day)}
+                    >
+                      <div className="text-center mb-2">
+                        <p className="text-xs text-muted-foreground">{format(day, "EEE")}</p>
+                        <p className={`text-sm font-semibold ${today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>{format(day, "d")}</p>
+                        {nonWorkLabel && <p className="text-[9px] text-destructive/70 truncate">{nonWorkLabel}</p>}
+                      </div>
                     <div className="space-y-1">
                       {dayVisits.slice(0, 3).map(o => (
                         <Link key={o.id} to={`/provider/visits/${o.id}`} onClick={e => e.stopPropagation()}>

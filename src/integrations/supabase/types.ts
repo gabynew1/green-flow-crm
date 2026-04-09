@@ -391,6 +391,30 @@ export type Database = {
           },
         ]
       }
+      global_holidays: {
+        Row: {
+          country_code: string
+          created_at: string
+          date: string
+          id: string
+          name: string
+        }
+        Insert: {
+          country_code?: string
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       inspections: {
         Row: {
           archived: boolean
@@ -1273,6 +1297,41 @@ export type Database = {
           },
         ]
       }
+      tenant_non_workdays: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_non_workdays_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string
@@ -1361,6 +1420,10 @@ export type Database = {
       }
       is_provider: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_workday: {
+        Args: { _date: string; _tenant_id: string }
+        Returns: boolean
+      }
       log_super_admin_action: {
         Args: {
           _action: string
