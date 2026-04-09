@@ -1,32 +1,41 @@
 
-I checked the current email domain status for your project.
 
-What I found
-- Configured sender domain: `notify.www.greengrass.zealot.ro`
-- Current status: failed / provisioning timed out
-- Workspace domain record: `www.greengrass.zealot.ro` is still in a failed verification state
+## Plan: Rename dialog to "Create Visit" with contract-aware service pre-selection
 
-Important limitation
-- I can confirm the configured sender domain and its current failure state, but the tool available here does not expose the exact delegated NS record values in its response.
-- So I should not invent them.
+### What changes
 
-Best way to get the exact NS records
-1. Open the project email settings.
-2. Open the sender domain entry for `www.greengrass.zealot.ro`.
-3. Copy the DNS records shown there for the delegated subdomain `notify.www.greengrass.zealot.ro`.
-4. You should see the exact NS hostnames that must exist at your DNS provider.
+**1. Rename the dialog**
+- Title changes from "Create Ad-hoc Visit" to "Create Visit"
+- Description updates accordingly
 
-What I would do next
-- Re-open the email setup/details panel and read the DNS values shown there.
-- Verify that the delegated subdomain has the required NS records exactly as displayed.
-- Then re-check verification status after the DNS is corrected.
+**2. After selecting Customer + Property, auto-detect active contracts**
+- Query `contracts` table for the selected `property_id` where `status = 'ACTIVE'` (or `SIGNED`)
+- If one or more active contracts exist, show a new **Source** selector with options:
+  - Each active contract listed by name (e.g., "Annual Maintenance 2025")
+  - "Ad-hoc" option (always available)
+- If a contract exists, it is pre-selected by default
+- If no contracts exist, default silently to "Ad-hoc" (no selector shown)
 
-What to verify at your DNS host
-- Record type: `NS`
-- Host/name: usually the delegated subdomain label for `notify.www.greengrass.zealot.ro`
-- Value: the exact nameserver hostnames shown in the project email settings
-- Remove conflicting records on that same delegated subdomain if any exist
+**3. Service pre-selection based on source**
+- **Contract selected**: Fetch `contract_line_items` for that contract, resolve `service_catalog_id` values, and pre-select those services. The category-first picker is still shown but services from the contract are pre-checked. User can add/remove freely.
+- **Ad-hoc selected**: No pre-selection; user picks services manually (current behavior)
 
-Technical note
-- The current backend response only returns the failed verification state and domain name, not the exact NS targets.
-- Since the exact NS values are not present in the returned metadata, the safe implementation path is to retrieve them from the email settings UI rather than guessing.
+**4. Persist the source on creation**
+- When saving the service order, set `period_type` to `"CONTRACT"` and store a reference if a contract is selected, or keep `"ONE_TIME"` for ad-hoc
+- Service order items get `source: "CONTRACT"` or `"AD_HOC"` accordingly
+- Update `period_label` to reference the contract name when applicable
+
+### Files to edit
+
+| File | Change |
+|------|--------|
+| `src/components/provider/CreateAdHocVisitDialog.tsx` | Add contract lookup on property change, add Source selector, pre-select services from contract line items, update title/labels |
+
+### Technical details
+
+- New state: `contracts` (active contracts for selected property), `selectedSource` (`"ad_hoc"` or contract ID)
+- On `selectedPropertyId` change: query `contracts` where `property_id = X` and `status IN ('ACTIVE','SIGNED')`, also join `contract_line_items` with `service_catalog_id`
+- When source changes to a contract: set `selectedServiceIds` to the contract's line item service IDs
+- When source changes to ad-hoc: clear `selectedServiceIds`
+- On save: if contract source, set `period_type = "CONTRACT"`, `period_label = contractName + date`
+
