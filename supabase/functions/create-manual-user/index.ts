@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
       // 1. Create tenant
       const { data: tenant, error: tenantErr } = await adminClient
         .from("tenants")
-        .insert({ name: companyName, created_by: callerUserId })
+        .insert({ name: companyName, created_by: callerUserId, subscription_tier: "trial", status: "active" })
         .select()
         .single();
       if (tenantErr) throw tenantErr;
