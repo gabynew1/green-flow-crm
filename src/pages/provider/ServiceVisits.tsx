@@ -9,6 +9,8 @@ import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight } from "luc
 import { Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import { startOfWeek, endOfWeek, addDays, addWeeks, format, isSameDay, isToday, parseISO } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkdays } from "@/hooks/useWorkdays";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -31,6 +33,8 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function ServiceVisits() {
+  const { tenantId } = useAuth();
+  const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
