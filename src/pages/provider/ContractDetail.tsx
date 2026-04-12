@@ -472,10 +472,10 @@ export default function ContractDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Service *</Label>
-                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId} disabled={!selectedCategory}>
+                  <Select value={selectedServiceId} onValueChange={handleServiceSelect} disabled={!selectedCategory}>
                     <SelectTrigger><SelectValue placeholder={selectedCategory ? "Select service" : "Select category first"} /></SelectTrigger>
                     <SelectContent>
-                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}{s.default_price != null ? ` — ${formatCurrency(s.default_price, currency)}` : ""}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -498,7 +498,7 @@ export default function ContractDetail() {
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
                   <Label>Frequency</Label>
-                  <Select name="frequency" defaultValue="PER_VISIT">
+                  <Select value={addFormFrequency} onValueChange={(v) => { setAddFormFrequency(v); if (v === "ONE_TIME" || v === "PER_VISIT") setAddFormTimesPerFreq("1"); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="PER_VISIT">Per Visit</SelectItem>
@@ -508,13 +508,19 @@ export default function ContractDetail() {
                     </SelectContent>
                   </Select>
                 </div>
+                {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH") && (
+                  <div className="space-y-2">
+                    <Label>Times per {addFormFrequency === "PER_WEEK" ? "week" : "month"}</Label>
+                    <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
                   <div className="space-y-2"><Label>Unit</Label><Input value={addFormUnit} onChange={e => setAddFormUnit(e.target.value)} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Unit Price *</Label><Input name="unit_price" type="number" step="0.01" required min="0" placeholder="0.00" /></div>
-                  <div className="space-y-2"><Label>Max / Period</Label><Input name="max_occurrences" type="number" placeholder="∞" /></div>
+                <div className="space-y-2">
+                  <Label>Unit Price *</Label>
+                  <Input type="number" step="0.01" required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
