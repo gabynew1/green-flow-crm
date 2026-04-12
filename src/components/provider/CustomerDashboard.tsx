@@ -143,23 +143,28 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     contractLinesByContract.set(li.contract_id, arr);
   }
 
-  // Total annual contract value
+  // Total contract value (using actual contract duration)
   let totalContractValue = 0;
   for (const c of activeContracts) {
     const lines = contractLinesByContract.get(c.id) || [];
+    const cStart = c.start_date ? parseISO(c.start_date) : now;
+    const cEnd = c.end_date ? parseISO(c.end_date) : addMonths(now, 12);
+    const contractDays = (cEnd.getTime() - cStart.getTime()) / (1000 * 60 * 60 * 24);
+    const contractMonths = Math.ceil(contractDays / 30.44);
+    const contractWeeks = Math.ceil(contractDays / 7);
     for (const li of lines) {
       const lineTotal = (li.unit_price || 0) * (li.quantity || 1);
       const freq = li.frequency_type;
-      if (freq === "PER_WEEK") totalContractValue += lineTotal * 52;
-      else if (freq === "PER_MONTH") totalContractValue += lineTotal * 12;
+      if (freq === "PER_WEEK") totalContractValue += lineTotal * contractWeeks;
+      else if (freq === "PER_MONTH") totalContractValue += lineTotal * contractMonths;
       else if (freq === "PER_VISIT") {
         const vfc = c.visit_frequency_count || 1;
         const vft = c.visit_frequency_type;
-        if (vft === "WEEK") totalContractValue += lineTotal * vfc * 52;
-        else if (vft === "MONTH") totalContractValue += lineTotal * vfc * 12;
+        if (vft === "WEEK") totalContractValue += lineTotal * vfc * contractWeeks;
+        else if (vft === "MONTH") totalContractValue += lineTotal * vfc * contractMonths;
         else totalContractValue += lineTotal;
       }
-      else totalContractValue += lineTotal;
+      else totalContractValue += lineTotal; // ONE_TIME
     }
   }
 
@@ -167,6 +172,10 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   let monthlyContractValue = 0;
   for (const c of activeContracts) {
     const lines = contractLinesByContract.get(c.id) || [];
+    const cStart = c.start_date ? parseISO(c.start_date) : now;
+    const cEnd = c.end_date ? parseISO(c.end_date) : addMonths(now, 12);
+    const contractDays = (cEnd.getTime() - cStart.getTime()) / (1000 * 60 * 60 * 24);
+    const contractMonths = Math.max(Math.ceil(contractDays / 30.44), 1);
     for (const li of lines) {
       const lineTotal = (li.unit_price || 0) * (li.quantity || 1);
       const freq = li.frequency_type;
@@ -177,9 +186,9 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
         const vft = c.visit_frequency_type;
         if (vft === "WEEK") monthlyContractValue += lineTotal * vfc * 4.33;
         else if (vft === "MONTH") monthlyContractValue += lineTotal * vfc;
-        else monthlyContractValue += lineTotal / 12;
+        else monthlyContractValue += lineTotal / contractMonths;
       }
-      else monthlyContractValue += lineTotal / 12;
+      else monthlyContractValue += lineTotal / contractMonths; // ONE_TIME spread
     }
   }
 
@@ -298,7 +307,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {/* Total Contract Value */}
             <div className="rounded-lg border p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Annual Contract Value</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Contract Value</p>
               <p className="text-xl font-bold mt-1 text-primary">{fmt(totalContractValue)}</p>
               <p className="text-xs text-muted-foreground">{activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""}</p>
             </div>

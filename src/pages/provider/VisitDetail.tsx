@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
+import { formatCurrency, CurrencyCode } from "@/lib/currency";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -84,7 +85,7 @@ export default function VisitDetail() {
 
     const { data: itms } = await supabase
       .from("service_order_items")
-      .select("*")
+      .select("*, service_catalog(default_price), contract_line_items:contract_line_item_id(unit_price)")
       .eq("service_order_id", visitId!)
       .order("source", { ascending: false });
     setItems(itms ?? []);
@@ -235,6 +236,18 @@ export default function VisitDetail() {
   const adHocItems = items.filter(i => i.source === "AD_HOC");
   const isCompleted = order.status === "COMPLETED";
   const canMarkDone = ["SCHEDULED", "IN_PROGRESS"].includes(order.status);
+
+  // Cost helpers
+  const getItemCost = (item: any): number => {
+    const price = (item.contract_line_items as any)?.unit_price
+      ?? (item.service_catalog as any)?.default_price
+      ?? 0;
+    return price * (item.quantity || 1);
+  };
+  const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
+  const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
+  const visitTotal = contractTotal + adHocTotal;
+  const currency: CurrencyCode = "RON"; // TODO: load from tenant
 
   return (
     <div className="space-y-6">
@@ -456,14 +469,18 @@ export default function VisitDetail() {
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Contract Services</p>
               <p className="text-lg font-semibold">{contractItems.length}</p>
-              <p className="text-xs text-success">Covered by contract</p>
+              <p className="text-xs text-success">{formatCurrency(contractTotal, currency)}</p>
             </div>
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Ad-hoc Services</p>
               <p className="text-lg font-semibold">{adHocItems.length}</p>
-              <p className={cn("text-xs", adHocItems.length > 0 ? "text-warning" : "text-muted-foreground")}>
-                {adHocItems.length > 0 ? "Additional billing required" : "No extra charges"}
+              <p className={cn("text-xs font-medium", adHocItems.length > 0 ? "text-warning" : "text-muted-foreground")}>
+                {adHocItems.length > 0 ? formatCurrency(adHocTotal, currency) : "No extra charges"}
               </p>
+            </div>
+            <div className="rounded-lg border p-3 flex-1 min-w-[160px] bg-muted/30">
+              <p className="text-xs text-muted-foreground mb-1">Visit Total</p>
+              <p className="text-lg font-bold">{formatCurrency(visitTotal, currency)}</p>
             </div>
           </div>
         </CardContent>
@@ -571,7 +588,7 @@ export default function VisitDetail() {
             const scope = scopeMap.get(item.id);
             return (
               <Card key={item.id}>
-                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+              <CardContent className="pt-4 pb-4 flex items-center gap-3">
                   <Checkbox
                     checked={item.is_completed}
                     onCheckedChange={() => toggleItem(item.id, item.is_completed)}
@@ -584,6 +601,7 @@ export default function VisitDetail() {
                       {scope?.max != null && <span className="ml-1">· {scope.consumed}/{scope.max} {scope.periodLabel}</span>}
                     </p>
                   </div>
+                  <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
                   <div className="flex items-center gap-1.5">
                     {scope && scope.max != null && (
                       <Badge
@@ -609,22 +627,26 @@ export default function VisitDetail() {
             Additional Services
             <Badge variant="secondary" className="text-xs text-warning">Extra billing</Badge>
           </p>
-          {adHocItems.map(item => (
-            <Card key={item.id}>
-              <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                <Checkbox
-                  checked={item.is_completed}
-                  onCheckedChange={() => toggleItem(item.id, item.is_completed)}
-                  disabled={isCompleted}
-                />
-                <div className="flex-1">
-                  <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
-                </div>
-                <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
-              </CardContent>
-            </Card>
-          ))}
+          {adHocItems.map(item => {
+            const cost = getItemCost(item);
+            return (
+              <Card key={item.id}>
+                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                  <Checkbox
+                    checked={item.is_completed}
+                    onCheckedChange={() => toggleItem(item.id, item.is_completed)}
+                    disabled={isCompleted}
+                  />
+                  <div className="flex-1">
+                    <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
+                  </div>
+                  <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
+                  <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
