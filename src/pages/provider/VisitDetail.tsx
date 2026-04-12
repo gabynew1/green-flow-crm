@@ -595,10 +595,12 @@ export default function VisitDetail() {
                     disabled={isCompleted}
                   />
                   <div className="flex-1">
-                    <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
+                    <p className="font-medium">{item.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {item.quantity} {item.unit}
                       {scope?.max != null && <span className="ml-1">· {scope.consumed}/{scope.max} {scope.periodLabel}</span>}
+                      {item.is_completed && <span className="ml-1 text-success">· Delivered</span>}
+                      {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
@@ -638,8 +640,12 @@ export default function VisitDetail() {
                     disabled={isCompleted}
                   />
                   <div className="flex-1">
-                    <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.quantity} {item.unit}
+                      {item.is_completed && <span className="ml-1 text-success">· Delivered</span>}
+                      {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
+                    </p>
                   </div>
                   <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
                   <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>

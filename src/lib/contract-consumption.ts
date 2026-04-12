@@ -71,12 +71,14 @@ export async function getContractConsumption(
   // Collect all line item ids that have a max to query efficiently
   const lineItemIds = lineItems.map(li => li.id);
 
-  // Fetch all completed service_order_items for these line items
+  // Fetch all completed & delivered service_order_items for these line items
+  // Only count items that were actually delivered (is_completed = true)
   const { data: allItems } = await supabase
     .from("service_order_items")
-    .select("contract_line_item_id, service_orders!inner(status, performed_date, scheduled_date)")
+    .select("contract_line_item_id, is_completed, service_orders!inner(status, performed_date, scheduled_date)")
     .in("contract_line_item_id", lineItemIds)
-    .in("service_orders.status", ["COMPLETED"]);
+    .in("service_orders.status", ["COMPLETED"])
+    .eq("is_completed", true);
 
   for (const li of lineItems) {
     const bounds = getPeriodBounds(li.frequency_type, contractStart, contractEnd);
