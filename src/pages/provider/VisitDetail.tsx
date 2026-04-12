@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isSunday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -24,10 +24,7 @@ import { getVisitScopeStatus } from "@/lib/contract-consumption";
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
   IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-primary/10 text-primary",
-  PENDING_APPROVAL: "bg-warning/10 text-warning",
-  APPROVED: "bg-success/10 text-success",
-  SENT_TO_CLIENT: "bg-accent/10 text-accent",
+  COMPLETED: "bg-success/10 text-success",
   CANCELED: "bg-destructive/10 text-destructive",
 };
 
@@ -35,13 +32,11 @@ const statusLabels: Record<string, string> = {
   SCHEDULED: "Scheduled",
   IN_PROGRESS: "In Progress",
   COMPLETED: "Completed",
-  PENDING_APPROVAL: "Pending Approval",
-  APPROVED: "Approved",
-  SENT_TO_CLIENT: "Sent to Client",
   CANCELED: "Canceled",
 };
 
-const allStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL", "APPROVED", "SENT_TO_CLIENT", "CANCELED"];
+// Only these statuses are shown in the dropdown
+const visibleStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELED"];
 
 export default function VisitDetail() {
   const { tenantId } = useAuth();
@@ -114,18 +109,18 @@ export default function VisitDetail() {
   const isManual = !order?.contract_id || !!order?.created_by_user_id;
 
   const changeStatus = async (newStatus: string) => {
+    // COMPLETED is final — cannot change away from it
+    if (order.status === "COMPLETED") {
+      toast.error("Completed visits cannot be reopened");
+      return;
+    }
+
     const updates: any = { status: newStatus };
     if (newStatus === "COMPLETED" && !order.performed_date) {
       updates.performed_date = new Date().toISOString().split("T")[0];
     }
     await supabase.from("service_orders").update(updates).eq("id", visitId!);
     toast.success(`Status changed to ${statusLabels[newStatus] || newStatus}`);
-
-    // Send visit report email when status changes to SENT_TO_CLIENT
-    if (newStatus === "SENT_TO_CLIENT" && order) {
-      await sendVisitEmail("visit-report", `visit-report-${visitId}`);
-    }
-
     load();
   };
 
@@ -166,14 +161,19 @@ export default function VisitDetail() {
 
   const markAsDone = async () => {
     const updates: any = {
-      status: "SENT_TO_CLIENT",
+      status: "COMPLETED",
       performed_date: order.performed_date || new Date().toISOString().split("T")[0],
       client_summary: clientSummary || null,
     };
     await supabase.from("service_orders").update(updates).eq("id", visitId!);
-    toast.success("Visit marked as done and report sent to client!");
+    toast.success("Visit completed and report sent to client!");
     await sendVisitEmail("visit-report", `visit-done-${visitId}`);
     load();
+  };
+
+  const sendReportToClient = async () => {
+    await sendVisitEmail("visit-report", `visit-report-${visitId}-${Date.now()}`);
+    toast.success("Report sent to client!");
   };
 
   const handleReschedule = async () => {
@@ -233,7 +233,8 @@ export default function VisitDetail() {
 
   const contractItems = items.filter(i => i.source === "CONTRACT");
   const adHocItems = items.filter(i => i.source === "AD_HOC");
-  const canMarkDone = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL"].includes(order.status);
+  const isCompleted = order.status === "COMPLETED";
+  const canMarkDone = ["SCHEDULED", "IN_PROGRESS"].includes(order.status);
 
   return (
     <div className="space-y-6">
@@ -257,13 +258,17 @@ export default function VisitDetail() {
             {(order.properties as any)?.name} · {(order.properties as any)?.customers?.name}
           </p>
         </div>
-        {/* Status dropdown */}
-        <Select value={order.status} onValueChange={changeStatus}>
-          <SelectTrigger className={cn("w-[180px] font-medium", statusColor[order.status])}>
-            <SelectValue />
+        {/* Status dropdown — COMPLETED is final */}
+        <Select
+          value={order.status}
+          onValueChange={changeStatus}
+          disabled={isCompleted}
+        >
+          <SelectTrigger className={cn("w-[180px] font-medium", statusColor[order.status] || "bg-muted text-muted-foreground")}>
+            <SelectValue>{statusLabels[order.status] || order.status.replace(/_/g, " ")}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {allStatuses.map(s => (
+            {visibleStatuses.map(s => (
               <SelectItem key={s} value={s}>
                 <span className={cn("inline-block rounded px-1.5 py-0.5 text-xs", statusColor[s])}>
                   {statusLabels[s]}
@@ -274,20 +279,33 @@ export default function VisitDetail() {
         </Select>
       </div>
 
+      {/* Completed banner */}
+      {isCompleted && (
+        <div className="rounded-lg border border-success/30 bg-success/5 p-3 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-success">✓ Visit Completed</p>
+            <p className="text-xs text-muted-foreground">Performed on {order.performed_date || "—"}. This visit is closed and cannot be reopened.</p>
+          </div>
+          <Button variant="outline" size="sm" className="gap-2" onClick={sendReportToClient}>
+            <Send className="h-3.5 w-3.5" /> Send Report to Client
+          </Button>
+        </div>
+      )}
+
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3">
         {canMarkDone && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button className="gap-2">
-                <CheckCircle2 className="h-4 w-4" /> Mark as Done
+                <CheckCircle2 className="h-4 w-4" /> Complete & Send Report
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Complete this visit?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will mark the visit as done, set today as the performed date, and send a report to the client.
+                  This will permanently close the visit, set today as the performed date, and send a report to the client. <strong>Completed visits cannot be reopened.</strong>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="space-y-3">
@@ -316,7 +334,7 @@ export default function VisitDetail() {
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={markAsDone}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm & Send Report
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Complete & Send
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -358,12 +376,14 @@ export default function VisitDetail() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base">Details</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setEditing(!editing)}>
-            <Pencil className="h-4 w-4 mr-1" /> {editing ? "Cancel" : "Edit"}
-          </Button>
+          {!isCompleted && (
+            <Button variant="ghost" size="sm" onClick={() => setEditing(!editing)}>
+              <Pencil className="h-4 w-4 mr-1" /> {editing ? "Cancel" : "Edit"}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          {editing ? (
+          {editing && !isCompleted ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Scheduled Date</Label>
@@ -452,90 +472,92 @@ export default function VisitDetail() {
       {/* Items */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Services</h2>
-        <Dialog open={addOpen} onOpenChange={(open) => {
-          setAddOpen(open);
-          if (!open) { setAdHocCategory(null); setAdHocSelectedServices([]); }
-        }}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Ad-hoc Service</Button></DialogTrigger>
-          <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Add Ad-hoc Service</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              {/* Category selection */}
-              <div>
-                <Label className="mb-2 block">Select Category</Label>
-                <div className="flex flex-wrap gap-2">
-                  {catalogCategories.map(cat => (
-                    <Button
-                      key={cat}
-                      variant={adHocCategory === cat ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setAdHocCategory(adHocCategory === cat ? null : cat);
-                        setAdHocSelectedServices([]);
-                      }}
-                    >
-                      {cat}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Services in selected category */}
-              {adHocCategory && (() => {
-                const catServices = getCategoryServices(adHocCategory);
-                const allSelected = catServices.every(s => adHocSelectedServices.includes(s.id));
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label>{adHocCategory} Services</Label>
+        {!isCompleted && (
+          <Dialog open={addOpen} onOpenChange={(open) => {
+            setAddOpen(open);
+            if (!open) { setAdHocCategory(null); setAdHocSelectedServices([]); }
+          }}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Ad-hoc Service</Button></DialogTrigger>
+            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Add Ad-hoc Service</DialogTitle></DialogHeader>
+              <div className="space-y-4">
+                {/* Category selection */}
+                <div>
+                  <Label className="mb-2 block">Select Category</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {catalogCategories.map(cat => (
                       <Button
-                        variant="ghost"
+                        key={cat}
+                        variant={adHocCategory === cat ? "default" : "outline"}
                         size="sm"
                         onClick={() => {
-                          if (allSelected) {
-                            setAdHocSelectedServices(prev => prev.filter(id => !catServices.some(s => s.id === id)));
-                          } else {
-                            setAdHocSelectedServices(prev => [...new Set([...prev, ...catServices.map(s => s.id)])]);
-                          }
+                          setAdHocCategory(adHocCategory === cat ? null : cat);
+                          setAdHocSelectedServices([]);
                         }}
                       >
-                        {allSelected ? "Unselect all" : "Select all"}
+                        {cat}
                       </Button>
-                    </div>
-                    <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                      {catServices.map(svc => (
-                        <label key={svc.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
-                          <Checkbox
-                            checked={adHocSelectedServices.includes(svc.id)}
-                            onCheckedChange={(checked) => {
-                              setAdHocSelectedServices(prev =>
-                                checked ? [...prev, svc.id] : prev.filter(id => id !== svc.id)
-                              );
-                            }}
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{svc.name}</p>
-                            {svc.description && <p className="text-xs text-muted-foreground">{svc.description}</p>}
-                          </div>
-                          {svc.default_unit && <span className="text-xs text-muted-foreground">{svc.default_unit}</span>}
-                        </label>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                );
-              })()}
-
-              {adHocSelectedServices.length > 0 && (
-                <div className="pt-2 border-t">
-                  <p className="text-sm text-muted-foreground mb-3">{adHocSelectedServices.length} service(s) selected</p>
-                  <Button onClick={handleAddAdHocServices} className="w-full">
-                    <Plus className="h-4 w-4 mr-2" /> Add {adHocSelectedServices.length} Service(s)
-                  </Button>
                 </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+
+                {/* Services in selected category */}
+                {adHocCategory && (() => {
+                  const catServices = getCategoryServices(adHocCategory);
+                  const allSelected = catServices.every(s => adHocSelectedServices.includes(s.id));
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>{adHocCategory} Services</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (allSelected) {
+                              setAdHocSelectedServices(prev => prev.filter(id => !catServices.some(s => s.id === id)));
+                            } else {
+                              setAdHocSelectedServices(prev => [...new Set([...prev, ...catServices.map(s => s.id)])]);
+                            }
+                          }}
+                        >
+                          {allSelected ? "Unselect all" : "Select all"}
+                        </Button>
+                      </div>
+                      <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                        {catServices.map(svc => (
+                          <label key={svc.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer">
+                            <Checkbox
+                              checked={adHocSelectedServices.includes(svc.id)}
+                              onCheckedChange={(checked) => {
+                                setAdHocSelectedServices(prev =>
+                                  checked ? [...prev, svc.id] : prev.filter(id => id !== svc.id)
+                                );
+                              }}
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{svc.name}</p>
+                              {svc.description && <p className="text-xs text-muted-foreground">{svc.description}</p>}
+                            </div>
+                            {svc.default_unit && <span className="text-xs text-muted-foreground">{svc.default_unit}</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {adHocSelectedServices.length > 0 && (
+                  <div className="pt-2 border-t">
+                    <p className="text-sm text-muted-foreground mb-3">{adHocSelectedServices.length} service(s) selected</p>
+                    <Button onClick={handleAddAdHocServices} className="w-full">
+                      <Plus className="h-4 w-4 mr-2" /> Add {adHocSelectedServices.length} Service(s)
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Contract services */}
@@ -553,6 +575,7 @@ export default function VisitDetail() {
                   <Checkbox
                     checked={item.is_completed}
                     onCheckedChange={() => toggleItem(item.id, item.is_completed)}
+                    disabled={isCompleted}
                   />
                   <div className="flex-1">
                     <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
@@ -592,6 +615,7 @@ export default function VisitDetail() {
                 <Checkbox
                   checked={item.is_completed}
                   onCheckedChange={() => toggleItem(item.id, item.is_completed)}
+                  disabled={isCompleted}
                 />
                 <div className="flex-1">
                   <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
@@ -615,6 +639,7 @@ export default function VisitDetail() {
             onChange={e => setClientSummary(e.target.value)}
             placeholder="Summary visible to the client…"
             rows={3}
+            disabled={isCompleted}
           />
         </CardContent>
       </Card>
@@ -628,44 +653,47 @@ export default function VisitDetail() {
             onChange={e => setNotes(e.target.value)}
             placeholder="Internal notes (not visible to client)…"
             rows={4}
+            disabled={isCompleted}
           />
         </CardContent>
       </Card>
 
       {/* Save button */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Button onClick={saveAll}><Save className="h-4 w-4 mr-2" /> Save Changes</Button>
+        {!isCompleted && <Button onClick={saveAll}><Save className="h-4 w-4 mr-2" /> Save Changes</Button>}
         <div className="flex-1" />
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2">
-              <Trash2 className="h-4 w-4" /> Delete Visit
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this service visit?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This will permanently delete this visit, all its service items, and any associated data. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={async () => {
-                  await supabase.from("service_order_items").delete().eq("service_order_id", visitId!);
-                  const { error } = await supabase.from("service_orders").delete().eq("id", visitId!);
-                  if (error) { toast.error(error.message); return; }
-                  toast.success("Visit deleted");
-                  navigate(-1);
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete Permanently
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {!isCompleted && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2">
+                <Trash2 className="h-4 w-4" /> Delete Visit
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this service visit?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this visit, all its service items, and any associated data. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={async () => {
+                    await supabase.from("service_order_items").delete().eq("service_order_id", visitId!);
+                    const { error } = await supabase.from("service_orders").delete().eq("id", visitId!);
+                    if (error) { toast.error(error.message); return; }
+                    toast.success("Visit deleted");
+                    navigate(-1);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete Permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );

@@ -7,10 +7,7 @@ import { Link } from "react-router-dom";
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
   IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-primary/10 text-primary",
-  PENDING_APPROVAL: "bg-warning/10 text-warning",
-  APPROVED: "bg-success/10 text-success",
-  SENT_TO_CLIENT: "bg-accent/10 text-accent",
+  COMPLETED: "bg-success/10 text-success",
   CANCELED: "bg-destructive/10 text-destructive",
 };
 
