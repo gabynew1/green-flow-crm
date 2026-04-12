@@ -144,7 +144,7 @@ export default function ClientContractDetail() {
   if (!contract) return <p className="text-muted-foreground text-center py-12">Contract not found</p>;
 
   const totalValue = lineItems.reduce((sum, li) => {
-    const price = li.service_catalog?.default_price || 0;
+    const price = li.unit_price != null ? Number(li.unit_price) : (li.service_catalog?.default_price || 0);
     return sum + price * li.quantity;
   }, 0);
 
@@ -244,9 +244,16 @@ export default function ClientContractDetail() {
                         {maxOcc != null && <span className="ml-1">· max {maxOcc}/{li.frequency_type.replace("PER_", "").toLowerCase()}</span>}
                       </p>
                     </div>
-                    {li.service_catalog?.default_price && (
-                      <span className="text-muted-foreground">${(li.service_catalog.default_price * li.quantity).toFixed(2)}</span>
-                    )}
+                    <div className="text-right">
+                      {li.unit_price != null ? (
+                        <div>
+                          <span className="font-medium">${(Number(li.unit_price) * Number(li.quantity)).toFixed(2)}</span>
+                          {Number(li.quantity) > 1 && <p className="text-[10px] text-muted-foreground">${Number(li.unit_price).toFixed(2)} × {li.quantity}</p>}
+                        </div>
+                      ) : li.service_catalog?.default_price ? (
+                        <span className="text-muted-foreground">${(li.service_catalog.default_price * li.quantity).toFixed(2)}</span>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })}

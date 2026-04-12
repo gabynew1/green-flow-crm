@@ -108,6 +108,7 @@ export type Database = {
           quantity: number
           service_catalog_id: string
           unit: string | null
+          unit_price: number | null
           updated_at: string
         }
         Insert: {
@@ -121,6 +122,7 @@ export type Database = {
           quantity?: number
           service_catalog_id: string
           unit?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -134,6 +136,7 @@ export type Database = {
           quantity?: number
           service_catalog_id?: string
           unit?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Relationships: [

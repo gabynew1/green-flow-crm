@@ -204,6 +204,7 @@ export default function ContractDetail() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const maxOcc = form.get("max_occurrences") as string;
+    const unitPrice = form.get("unit_price") as string;
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: form.get("service_id") as string,
@@ -213,6 +214,7 @@ export default function ContractDetail() {
       unit: form.get("unit") as string,
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: maxOcc ? Number(maxOcc) : null,
+      unit_price: unitPrice ? Number(unitPrice) : null,
     }] as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
@@ -423,9 +425,12 @@ export default function ContractDetail() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Quantity *</Label><Input name="quantity" type="number" defaultValue="1" required min="1" /></div>
                   <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Unit Price *</Label><Input name="unit_price" type="number" step="0.01" required min="0" placeholder="0.00" /></div>
                   <div className="space-y-2"><Label>Max / Period</Label><Input name="max_occurrences" type="number" placeholder="∞" /></div>
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
@@ -448,8 +453,9 @@ export default function ContractDetail() {
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit</TableHead>
+                <TableHead>Unit Price</TableHead>
+                <TableHead>Line Total</TableHead>
                 <TableHead>Max/Period</TableHead>
-                <TableHead>Notes</TableHead>
                 {editable && <TableHead />}
               </TableRow>
             </TableHeader>
@@ -460,6 +466,29 @@ export default function ContractDetail() {
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
                   <TableCell>{li.unit}</TableCell>
+                  <TableCell>
+                    {editable ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="h-7 w-20 text-xs"
+                        placeholder="0.00"
+                        defaultValue={li.unit_price ?? ""}
+                        onBlur={async (e) => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          if (val === li.unit_price) return;
+                          await supabase.from("contract_line_items").update({ unit_price: val } as any).eq("id", li.id);
+                          toast.success("Price updated");
+                          load();
+                        }}
+                      />
+                    ) : (
+                      <span>{li.unit_price != null ? `$${Number(li.unit_price).toFixed(2)}` : "—"}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {li.unit_price != null ? `$${(Number(li.unit_price) * Number(li.quantity)).toFixed(2)}` : "—"}
+                  </TableCell>
                   <TableCell>
                     {editable ? (
                       <Input
@@ -479,7 +508,6 @@ export default function ContractDetail() {
                       <span>{li.max_occurrences_per_period ?? "∞"}</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{li.notes || "—"}</TableCell>
                   {editable && (
                     <TableCell>
                       <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
@@ -489,6 +517,13 @@ export default function ContractDetail() {
               ))}
             </TableBody>
           </Table>
+          {/* Total row */}
+          {lineItems.some(li => li.unit_price != null) && (
+            <div className="border-t px-4 py-2 flex justify-between text-sm font-semibold">
+              <span>Contract Total</span>
+              <span>${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</span>
+            </div>
+          )}
         </div>
       )}
 

@@ -49,7 +49,13 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   const [visitType, setVisitType] = useState("WEEK");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-
+  // Per-service configuration: frequency, quantity, unit_price, max_occurrences
+  const [serviceConfig, setServiceConfig] = useState<Record<string, {
+    frequency_type: string;
+    quantity: number;
+    unit_price: string;
+    max_occurrences: string;
+  }>>({});
   useEffect(() => {
     if (open) {
       loadData();
@@ -82,9 +88,29 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   };
 
   const toggleService = (id: string) => {
-    setSelectedServiceIds((prev) =>
-      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
-    );
+    setSelectedServiceIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id];
+      if (!prev.includes(id)) {
+        const svc = services.find(s => s.id === id);
+        setServiceConfig(cfg => ({
+          ...cfg,
+          [id]: {
+            frequency_type: "PER_VISIT",
+            quantity: 1,
+            unit_price: svc?.default_price ? String(svc.default_price) : "",
+            max_occurrences: "",
+          },
+        }));
+      }
+      return next;
+    });
+  };
+
+  const updateServiceConfig = (id: string, field: string, value: string | number) => {
+    setServiceConfig(cfg => ({
+      ...cfg,
+      [id]: { ...cfg[id], [field]: value },
+    }));
   };
 
   const resetForm = () => {
@@ -100,6 +126,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
     setVisitType("WEEK");
     setSelectedCategory("");
     setSelectedServiceIds([]);
+    setServiceConfig({});
   };
 
   const handleCreate = async () => {
@@ -112,6 +139,15 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
       if (selectedPropertyIds.length === 0) { toast.error("Select at least one property"); return; }
       if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
       if (selectedServiceIds.length === 0) { toast.error("Select at least one service"); return; }
+      // Validate each service has a unit price
+      for (const svcId of selectedServiceIds) {
+        const cfg = serviceConfig[svcId];
+        if (!cfg?.unit_price || Number(cfg.unit_price) < 0) {
+          const svc = services.find(s => s.id === svcId);
+          toast.error(`Set a unit price for ${svc?.name || "service"}`);
+          return;
+        }
+      }
     } else {
       if (!selectedPropertyId) { toast.error("Select a property"); return; }
     }
@@ -164,14 +200,19 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
         const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
         if (error) throw error;
 
-        // Insert contract line items
+        // Insert contract line items with per-service config
         const lineItems = (created ?? []).flatMap((contract) =>
-          selectedServiceIds.map((serviceId) => ({
-            contract_id: contract.id,
-            service_catalog_id: serviceId,
-            quantity: 1,
-            frequency_type: "PER_VISIT" as const,
-          }))
+          selectedServiceIds.map((serviceId) => {
+            const cfg = serviceConfig[serviceId] || { frequency_type: "PER_VISIT", quantity: 1, unit_price: "", max_occurrences: "" };
+            return {
+              contract_id: contract.id,
+              service_catalog_id: serviceId,
+              quantity: cfg.quantity || 1,
+              frequency_type: (cfg.frequency_type || "PER_VISIT") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
+              unit_price: cfg.unit_price ? Number(cfg.unit_price) : null,
+              max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+            };
+          })
         );
         if (lineItems.length > 0) {
           const { error: liError } = await supabase.from("contract_line_items").insert(lineItems);
@@ -303,21 +344,53 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
                   </div>
                 )}
                 {selectedServiceIds.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">{selectedServiceIds.length} service(s) selected:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedServiceIds.map((id) => {
-                        const svc = services.find((s) => s.id === id);
-                        return svc ? (
-                          <Badge key={id} variant="secondary" className="text-xs gap-1">
-                            {svc.name}
-                            <button type="button" onClick={() => toggleService(id)} className="hover:text-destructive">
+                  <div className="space-y-3 mt-2">
+                    <p className="text-xs text-muted-foreground font-medium">{selectedServiceIds.length} service(s) — configure each:</p>
+                    {selectedServiceIds.map((id) => {
+                      const svc = services.find((s) => s.id === id);
+                      const cfg = serviceConfig[id] || { frequency_type: "PER_VISIT", quantity: 1, unit_price: "", max_occurrences: "" };
+                      return svc ? (
+                        <div key={id} className="border rounded-md p-3 space-y-2 bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{svc.name}</span>
+                            <button type="button" onClick={() => toggleService(id)} className="text-muted-foreground hover:text-destructive">
                               <X className="h-3 w-3" />
                             </button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Frequency</Label>
+                              <Select value={cfg.frequency_type} onValueChange={(v) => updateServiceConfig(id, "frequency_type", v)}>
+                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="PER_VISIT">Per Visit</SelectItem>
+                                  <SelectItem value="PER_WEEK">Per Week</SelectItem>
+                                  <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                  <SelectItem value="ONE_TIME">One-time</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Qty</Label>
+                              <Input className="h-7 text-xs" type="number" min="1" value={cfg.quantity}
+                                onChange={(e) => updateServiceConfig(id, "quantity", Number(e.target.value) || 1)} />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Unit Price *</Label>
+                              <Input className="h-7 text-xs" type="number" step="0.01" min="0" placeholder="0.00"
+                                value={cfg.unit_price}
+                                onChange={(e) => updateServiceConfig(id, "unit_price", e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[10px]">Max/Period</Label>
+                              <Input className="h-7 text-xs" type="number" placeholder="∞"
+                                value={cfg.max_occurrences}
+                                onChange={(e) => updateServiceConfig(id, "max_occurrences", e.target.value)} />
+                            </div>
+                          </div>
+                        </div>
+                      ) : null;
+                    })}
                   </div>
                 )}
               </div>
