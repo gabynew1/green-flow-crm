@@ -5,10 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 
 const statusColor: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  SENT_TO_CLIENT: "bg-warning/10 text-warning",
-  CLIENT_APPROVED: "bg-success/10 text-success",
-  CLIENT_REJECTED: "bg-destructive/10 text-destructive",
+  SCHEDULED: "bg-muted text-muted-foreground",
+  IN_PROGRESS: "bg-info/10 text-info",
+  COMPLETED: "bg-success/10 text-success",
+  CANCELED: "bg-destructive/10 text-destructive",
 };
 
 export function PropertyVisitsTab({ propertyId }: { propertyId: string }) {
