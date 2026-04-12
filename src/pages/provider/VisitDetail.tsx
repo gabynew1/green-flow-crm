@@ -94,6 +94,37 @@ export default function VisitDetail() {
     }
     await supabase.from("service_orders").update(updates).eq("id", visitId!);
     toast.success(`Status changed to ${statusLabels[newStatus] || newStatus}`);
+
+    // Send visit report email when status changes to SENT_TO_CLIENT
+    if (newStatus === "SENT_TO_CLIENT" && order) {
+      const customerId = (order.properties as any)?.customers?.id;
+      const propertyTenantId = (order.properties as any)?.tenant_id;
+      if (customerId) {
+        const { data: clientProfile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("customer_id", customerId)
+          .maybeSingle();
+        const { data: tenant } = propertyTenantId
+          ? await supabase.from("tenants").select("name").eq("id", propertyTenantId).single()
+          : { data: null };
+        if (clientProfile?.email) {
+          const { sendAppEmail } = await import("@/lib/send-app-email");
+          sendAppEmail({
+            templateName: "visit-report",
+            recipientEmail: clientProfile.email,
+            idempotencyKey: `visit-report-${visitId}`,
+            templateData: {
+              propertyName: (order.properties as any)?.name,
+              providerName: tenant?.name,
+              performedDate: order.performed_date || order.scheduled_date,
+              summary: order.client_summary || order.notes,
+            },
+          });
+        }
+      }
+    }
+
     load();
   };
 

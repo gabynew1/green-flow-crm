@@ -88,6 +88,38 @@ export default function InspectionDetail() {
       });
       toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
       setScheduleOpen(false);
+
+      // Send inspection scheduled email to client
+      if (inspection && customer?.email) {
+        // Lookup customer id for the profile
+        const customerId = inspection.customer_id;
+        if (customerId) {
+          const { data: clientProfile } = await supabase
+            .from("profiles")
+            .select("email")
+            .eq("customer_id", customerId)
+            .maybeSingle();
+          const { data: tenant } = inspection.tenant_id
+            ? await supabase.from("tenants").select("name").eq("id", inspection.tenant_id).single()
+            : { data: null };
+          const clientEmail = clientProfile?.email || customer?.email;
+          if (clientEmail) {
+            const { sendAppEmail } = await import("@/lib/send-app-email");
+            sendAppEmail({
+              templateName: "inspection-scheduled",
+              recipientEmail: clientEmail,
+              idempotencyKey: `inspection-scheduled-${inspectionId}`,
+              templateData: {
+                inspectionTitle: title,
+                propertyName: (inspection.properties as any)?.name,
+                providerName: tenant?.name,
+                scheduledDate: format(selectedDate, "PPP"),
+              },
+            });
+          }
+        }
+      }
+
       load();
     } catch (e) {
       // Error handled by engine

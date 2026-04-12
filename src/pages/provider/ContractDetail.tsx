@@ -66,6 +66,35 @@ export default function ContractDetail() {
   const updateStatus = async (status: string) => {
     await supabase.from("contracts").update({ status, rejection_comment: null } as any).eq("id", contractId!);
     toast.success(`Contract ${status.replace(/_/g, " ").toLowerCase()}`);
+
+    // Send email when contract is sent to client
+    if (status === "SENT_TO_CLIENT" && contract) {
+      const customerId = (contract.properties as any)?.customers?.id || (contract.properties as any)?.customer_id;
+      if (customerId) {
+        const { data: clientProfile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("customer_id", customerId)
+          .maybeSingle();
+        const { data: tenant } = tenantId
+          ? await supabase.from("tenants").select("name").eq("id", tenantId).single()
+          : { data: null };
+        if (clientProfile?.email) {
+          const { sendAppEmail } = await import("@/lib/send-app-email");
+          sendAppEmail({
+            templateName: "contract-sent",
+            recipientEmail: clientProfile.email,
+            idempotencyKey: `contract-sent-${contractId}`,
+            templateData: {
+              contractName: contract.contract_name,
+              propertyName: (contract.properties as any)?.name,
+              providerName: tenant?.name,
+            },
+          });
+        }
+      }
+    }
+
     load();
   };
 
