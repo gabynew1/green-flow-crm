@@ -126,8 +126,15 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
     );
     const missingProps = selectedPropertyIds.filter(id => !propsWithInventory.has(id));
     if (missingProps.length > 0) {
-      const names = missingProps.map(id => properties.find((p: any) => p.id === id)?.name || "Unknown").join(", ");
-      toast.error(`Cannot create contract: property "${names}" has no inventory. Add inventory items first (lawn size, tree count, etc.).`);
+      const firstMissing = missingProps[0];
+      const name = properties.find((p: any) => p.id === firstMissing)?.name || "Unknown";
+      toast.error(`Cannot create contract: property "${name}" has no inventory. Add inventory items first.`, {
+        action: {
+          label: "Go to Property",
+          onClick: () => window.location.assign(`/provider/properties/${firstMissing}`),
+        },
+        duration: 10000,
+      });
       return;
     }
 
