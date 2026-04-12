@@ -230,6 +230,9 @@ export default function CustomerDetail() {
         </CardContent>
       </Card>
 
+      {/* Customer Dashboard */}
+      <CustomerDashboard customerId={customerId!} contracts={contracts} visits={visits} />
+
       {/* Contracts Section */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Contracts</h2>
