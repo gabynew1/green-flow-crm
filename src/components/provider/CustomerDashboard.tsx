@@ -172,6 +172,10 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   let monthlyContractValue = 0;
   for (const c of activeContracts) {
     const lines = contractLinesByContract.get(c.id) || [];
+    const cStart = c.start_date ? parseISO(c.start_date) : now;
+    const cEnd = c.end_date ? parseISO(c.end_date) : addMonths(now, 12);
+    const contractDays = (cEnd.getTime() - cStart.getTime()) / (1000 * 60 * 60 * 24);
+    const contractMonths = Math.max(Math.ceil(contractDays / 30.44), 1);
     for (const li of lines) {
       const lineTotal = (li.unit_price || 0) * (li.quantity || 1);
       const freq = li.frequency_type;
@@ -182,9 +186,9 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
         const vft = c.visit_frequency_type;
         if (vft === "WEEK") monthlyContractValue += lineTotal * vfc * 4.33;
         else if (vft === "MONTH") monthlyContractValue += lineTotal * vfc;
-        else monthlyContractValue += lineTotal / 12;
+        else monthlyContractValue += lineTotal / contractMonths;
       }
-      else monthlyContractValue += lineTotal / 12;
+      else monthlyContractValue += lineTotal / contractMonths; // ONE_TIME spread
     }
   }
 
