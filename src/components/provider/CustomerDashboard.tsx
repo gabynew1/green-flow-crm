@@ -307,7 +307,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {/* Total Contract Value */}
             <div className="rounded-lg border p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Annual Contract Value</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Contract Value</p>
               <p className="text-xl font-bold mt-1 text-primary">{fmt(totalContractValue)}</p>
               <p className="text-xs text-muted-foreground">{activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""}</p>
             </div>
