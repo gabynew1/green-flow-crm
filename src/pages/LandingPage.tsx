@@ -155,8 +155,10 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [heroEmail, setHeroEmail] = useState("");
+  const [heroLoading, setHeroLoading] = useState(false);
   const [startFreeOpen, setStartFreeOpen] = useState(false);
   const [startFreeEmail, setStartFreeEmail] = useState("");
+  const [startFreeLoading, setStartFreeLoading] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
