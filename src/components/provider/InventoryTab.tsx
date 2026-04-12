@@ -12,7 +12,9 @@ import { Plus, Trees, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 
-const CATEGORIES = ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"] as const;
+const CATEGORIES = ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "HEDGE", "IRRIGATION", "PAVING", "PLANTER", "LIGHTING", "FENCE", "OTHER"] as const;
+
+const UNITS = ["count", "m²", "linear_m", "hectare", "zone", "unit", "lot"] as const;
 
 interface InventoryTabProps {
   propertyId: string;
@@ -44,7 +46,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
     const form = new FormData(e.currentTarget);
     const { error } = await supabase.from("inventory_items").insert([{
       inventory_id: inventory.id,
-      category: form.get("category") as "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER",
+      category: form.get("category") as any,
       name: form.get("name") as string,
       quantity: Number(form.get("quantity")) || 1,
       unit: form.get("unit") as string || "count",
@@ -68,6 +70,12 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
       LAWN: "bg-green-500/10 text-green-600 border-green-500/20",
       SHRUB: "bg-amber-500/10 text-amber-600 border-amber-500/20",
       FLOWER_BED: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+      HEDGE: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+      IRRIGATION: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+      PAVING: "bg-stone-500/10 text-stone-600 border-stone-500/20",
+      PLANTER: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+      LIGHTING: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+      FENCE: "bg-orange-500/10 text-orange-600 border-orange-500/20",
       OTHER: "bg-slate-500/10 text-slate-600 border-slate-500/20",
     };
     return colors[cat] || colors.OTHER;
@@ -103,7 +111,15 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
               <div className="space-y-2"><Label>Name *</Label><Input name="name" required placeholder="e.g. Oak tree, Front lawn" /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
-                <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="count" placeholder="count, m², linear_meters" /></div>
+                <div className="space-y-2">
+                  <Label>Unit</Label>
+                  <Select name="unit" defaultValue="count">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
               <Button type="submit" className="w-full">Add Item</Button>
