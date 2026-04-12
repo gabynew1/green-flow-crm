@@ -203,16 +203,27 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
             )}
 
             {/* This Month */}
-            <div className="rounded-lg border p-3">
+            <div className="rounded-lg border p-3 col-span-2 sm:col-span-1">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">This Month</p>
-              <p className="text-2xl font-bold mt-1">
-                {completedThisMonth.length}
-                <span className="text-sm font-normal text-muted-foreground">/{totalPlannedThisMonth}</span>
-              </p>
-              <p className="text-xs text-muted-foreground">delivered</p>
-              {totalPlannedThisMonth > 0 && (
+              <div className="flex items-baseline gap-3 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                  <span className="text-xl font-bold">{completedThisMonth.length}</span>
+                  <span className="text-[11px] text-muted-foreground">done</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-warning" />
+                  <span className="text-xl font-bold">{scheduledThisMonth.length}</span>
+                  <span className="text-[11px] text-muted-foreground">scheduled</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
+                <span>Contract requires</span>
+                <span className="font-semibold text-foreground">{expectedThisMonth}</span>
+              </div>
+              {expectedThisMonth > 0 && (
                 <Progress
-                  value={(completedThisMonth.length / totalPlannedThisMonth) * 100}
+                  value={((completedThisMonth.length + scheduledThisMonth.length) / expectedThisMonth) * 100}
                   className="h-1.5 mt-2"
                 />
               )}
