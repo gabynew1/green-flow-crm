@@ -444,20 +444,45 @@ export default function ContractDetail() {
               toast.success(`${toAdd.length} service(s) added`);
               load();
             }}>Add All</Button>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <Dialog open={addOpen} onOpenChange={handleAddDialogOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add Line Item</DialogTitle></DialogHeader>
               <form onSubmit={handleAddLine} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Service *</Label>
-                  <Select name="service_id" required>
-                    <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
+                  <Label>Category *</Label>
+                  <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setSelectedServiceId(""); }}>
+                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
-                      {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Service *</Label>
+                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId} disabled={!selectedCategory}>
+                    <SelectTrigger><SelectValue placeholder={selectedCategory ? "Select service" : "Select category first"} /></SelectTrigger>
+                    <SelectContent>
+                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {inventoryItems.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Inventory Item (optional)</Label>
+                    <Select value={selectedInventoryItemId} onValueChange={handleInventorySelect}>
+                      <SelectTrigger><SelectValue placeholder="Link to asset…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">— None —</SelectItem>
+                        {inventoryItems.map(i => (
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.name} — {i.quantity ?? "?"} {i.unit || ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
                   <Label>Frequency</Label>
@@ -472,8 +497,8 @@ export default function ContractDetail() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Quantity *</Label><Input name="quantity" type="number" defaultValue="1" required min="1" /></div>
-                  <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+                  <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
+                  <div className="space-y-2"><Label>Unit</Label><Input value={addFormUnit} onChange={e => setAddFormUnit(e.target.value)} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Unit Price *</Label><Input name="unit_price" type="number" step="0.01" required min="0" placeholder="0.00" /></div>
