@@ -144,7 +144,7 @@ export default function ClientContractDetail() {
   if (!contract) return <p className="text-muted-foreground text-center py-12">Contract not found</p>;
 
   const totalValue = lineItems.reduce((sum, li) => {
-    const price = li.service_catalog?.default_price || 0;
+    const price = li.unit_price != null ? Number(li.unit_price) : (li.service_catalog?.default_price || 0);
     return sum + price * li.quantity;
   }, 0);
 
