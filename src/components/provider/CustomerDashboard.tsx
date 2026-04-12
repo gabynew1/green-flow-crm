@@ -90,6 +90,21 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const expectedThisMonth = Math.round(contractualMonthlyVisits);
   const totalPlannedThisMonth = Math.max(expectedThisMonth, completedThisMonth.length + scheduledThisMonth.length);
 
+  // Calculate total expected visits across full contract duration
+  let totalExpectedVisits = 0;
+  for (const c of activeContracts) {
+    const vfc = c.visit_frequency_count || 0;
+    const vft = c.visit_frequency_type;
+    const cStart = c.start_date ? parseISO(c.start_date) : now;
+    const cEnd = c.end_date ? parseISO(c.end_date) : addMonths(now, 12);
+    if (vft === "WEEK") {
+      totalExpectedVisits += vfc * Math.max(differenceInWeeks(cEnd, cStart), 1);
+    } else if (vft === "MONTH") {
+      totalExpectedVisits += vfc * Math.max(differenceInMonths(cEnd, cStart), 1);
+    }
+  }
+  const totalDeliveredOrScheduled = completedVisits.length + allScheduled.length;
+
   // ── Financial Metrics ──
   const contractLinesByContract = new Map<string, any[]>();
   for (const li of allLineItems) {
