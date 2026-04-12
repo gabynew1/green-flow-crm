@@ -52,6 +52,26 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     setConsumptionData(cMap);
   };
 
+  const loadCurrency = async () => {
+    // Get tenant_id from the first contract's property
+    if (activeContracts.length === 0) return;
+    const { data: prop } = await supabase
+      .from("properties")
+      .select("tenant_id")
+      .eq("id", activeContracts[0].property_id)
+      .single();
+    if (prop?.tenant_id) {
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("currency")
+        .eq("id", prop.tenant_id)
+        .single();
+      if (tenant && (tenant as any).currency) {
+        setTenantCurrency((tenant as any).currency as CurrencyCode);
+      }
+    }
+  };
+
   const now = new Date();
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
