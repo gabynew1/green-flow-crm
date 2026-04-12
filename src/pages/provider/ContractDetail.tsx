@@ -208,18 +208,56 @@ export default function ContractDetail() {
     }
   };
 
+  const loadInventoryItems = async () => {
+    if (!contract?.properties?.id) return;
+    const { data: inv } = await supabase.from("inventory").select("id").eq("property_id", (contract.properties as any).id).maybeSingle();
+    if (inv) {
+      const { data: items } = await supabase.from("inventory_items").select("*").eq("inventory_id", inv.id).order("name");
+      setInventoryItems(items ?? []);
+    } else {
+      setInventoryItems([]);
+    }
+  };
+
+  const handleAddDialogOpen = (open: boolean) => {
+    setAddOpen(open);
+    if (open) {
+      setSelectedCategory("");
+      setSelectedServiceId("");
+      setSelectedInventoryItemId("");
+      setAddFormQty("1");
+      setAddFormUnit("visit");
+      loadInventoryItems();
+    }
+  };
+
+  const categories = [...new Set(catalog.map(s => s.code))].sort();
+  const filteredServices = selectedCategory ? catalog.filter(s => s.code === selectedCategory) : [];
+
+  const handleInventorySelect = (itemId: string) => {
+    setSelectedInventoryItemId(itemId);
+    if (itemId) {
+      const item = inventoryItems.find(i => i.id === itemId);
+      if (item) {
+        setAddFormQty(String(item.quantity ?? 1));
+        setAddFormUnit(item.unit || "count");
+      }
+    }
+  };
+
   const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
     const maxOcc = form.get("max_occurrences") as string;
     const unitPrice = form.get("unit_price") as string;
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
-      service_catalog_id: form.get("service_id") as string,
+      service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
       frequency_type: form.get("frequency") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
-      quantity: Number(form.get("quantity")) || 1,
-      unit: form.get("unit") as string,
+      quantity: Number(addFormQty) || 1,
+      unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: maxOcc ? Number(maxOcc) : null,
       unit_price: unitPrice ? Number(unitPrice) : null,
