@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
-import { formatCurrency, CurrencyCode } from "@/lib/currency";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -247,7 +248,7 @@ export default function VisitDetail() {
   const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
   const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
   const visitTotal = contractTotal + adHocTotal;
-  const currency: CurrencyCode = "RON"; // TODO: load from tenant
+  const currency = useTenantCurrency();
 
   return (
     <div className="space-y-6">
