@@ -85,7 +85,7 @@ export default function VisitDetail() {
 
     const { data: itms } = await supabase
       .from("service_order_items")
-      .select("*")
+      .select("*, service_catalog(default_price), contract_line_items:contract_line_item_id(unit_price)")
       .eq("service_order_id", visitId!)
       .order("source", { ascending: false });
     setItems(itms ?? []);
