@@ -31,6 +31,7 @@ export default function Settings() {
   const [cui, setCui] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [currency, setCurrency] = useState("RON");
   const [savingCompany, setSavingCompany] = useState(false);
 
   // Team state
@@ -82,13 +83,14 @@ export default function Settings() {
     if (!tenantId) return;
     const { data } = await supabase
       .from("tenants")
-      .select("max_provider_seats, subscription_tier, unique_tenant_id")
+      .select("max_provider_seats, subscription_tier, unique_tenant_id, currency")
       .eq("id", tenantId)
       .single();
     if (data) {
       setMaxSeats(data.max_provider_seats);
       setSubscriptionTier(data.subscription_tier);
       setUniqueTenantId(data.unique_tenant_id || null);
+      setCurrency((data as any).currency || "RON");
     }
   };
 
