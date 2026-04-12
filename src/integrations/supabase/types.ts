@@ -1566,7 +1566,18 @@ export type Database = {
         | "REJECTED"
       frequency_type: "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME"
       inspection_status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "OFFER_GENERATED"
-      inventory_category: "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER"
+      inventory_category:
+        | "TREE"
+        | "LAWN"
+        | "SHRUB"
+        | "FLOWER_BED"
+        | "OTHER"
+        | "HEDGE"
+        | "IRRIGATION"
+        | "PAVING"
+        | "PLANTER"
+        | "LIGHTING"
+        | "FENCE"
       inventory_source: "MANUAL" | "AI_ASSISTED"
       offer_status:
         | "DRAFT"
@@ -1728,7 +1739,19 @@ export const Constants = {
       ],
       frequency_type: ["PER_VISIT", "PER_WEEK", "PER_MONTH", "ONE_TIME"],
       inspection_status: ["DRAFT", "SCHEDULED", "COMPLETED", "OFFER_GENERATED"],
-      inventory_category: ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"],
+      inventory_category: [
+        "TREE",
+        "LAWN",
+        "SHRUB",
+        "FLOWER_BED",
+        "OTHER",
+        "HEDGE",
+        "IRRIGATION",
+        "PAVING",
+        "PLANTER",
+        "LIGHTING",
+        "FENCE",
+      ],
       inventory_source: ["MANUAL", "AI_ASSISTED"],
       offer_status: [
         "DRAFT",
