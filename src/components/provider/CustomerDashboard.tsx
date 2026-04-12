@@ -59,6 +59,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
 
   // ── Delivery Metrics ──
   const completedVisits = visits.filter(v => v.status === "COMPLETED");
+  const allScheduled = visits.filter(v => v.status === "SCHEDULED");
   const completedThisMonth = completedVisits.filter(v => {
     const d = v.performed_date || v.scheduled_date;
     return d && isWithinInterval(parseISO(d), { start: monthStart, end: monthEnd });
@@ -67,13 +68,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     const d = v.performed_date || v.scheduled_date;
     return d && isWithinInterval(parseISO(d), { start: yearStart, end: yearEnd });
   });
-  const scheduledThisMonth = visits.filter(v => {
-    return v.status === "SCHEDULED" && v.scheduled_date &&
+  const scheduledThisMonth = allScheduled.filter(v => {
+    return v.scheduled_date &&
       isWithinInterval(parseISO(v.scheduled_date), { start: monthStart, end: monthEnd });
   });
-  const scheduledNextMonth = visits.filter(v => {
-    return v.status === "SCHEDULED" && v.scheduled_date &&
+  const scheduledNextMonth = allScheduled.filter(v => {
+    return v.scheduled_date &&
       isWithinInterval(parseISO(v.scheduled_date), { start: nextMonthStart, end: nextMonthEnd });
+  });
+  const overdueVisits = allScheduled.filter(v => {
+    return v.scheduled_date && parseISO(v.scheduled_date) < monthStart;
   });
   const totalPlannedThisMonth = completedThisMonth.length + scheduledThisMonth.length;
 
@@ -157,7 +161,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {/* Overdue */}
+            {overdueVisits.length > 0 && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-[11px] text-destructive uppercase tracking-wide font-medium">Overdue</p>
+                <p className="text-2xl font-bold mt-1 text-destructive">{overdueVisits.length}</p>
+                <p className="text-xs text-destructive/70">past due date</p>
+              </div>
+            )}
+
             {/* This Month */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">This Month</p>
@@ -174,13 +187,6 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               )}
             </div>
 
-            {/* Remaining this month */}
-            <div className="rounded-lg border p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Remaining</p>
-              <p className="text-2xl font-bold mt-1 text-warning">{scheduledThisMonth.length}</p>
-              <p className="text-xs text-muted-foreground">due this month</p>
-            </div>
-
             {/* Next Month */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Next Month</p>
@@ -188,7 +194,14 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               <p className="text-xs text-muted-foreground">scheduled</p>
             </div>
 
-            {/* YTD */}
+            {/* Total Upcoming */}
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Upcoming</p>
+              <p className="text-2xl font-bold mt-1 text-primary">{allScheduled.length}</p>
+              <p className="text-xs text-muted-foreground">visits scheduled</p>
+            </div>
+
+            {/* YTD Completed */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Year to Date</p>
               <p className="text-2xl font-bold mt-1">{completedThisYear.length}</p>
