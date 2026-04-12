@@ -39,7 +39,8 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [name, setName] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = "";
+  const [alsoCreateInventory, setAlsoCreateInventory] = useState(false);
 
   // Contract-specific state
   const [startDate, setStartDate] = useState("");
