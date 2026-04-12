@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Lock } from "lucide-react";
+import { Lock, Eye, EyeOff } from "lucide-react";
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{6,}$/;
 
@@ -16,6 +16,9 @@ export default function ChangePasswordCard() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +35,6 @@ export default function ChangePasswordCard() {
 
     setSaving(true);
 
-    // Verify old password
     const { error: signInErr } = await supabase.auth.signInWithPassword({
       email: profile.email,
       password: oldPassword,
@@ -43,7 +45,6 @@ export default function ChangePasswordCard() {
       return;
     }
 
-    // Update password
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       toast.error("Failed to update password: " + error.message);
@@ -55,6 +56,18 @@ export default function ChangePasswordCard() {
     }
     setSaving(false);
   };
+
+  const eyeButton = (show: boolean, toggle: () => void) => (
+    <button
+      type="button"
+      onClick={toggle}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+      tabIndex={-1}
+      aria-label={show ? "Hide password" : "Show password"}
+    >
+      {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </button>
+  );
 
   return (
     <Card>
@@ -69,37 +82,49 @@ export default function ChangePasswordCard() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="currentPassword">Current Password</Label>
-            <Input
-              id="currentPassword"
-              type="password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              placeholder="Enter current password"
-              required
-            />
+            <div className="relative">
+              <Input
+                id="currentPassword"
+                type={showOld ? "text" : "password"}
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                placeholder="Enter current password"
+                required
+                className="pr-10"
+              />
+              {eyeButton(showOld, () => setShowOld(!showOld))}
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="selfNewPassword">New Password</Label>
-              <Input
-                id="selfNewPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min 6 chars, 1 uppercase, 1 number"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="selfNewPassword"
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 6 chars, 1 uppercase, 1 number"
+                  required
+                  className="pr-10"
+                />
+                {eyeButton(showNew, () => setShowNew(!showNew))}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="selfConfirmPassword">Confirm New Password</Label>
-              <Input
-                id="selfConfirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter new password"
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="selfConfirmPassword"
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  required
+                  className="pr-10"
+                />
+                {eyeButton(showConfirm, () => setShowConfirm(!showConfirm))}
+              </div>
             </div>
           </div>
           <Button type="submit" disabled={saving}>
