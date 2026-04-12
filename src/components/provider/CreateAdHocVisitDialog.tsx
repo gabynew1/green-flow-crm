@@ -299,7 +299,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl w-[95vw] h-[95vh] max-h-[95vh] overflow-y-auto flex flex-col">
         <DialogHeader>
           <DialogTitle>Create Visit</DialogTitle>
           <DialogDescription>
