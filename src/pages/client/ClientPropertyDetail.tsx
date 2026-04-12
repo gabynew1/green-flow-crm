@@ -58,7 +58,7 @@ export default function ClientPropertyDetail() {
       .from("service_orders")
       .select("id, scheduled_date, period_label, status")
       .eq("property_id", propertyId!)
-      .order("scheduled_date", { ascending: false })
+      .order("scheduled_date", { ascending: true })
       .limit(5);
     setRecentVisits(visits ?? []);
 

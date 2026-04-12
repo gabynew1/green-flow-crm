@@ -56,7 +56,7 @@ export default function ServiceVisits() {
     const { data } = await supabase
       .from("service_orders")
       .select("*, properties(name, customers(name)), teams(id, name, color)")
-      .order("scheduled_date", { ascending: false });
+      .order("scheduled_date", { ascending: true });;
     setOrders(data ?? []);
   };
 

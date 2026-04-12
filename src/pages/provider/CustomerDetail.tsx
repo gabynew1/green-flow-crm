@@ -88,7 +88,7 @@ export default function CustomerDetail() {
         .from("service_orders")
         .select("*, properties(name)")
         .in("property_id", propIds)
-        .order("scheduled_date", { ascending: false });
+        .order("scheduled_date", { ascending: true });;
       setVisits(visitData ?? []);
     } else {
       setVisits([]);
