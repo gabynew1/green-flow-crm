@@ -21,12 +21,15 @@ import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
   const { user, tenantId } = useAuth();
   const navigate = useNavigate();
   const { isWorkday } = useWorkdays(tenantId);
+  const currency = useTenantCurrency();
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -46,7 +49,6 @@ export default function ContractDetail() {
       .eq("id", contractId!)
       .single();
     setContract(c);
-
     const { data: li } = await supabase
       .from("contract_line_items")
       .select("*, service_catalog(name, code)")
@@ -483,11 +485,11 @@ export default function ContractDetail() {
                         }}
                       />
                     ) : (
-                      <span>{li.unit_price != null ? `$${Number(li.unit_price).toFixed(2)}` : "—"}</span>
+                      <span>{li.unit_price != null ? formatCurrency(Number(li.unit_price), currency) : "—"}</span>
                     )}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {li.unit_price != null ? `$${(Number(li.unit_price) * Number(li.quantity)).toFixed(2)}` : "—"}
+                    {li.unit_price != null ? formatCurrency(Number(li.unit_price) * Number(li.quantity), currency) : "—"}
                   </TableCell>
                   <TableCell>
                     {editable ? (
@@ -521,7 +523,7 @@ export default function ContractDetail() {
           {lineItems.some(li => li.unit_price != null) && (
             <div className="border-t px-4 py-2 flex justify-between text-sm font-semibold">
               <span>Contract Total</span>
-              <span>${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</span>
+              <span>{formatCurrency(lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0), currency)}</span>
             </div>
           )}
         </div>
