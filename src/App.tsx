@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 import Auth from "./pages/Auth";
+import ChangePassword from "./pages/ChangePassword";
 import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import { ProviderLayout } from "./components/provider/ProviderLayout";
@@ -55,7 +56,7 @@ const queryClient = new QueryClient();
 
 
 function AppRoutes(): JSX.Element {
-  const { user, isProvider, isClient, isSuperAdmin, isLoading, signOut } = useAuth();
+  const { user, isProvider, isClient, isSuperAdmin, isLoading, signOut, profile } = useAuth();
 
   if (isLoading) {
     return (
@@ -74,6 +75,16 @@ function AppRoutes(): JSX.Element {
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/onboard" element={<AdminOnboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  // Force password change if temporary_password is set
+  if (profile?.temporary_password) {
+    return (
+      <Routes>
+        <Route path="/change-password" element={<ChangePassword />} />
+        <Route path="*" element={<Navigate to="/change-password" replace />} />
       </Routes>
     );
   }
