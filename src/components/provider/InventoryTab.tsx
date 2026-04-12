@@ -12,7 +12,9 @@ import { Plus, Trees, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 
-const CATEGORIES = ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "OTHER"] as const;
+const CATEGORIES = ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "HEDGE", "IRRIGATION", "PAVING", "PLANTER", "LIGHTING", "FENCE", "OTHER"] as const;
+
+const UNITS = ["count", "m²", "linear_m", "hectare", "zone", "unit", "lot"] as const;
 
 interface InventoryTabProps {
   propertyId: string;
