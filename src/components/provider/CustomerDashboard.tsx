@@ -58,8 +58,11 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const nextMonthEnd = endOfMonth(addMonths(now, 1));
 
   // ── Delivery Metrics ──
-  const completedVisits = visits.filter(v => v.status === "COMPLETED");
-  const allScheduled = visits.filter(v => v.status === "SCHEDULED");
+  // Only count active visits (exclude CANCELED, SENT_TO_CLIENT)
+  const activeStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED"];
+  const activeVisits = visits.filter(v => activeStatuses.includes(v.status));
+  const completedVisits = activeVisits.filter(v => v.status === "COMPLETED");
+  const allScheduled = activeVisits.filter(v => v.status === "SCHEDULED" || v.status === "IN_PROGRESS");
   const completedThisMonth = completedVisits.filter(v => {
     const d = v.performed_date || v.scheduled_date;
     return d && isWithinInterval(parseISO(d), { start: monthStart, end: monthEnd });
@@ -91,6 +94,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const totalPlannedThisMonth = Math.max(expectedThisMonth, completedThisMonth.length + scheduledThisMonth.length);
 
   // Calculate total expected visits across full contract duration
+  // Use ceil to count partial months as full periods
   let totalExpectedVisits = 0;
   for (const c of activeContracts) {
     const vfc = c.visit_frequency_count || 0;
@@ -100,7 +104,10 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     if (vft === "WEEK") {
       totalExpectedVisits += vfc * Math.max(differenceInWeeks(cEnd, cStart), 1);
     } else if (vft === "MONTH") {
-      totalExpectedVisits += vfc * Math.max(differenceInMonths(cEnd, cStart), 1);
+      // Count partial months: use Math.ceil on day-based calculation
+      const days = (cEnd.getTime() - cStart.getTime()) / (1000 * 60 * 60 * 24);
+      const months = Math.ceil(days / 30.44);
+      totalExpectedVisits += vfc * Math.max(months, 1);
     }
   }
   const totalDeliveredOrScheduled = completedVisits.length + allScheduled.length;
