@@ -193,7 +193,16 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
         toast.success("Inspection created!");
         resetForm();
         onOpenChange(false);
-        navigate(`/provider/inspections/${data.id}`);
+        if (alsoCreateInventory) {
+          // Ensure inventory record exists for the property
+          const { data: existingInv } = await supabase.from("inventory").select("id").eq("property_id", data.property_id).maybeSingle();
+          if (!existingInv) {
+            await supabase.from("inventory").insert({ property_id: data.property_id });
+          }
+          navigate(`/provider/properties/${data.property_id}`);
+        } else {
+          navigate(`/provider/inspections/${data.id}`);
+        }
       } else if (type === "offer") {
         const { data, error } = await supabase.from("offers").insert({
           offer_name: name.trim(),
