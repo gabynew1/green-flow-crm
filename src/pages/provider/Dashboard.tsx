@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenantQuery } from "@/lib/supabase-tenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight, Shovel } from "lucide-react";
+import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight, Shovel, ShieldAlert } from "lucide-react";
 import { format, differenceInDays, subDays } from "date-fns";
 import { Link } from "react-router-dom";
+import { getOverScopeCount } from "@/lib/contract-consumption";
 import { Button } from "@/components/ui/button";
 
 interface KPIs {
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [pendingReviews, setPendingReviews] = useState<any[]>([]);
   const [recentFeedback, setRecentFeedback] = useState<any[]>([]);
   const [expiringContracts, setExpiringContracts] = useState<any[]>([]);
+  const [overScopeCount, setOverScopeCount] = useState(0);
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -99,6 +101,12 @@ export default function Dashboard() {
     setPendingReviews(pendingRevRes.data ?? []);
     setRecentFeedback(fbRes.data ?? []);
     setExpiringContracts(expiringRes.data ?? []);
+
+    // Over-scope alerts
+    try {
+      const osc = await getOverScopeCount();
+      setOverScopeCount(osc);
+    } catch { /* non-critical */ }
   };
 
   const kpiCards = [
@@ -158,6 +166,21 @@ export default function Dashboard() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* SLA Alerts */}
+        {overScopeCount > 0 && (
+          <Card className="border-warning/30 bg-warning/5">
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-warning"><ShieldAlert className="h-4 w-4" /> Over-Scope Services</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-sm">
+                <span className="font-bold">{overScopeCount}</span> contract service(s) have exceeded their allowed usage this period.
+                Review contracts for potential billing adjustments.
+              </p>
+              <Link to="/provider/contracts">
+                <Button size="sm" variant="link" className="px-0 text-warning pt-2">View Contracts <ArrowRight className="h-3 w-3 ml-1" /></Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
         {kpis.staleInspections > 0 && (
           <Card className="border-destructive/30 bg-destructive/5">
             <CardHeader><CardTitle className="text-base flex items-center gap-2 text-destructive"><AlertTriangle className="h-4 w-4" /> SLA Alerts: Stale Inspections</CardTitle></CardHeader>

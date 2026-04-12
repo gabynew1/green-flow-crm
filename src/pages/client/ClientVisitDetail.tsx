@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Check, X, Star } from "lucide-react";
 import { toast } from "sonner";
+import { getVisitScopeStatus } from "@/lib/contract-consumption";
 
 export default function ClientVisitDetail() {
   const { visitId } = useParams();
@@ -19,6 +20,7 @@ export default function ClientVisitDetail() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [existingFeedback, setExistingFeedback] = useState<any>(null);
+  const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
   const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => { load(); }, [visitId]);
@@ -42,6 +44,13 @@ export default function ClientVisitDetail() {
       .select("*")
       .eq("service_order_id", visitId!)
       .maybeSingle();
+    // Load scope status
+    if (o?.contract_id) {
+      const { data: ctr } = await supabase.from("contracts").select("start_date, end_date").eq("id", o.contract_id).single();
+      const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
+      setScopeMap(sm);
+    }
+
     if (fb) {
       setExistingFeedback(fb);
       setRating(fb.rating_stars);
@@ -131,15 +140,29 @@ export default function ClientVisitDetail() {
         <Card>
           <CardHeader><CardTitle className="text-base">Contract Services</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {contractItems.map(i => (
-              <div key={i.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
-                <div className="flex items-center gap-2">
-                  {i.is_completed && <Check className="h-4 w-4 text-success" />}
-                  <span>{i.name}</span>
+            {contractItems.map(i => {
+              const scope = scopeMap.get(i.id);
+              return (
+                <div key={i.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    {i.is_completed && <Check className="h-4 w-4 text-success" />}
+                    <span>{i.name}</span>
+                    {scope?.max != null && (
+                      <Badge
+                        variant={scope.inScope ? "default" : "destructive"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {scope.inScope ? "In Scope" : "Extra"}
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-muted-foreground">
+                    {i.quantity} {i.unit}
+                    {scope?.max != null && <span className="ml-1 text-xs">({scope.consumed}/{scope.max})</span>}
+                  </span>
                 </div>
-                <span className="text-muted-foreground">{i.quantity} {i.unit}</span>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}

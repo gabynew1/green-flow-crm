@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { getContractConsumption, type LineItemConsumption } from "@/lib/contract-consumption";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +30,7 @@ export default function ContractDetail() {
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
+  const [consumption, setConsumption] = useState<LineItemConsumption[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
@@ -53,6 +56,12 @@ export default function ContractDetail() {
 
     const { data: cat } = await supabase.from("service_catalog").select("*").eq("is_active", true).order("name");
     setCatalog(cat ?? []);
+
+    // Load consumption data for active contracts
+    if (c && ["ACTIVE", "SIGNED"].includes(c.status)) {
+      const cons = await getContractConsumption(contractId!, c.start_date, c.end_date);
+      setConsumption(cons);
+    }
   };
 
   const loadTeams = async () => {
@@ -194,6 +203,7 @@ export default function ContractDetail() {
   const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const maxOcc = form.get("max_occurrences") as string;
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: form.get("service_id") as string,
@@ -202,7 +212,8 @@ export default function ContractDetail() {
       quantity: Number(form.get("quantity")) || 1,
       unit: form.get("unit") as string,
       notes: (form.get("notes") as string) || null,
-    }]);
+      max_occurrences_per_period: maxOcc ? Number(maxOcc) : null,
+    }] as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
     setAddOpen(false);
@@ -412,9 +423,10 @@ export default function ContractDetail() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
                   <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+                  <div className="space-y-2"><Label>Max / Period</Label><Input name="max_occurrences" type="number" placeholder="∞" /></div>
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
@@ -432,10 +444,11 @@ export default function ContractDetail() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Service</TableHead>
+             <TableHead>Service</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit</TableHead>
+                <TableHead>Max/Period</TableHead>
                 <TableHead>Notes</TableHead>
                 {editable && <TableHead />}
               </TableRow>
@@ -447,6 +460,25 @@ export default function ContractDetail() {
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
                   <TableCell>{li.unit}</TableCell>
+                  <TableCell>
+                    {editable ? (
+                      <Input
+                        type="number"
+                        className="h-7 w-16 text-xs"
+                        placeholder="∞"
+                        defaultValue={li.max_occurrences_per_period ?? ""}
+                        onBlur={async (e) => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          if (val === li.max_occurrences_per_period) return;
+                          await supabase.from("contract_line_items").update({ max_occurrences_per_period: val } as any).eq("id", li.id);
+                          toast.success("Max updated");
+                          load();
+                        }}
+                      />
+                    ) : (
+                      <span>{li.max_occurrences_per_period ?? "∞"}</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{li.notes || "—"}</TableCell>
                   {editable && (
                     <TableCell>
@@ -458,6 +490,35 @@ export default function ContractDetail() {
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {/* Consumption Summary */}
+      {["ACTIVE", "SIGNED"].includes(contract?.status) && consumption.length > 0 && consumption.some(c => c.maxOccurrences !== null) && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Consumption Summary</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {consumption.filter(c => c.maxOccurrences !== null).map(c => {
+              const pct = c.maxOccurrences! > 0 ? Math.min(100, (c.consumed / c.maxOccurrences!) * 100) : 0;
+              return (
+                <div key={c.lineItemId} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{c.serviceName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">{c.consumed}/{c.maxOccurrences} {c.periodLabel}</span>
+                      <Badge
+                        variant={c.isOverScope ? "destructive" : "default"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {c.isOverScope ? "Over Scope" : "In Scope"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

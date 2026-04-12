@@ -103,6 +103,7 @@ export type Database = {
           custom_name: string | null
           frequency_type: Database["public"]["Enums"]["frequency_type"]
           id: string
+          max_occurrences_per_period: number | null
           notes: string | null
           quantity: number
           service_catalog_id: string
@@ -115,6 +116,7 @@ export type Database = {
           custom_name?: string | null
           frequency_type?: Database["public"]["Enums"]["frequency_type"]
           id?: string
+          max_occurrences_per_period?: number | null
           notes?: string | null
           quantity?: number
           service_catalog_id: string
@@ -127,6 +129,7 @@ export type Database = {
           custom_name?: string | null
           frequency_type?: Database["public"]["Enums"]["frequency_type"]
           id?: string
+          max_occurrences_per_period?: number | null
           notes?: string | null
           quantity?: number
           service_catalog_id?: string
