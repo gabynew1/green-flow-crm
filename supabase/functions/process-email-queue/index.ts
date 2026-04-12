@@ -7,12 +7,35 @@ const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
 
+// Apply tenant branding to From and Subject when tenant_name is present
+function applyTenantBranding(payload: Record<string, unknown>): { from: string; subject: string } {
+  const tenantName = payload.tenant_name as string | undefined
+  let from = payload.from as string
+  let subject = payload.subject as string
+
+  if (tenantName) {
+    // Rewrite From: "TenantName via GreenGrass CRM" <noreply@greengrasscrm.ro>
+    const emailMatch = from.match(/<([^>]+)>/)
+    const email = emailMatch ? emailMatch[1] : from
+    from = `"${tenantName} via GreenGrass CRM" <${email}>`
+
+    // Prefix subject: [TenantName] Original Subject
+    if (!subject.startsWith(`[${tenantName}]`)) {
+      subject = `[${tenantName}] ${subject}`
+    }
+  }
+
+  return { from, subject }
+}
+
 // Send an email via the Resend connector gateway
 async function sendViaResend(
   payload: Record<string, unknown>,
   lovableApiKey: string,
   resendApiKey: string
 ): Promise<void> {
+  const { from, subject } = applyTenantBranding(payload)
+
   const response = await fetch(`${GATEWAY_URL}/emails`, {
     method: 'POST',
     headers: {
@@ -21,9 +44,9 @@ async function sendViaResend(
       'X-Connection-Api-Key': resendApiKey,
     },
     body: JSON.stringify({
-      from: payload.from as string,
+      from,
       to: [payload.to as string],
-      subject: payload.subject as string,
+      subject,
       html: payload.html as string,
       ...(payload.text ? { text: payload.text as string } : {}),
     }),
