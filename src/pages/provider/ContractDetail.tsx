@@ -515,10 +515,19 @@ export default function ContractDetail() {
                   )}
                 </TableRow>
               ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+              {/* Total row */}
+              {lineItems.some(li => li.unit_price != null) && (
+                <tfoot>
+                  <tr className="border-t font-semibold">
+                    <td className="p-2 text-right" colSpan={5}>Contract Total</td>
+                    <td className="p-2">${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</td>
+                    <td colSpan={2} />
+                  </tr>
+                </tfoot>
+              )}
+            </Table>
+          </div>
+        )}
 
       {/* Consumption Summary */}
       {["ACTIVE", "SIGNED"].includes(contract?.status) && consumption.length > 0 && consumption.some(c => c.maxOccurrences !== null) && (
