@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins } from "lucide-react";
+import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins, KeyRound } from "lucide-react";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
+import ChangePasswordCard from "@/components/ChangePasswordCard";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
@@ -48,6 +49,10 @@ export default function Settings() {
   const [invitePermission, setInvitePermission] = useState("field_staff");
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ email: string; password: string } | null>(null);
+
+  // Reset password state
+  const [resetResult, setResetResult] = useState<{ name: string; password: string } | null>(null);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
 
   // Load company info from profile
   useEffect(() => {
@@ -169,6 +174,19 @@ export default function Settings() {
       toast.success("Permission updated");
       loadTeam();
     }
+  };
+
+  const handleResetPassword = async (member: TeamMember) => {
+    setResettingUserId(member.user_id);
+    const { data, error } = await supabase.functions.invoke("reset-user-password", {
+      body: { target_user_id: member.user_id },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Failed to reset password");
+    } else {
+      setResetResult({ name: member.full_name || member.email || "User", password: data.temporary_password });
+    }
+    setResettingUserId(null);
   };
 
   const seatLimitReached = teamMembers.length >= maxSeats;
@@ -430,7 +448,18 @@ export default function Settings() {
                   <div className="flex items-center gap-2">
                     {member.user_id === user?.id ? (
                       <Badge variant="secondary" className="text-xs">You</Badge>
-                    ) : null}
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs gap-1"
+                        disabled={resettingUserId === member.user_id}
+                        onClick={() => handleResetPassword(member)}
+                      >
+                        <KeyRound className="h-3 w-3" />
+                        {resettingUserId === member.user_id ? "Resetting…" : "Reset Password"}
+                      </Button>
+                    )}
                     <Select
                       value={member.provider_permission || "full_admin"}
                       onValueChange={(val) => handleUpdatePermission(member.id, member.user_id, val)}
@@ -451,6 +480,37 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Reset Password Result Dialog */}
+      <Dialog open={!!resetResult} onOpenChange={(open) => { if (!open) setResetResult(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Password Reset</DialogTitle>
+            <DialogDescription>New temporary password for {resetResult?.name}. Share it securely.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Temporary Password</span>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-medium">{resetResult?.password}</code>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { navigator.clipboard.writeText(resetResult?.password || ""); toast.success("Copied"); }}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            The user will be required to change this password on next login.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetResult(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Your Password */}
+      <ChangePasswordCard />
 
       {/* Teams */}
       <TeamManager tenantId={tenantId} />

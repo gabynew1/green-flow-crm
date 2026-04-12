@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import {
   User, Phone, Mail, Hash, Pencil, Save, X, Building2, HelpCircle, MapPin,
 } from "lucide-react";
+import ChangePasswordCard from "@/components/ChangePasswordCard";
 
 type ClientType = "individual" | "company";
 
@@ -428,6 +429,9 @@ export default function ClientProfile() {
           </Button>
         </div>
       )}
+
+      {/* Change Password */}
+      {!editing && <ChangePasswordCard />}
     </div>
   );
 }
