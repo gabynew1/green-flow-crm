@@ -626,22 +626,26 @@ export default function VisitDetail() {
             Additional Services
             <Badge variant="secondary" className="text-xs text-warning">Extra billing</Badge>
           </p>
-          {adHocItems.map(item => (
-            <Card key={item.id}>
-              <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                <Checkbox
-                  checked={item.is_completed}
-                  onCheckedChange={() => toggleItem(item.id, item.is_completed)}
-                  disabled={isCompleted}
-                />
-                <div className="flex-1">
-                  <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
-                </div>
-                <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
-              </CardContent>
-            </Card>
-          ))}
+          {adHocItems.map(item => {
+            const cost = getItemCost(item);
+            return (
+              <Card key={item.id}>
+                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                  <Checkbox
+                    checked={item.is_completed}
+                    onCheckedChange={() => toggleItem(item.id, item.is_completed)}
+                    disabled={isCompleted}
+                  />
+                  <div className="flex-1">
+                    <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
+                  </div>
+                  <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
+                  <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
