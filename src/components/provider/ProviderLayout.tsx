@@ -1,13 +1,16 @@
+import { useState } from "react";
 import { Outlet, Link } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ProviderSidebar } from "./ProviderSidebar";
 import { AIChatBox } from "@/components/AIChatBox";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, ClipboardCheck, FileOutput, LayoutDashboard } from "lucide-react";
+import CreateAdHocVisitDialog from "./CreateAdHocVisitDialog";
 
 export function ProviderLayout() {
   const { profile } = useAuth();
   const workspaceLabel = (profile as any)?.company_name || "Provider Workspace";
+  const [quickVisitOpen, setQuickVisitOpen] = useState(false);
 
   return (
     <SidebarProvider>
@@ -33,15 +36,20 @@ export function ProviderLayout() {
             <ClipboardCheck className="h-5 w-5" />
             <span className="text-[10px]">Pipeline</span>
           </Link>
-          <div className="bg-primary text-primary-foreground p-3 rounded-full -mt-10 shadow-lg border-4 border-background">
+          <button
+            onClick={() => setQuickVisitOpen(true)}
+            className="bg-primary text-primary-foreground p-3 rounded-full -mt-10 shadow-lg border-4 border-background"
+          >
             <Plus className="h-6 w-6" />
-          </div>
+          </button>
           <Link to="/provider/offers" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
             <FileOutput className="h-5 w-5" />
             <span className="text-[10px]">Offers</span>
           </Link>
           <AIChatBox mobileTriggerOnly />
         </div>
+
+        <CreateAdHocVisitDialog open={quickVisitOpen} onOpenChange={setQuickVisitOpen} />
 
         <div className="hidden md:block">
           <AIChatBox />
