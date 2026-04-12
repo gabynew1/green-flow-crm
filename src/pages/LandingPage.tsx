@@ -181,11 +181,16 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-    if (exists) {
-      navigate(`/auth?email=${encodeURIComponent(email)}`);
-    } else {
-      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    setHeroLoading(true);
+    try {
+      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+      if (exists) {
+        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
+      } else {
+        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+      }
+    } finally {
+      setHeroLoading(false);
     }
   };
 
@@ -199,12 +204,17 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setStartFreeOpen(false);
-    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-    if (exists) {
-      navigate(`/auth?email=${encodeURIComponent(email)}`);
-    } else {
-      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    setStartFreeLoading(true);
+    try {
+      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+      setStartFreeOpen(false);
+      if (exists) {
+        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
+      } else {
+        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+      }
+    } finally {
+      setStartFreeLoading(false);
     }
   };
 
