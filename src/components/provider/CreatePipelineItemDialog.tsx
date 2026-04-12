@@ -471,6 +471,20 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
             </div>
           )}
 
+          {type === "inspection" && selectedPropertyId && (
+            <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/30">
+              <Checkbox
+                id="also-inventory"
+                checked={alsoCreateInventory}
+                onCheckedChange={(v) => setAlsoCreateInventory(!!v)}
+              />
+              <label htmlFor="also-inventory" className="text-sm cursor-pointer leading-tight">
+                Also set up property inventory
+                <span className="block text-xs text-muted-foreground mt-0.5">You'll be taken to the property page to add trees, lawns, etc.</span>
+              </label>
+            </div>
+          )}
+
           <Button className="w-full" onClick={handleCreate} disabled={saving}>
             {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating…</> : `Create ${label}`}
           </Button>
