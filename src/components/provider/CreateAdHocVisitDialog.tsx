@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useWorkdays } from "@/hooks/useWorkdays";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -423,6 +424,8 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
+                    modifiers={{ nonWorkday: (date) => !isWorkday(date) }}
+                    modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }}
                   />
                 </PopoverContent>
               </Popover>
