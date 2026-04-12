@@ -74,6 +74,34 @@ export default function ClientOfferDetail() {
       await supabase.from("contract_line_items").insert(contractLines);
     }
 
+    // Notify provider
+    if (offer) {
+      const { data: offerFull } = await supabase.from("offers").select("tenant_id").eq("id", offerId!).single();
+      if (offerFull?.tenant_id) {
+        const { data: providerProfiles } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("tenant_id", offerFull.tenant_id)
+          .not("email", "is", null)
+          .limit(1);
+        const providerEmail = providerProfiles?.[0]?.email;
+        if (providerEmail) {
+          const { sendAppEmail } = await import("@/lib/send-app-email");
+          sendAppEmail({
+            templateName: "offer-response",
+            recipientEmail: providerEmail,
+            idempotencyKey: `offer-response-accepted-${offerId}`,
+            templateData: {
+              offerName: offer.offer_name,
+              propertyName: offer.properties?.name,
+              clientName: user?.user_metadata?.full_name || user?.email,
+              response: "accepted",
+            },
+          });
+        }
+      }
+    }
+
     toast.success("Offer accepted!");
     load();
   };
@@ -83,6 +111,36 @@ export default function ClientOfferDetail() {
       status: "REJECTED", rejection_comment: rejectComment.trim() || null,
     } as any).eq("id", offerId!);
     if (error) { toast.error(error.message); return; }
+
+    // Notify provider
+    if (offer) {
+      const { data: offerFull } = await supabase.from("offers").select("tenant_id").eq("id", offerId!).single();
+      if (offerFull?.tenant_id) {
+        const { data: providerProfiles } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("tenant_id", offerFull.tenant_id)
+          .not("email", "is", null)
+          .limit(1);
+        const providerEmail = providerProfiles?.[0]?.email;
+        if (providerEmail) {
+          const { sendAppEmail } = await import("@/lib/send-app-email");
+          sendAppEmail({
+            templateName: "offer-response",
+            recipientEmail: providerEmail,
+            idempotencyKey: `offer-response-rejected-${offerId}`,
+            templateData: {
+              offerName: offer.offer_name,
+              propertyName: offer.properties?.name,
+              clientName: user?.user_metadata?.full_name || user?.email,
+              response: "rejected",
+              rejectionComment: rejectComment.trim() || undefined,
+            },
+          });
+        }
+      }
+    }
+
     toast.success("Offer rejected");
     setRejectOpen(false);
     load();

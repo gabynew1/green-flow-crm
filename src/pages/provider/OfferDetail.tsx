@@ -101,6 +101,37 @@ export default function OfferDetail() {
     try {
       await WorkflowEngine.transitionOffer(offerId!, status);
       toast.success(`Offer ${statusLabels[status]?.toLowerCase() || status}`);
+
+      // Send email when offer is sent to client
+      if (status === "SENT_TO_CLIENT" && offer) {
+        const customerId = (offer.properties as any)?.customers?.id || offer.customer_id;
+        if (customerId) {
+          const { data: clientProfile } = await supabase
+            .from("profiles")
+            .select("email")
+            .eq("customer_id", customerId)
+            .maybeSingle();
+          const { data: tenant } = offer.tenant_id
+            ? await supabase.from("tenants").select("name").eq("id", offer.tenant_id).single()
+            : { data: null };
+          if (clientProfile?.email) {
+            const { sendAppEmail } = await import("@/lib/send-app-email");
+            sendAppEmail({
+              templateName: "offer-sent",
+              recipientEmail: clientProfile.email,
+              idempotencyKey: `offer-sent-${offerId}`,
+              templateData: {
+                offerName: offer.offer_name,
+                propertyName: (offer.properties as any)?.name,
+                providerName: tenant?.name,
+                totalValue: offer.total_value,
+                validUntil: offer.valid_until,
+              },
+            });
+          }
+        }
+      }
+
       load();
     } catch (e) {
       // Error handled by engine
