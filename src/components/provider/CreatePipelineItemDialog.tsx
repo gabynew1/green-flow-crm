@@ -120,6 +120,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
     setSelectedPropertyIds([]);
     setName("");
     setNotes("");
+    setAlsoCreateInventory(false);
     setStartDate("");
     setEndDate("");
     setBillingCycle("MONTHLY");
