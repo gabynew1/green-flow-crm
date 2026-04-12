@@ -608,8 +608,39 @@ export default function VisitDetail() {
       </Card>
 
       {/* Save button */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         <Button onClick={saveAll}><Save className="h-4 w-4 mr-2" /> Save Changes</Button>
+        <div className="flex-1" />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2">
+              <Trash2 className="h-4 w-4" /> Delete Visit
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this service visit?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this visit, all its service items, and any associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  await supabase.from("service_order_items").delete().eq("service_order_id", visitId!);
+                  const { error } = await supabase.from("service_orders").delete().eq("id", visitId!);
+                  if (error) { toast.error(error.message); return; }
+                  toast.success("Visit deleted");
+                  navigate("/provider/visits");
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Permanently
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
