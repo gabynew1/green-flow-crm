@@ -202,14 +202,9 @@ export default function CustomerDetail() {
             {hasActiveContract ? "Active" : "Inactive"}
           </Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <Link to={`/provider/customers/${customerId}/manage`}>
-            <Button variant="outline" size="sm">Manage Account</Button>
-          </Link>
-          <Link to={`/provider/customers/${customerId}/manage`}>
-            <Button variant="outline" size="sm">Manage Account</Button>
-          </Link>
-        </div>
+        <Link to={`/provider/customers/${customerId}/manage`}>
+          <Button variant="outline" size="sm">Manage Account</Button>
+        </Link>
       </div>
 
       <Card>
@@ -403,9 +398,9 @@ export default function CustomerDetail() {
                     </p>
                   </div>
                   <Badge variant="secondary" className={
-                    o.status === "COMPLETED" || o.status === "APPROVED" ? "bg-success/10 text-success" :
+                    o.status === "COMPLETED" ? "bg-success/10 text-success" :
                     o.status === "CANCELED" ? "bg-destructive/10 text-destructive" :
-                    o.status === "SENT_TO_CLIENT" ? "bg-warning/10 text-warning" :
+                    o.status === "IN_PROGRESS" ? "bg-info/10 text-info" :
                     "bg-muted text-muted-foreground"
                   }>
                     {o.status.replace(/_/g, " ")}
