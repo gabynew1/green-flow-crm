@@ -240,6 +240,14 @@ export default function ContractDetail() {
   const categories = [...new Set(catalog.map(s => s.code))].sort();
   const filteredServices = selectedCategory ? catalog.filter(s => s.code === selectedCategory) : [];
 
+  const handleServiceSelect = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    const svc = catalog.find(s => s.id === serviceId);
+    if (svc) {
+      if (svc.default_price != null) setAddFormUnitPrice(String(svc.default_price));
+      if (svc.default_unit) setAddFormUnit(svc.default_unit);
+    }
+  };
   const handleInventorySelect = (itemId: string) => {
     setSelectedInventoryItemId(itemId);
     if (itemId) {
