@@ -161,7 +161,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {/* Overdue */}
+            {overdueVisits.length > 0 && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-[11px] text-destructive uppercase tracking-wide font-medium">Overdue</p>
+                <p className="text-2xl font-bold mt-1 text-destructive">{overdueVisits.length}</p>
+                <p className="text-xs text-destructive/70">past due date</p>
+              </div>
+            )}
+
             {/* This Month */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">This Month</p>
@@ -178,13 +187,6 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               )}
             </div>
 
-            {/* Remaining this month */}
-            <div className="rounded-lg border p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Remaining</p>
-              <p className="text-2xl font-bold mt-1 text-warning">{scheduledThisMonth.length}</p>
-              <p className="text-xs text-muted-foreground">due this month</p>
-            </div>
-
             {/* Next Month */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Next Month</p>
@@ -192,7 +194,14 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               <p className="text-xs text-muted-foreground">scheduled</p>
             </div>
 
-            {/* YTD */}
+            {/* Total Upcoming */}
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Upcoming</p>
+              <p className="text-2xl font-bold mt-1 text-primary">{allScheduled.length}</p>
+              <p className="text-xs text-muted-foreground">visits scheduled</p>
+            </div>
+
+            {/* YTD Completed */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Year to Date</p>
               <p className="text-2xl font-bold mt-1">{completedThisYear.length}</p>
