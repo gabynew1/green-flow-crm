@@ -284,7 +284,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Monthly Billing</p>
               <p className="text-xl font-bold mt-1">{fmt(monthlyContractValue)}</p>
-              <p className="text-xs text-muted-foreground">contracted amount</p>
+              <div className="flex gap-3 mt-1.5">
+                <span className="flex items-center gap-1 text-[10px]">
+                  <span className="h-2 w-2 rounded-full bg-primary inline-block" />
+                  Contract {fmt(monthlyContractValue)}
+                </span>
+                <span className="flex items-center gap-1 text-[10px]">
+                  <span className="h-2 w-2 rounded-full bg-warning inline-block" />
+                  Ad-hoc {fmt(0)}
+                </span>
+              </div>
             </div>
 
             {/* YTD Revenue */}
