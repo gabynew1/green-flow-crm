@@ -11,6 +11,7 @@ import {
   BarChart3, Calendar, TrendingUp, Receipt, CheckCircle2, Clock, AlertTriangle,
 } from "lucide-react";
 import { getContractConsumption, LineItemConsumption } from "@/lib/contract-consumption";
+import { formatCurrency, CurrencyCode } from "@/lib/currency";
 
 interface CustomerDashboardProps {
   customerId: string;
@@ -21,6 +22,7 @@ interface CustomerDashboardProps {
 export function CustomerDashboard({ customerId, contracts, visits }: CustomerDashboardProps) {
   const [allLineItems, setAllLineItems] = useState<any[]>([]);
   const [consumptionData, setConsumptionData] = useState<Map<string, LineItemConsumption[]>>(new Map());
+  const [tenantCurrency, setTenantCurrency] = useState<CurrencyCode>("RON");
 
   const activeContracts = useMemo(
     () => contracts.filter(c => c.status === "ACTIVE" || c.status === "SIGNED"),
@@ -29,6 +31,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
 
   useEffect(() => {
     loadData();
+    loadCurrency();
   }, [contracts]);
 
   const loadData = async () => {
@@ -47,6 +50,26 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
       cMap.set(c.id, consumption);
     }
     setConsumptionData(cMap);
+  };
+
+  const loadCurrency = async () => {
+    // Get tenant_id from the first contract's property
+    if (activeContracts.length === 0) return;
+    const { data: prop } = await supabase
+      .from("properties")
+      .select("tenant_id")
+      .eq("id", activeContracts[0].property_id)
+      .single();
+    if (prop?.tenant_id) {
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("currency")
+        .eq("id", prop.tenant_id)
+        .single();
+      if (tenant && (tenant as any).currency) {
+        setTenantCurrency((tenant as any).currency as CurrencyCode);
+      }
+    }
   };
 
   const now = new Date();
@@ -173,8 +196,8 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   }
   const overScopeItems = allConsumption.filter(i => i.isOverScope);
 
-  // Format currency
-  const fmt = (n: number) => new Intl.NumberFormat("ro-RO", { style: "currency", currency: "RON", maximumFractionDigits: 0 }).format(n);
+  // Format currency using tenant setting
+  const fmt = (n: number) => formatCurrency(n, tenantCurrency);
 
   if (activeContracts.length === 0 && visits.length === 0) return null;
 

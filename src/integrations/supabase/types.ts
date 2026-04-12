@@ -1419,6 +1419,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          currency: string
           feature_flags: Json
           id: string
           max_client_seats: number
@@ -1433,6 +1434,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          currency?: string
           feature_flags?: Json
           id?: string
           max_client_seats?: number
@@ -1447,6 +1449,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          currency?: string
           feature_flags?: Json
           id?: string
           max_client_seats?: number

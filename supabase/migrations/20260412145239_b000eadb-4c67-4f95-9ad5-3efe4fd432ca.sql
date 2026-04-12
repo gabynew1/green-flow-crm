@@ -1,0 +1,1 @@
+ALTER TABLE public.tenants ADD COLUMN currency text NOT NULL DEFAULT 'RON';

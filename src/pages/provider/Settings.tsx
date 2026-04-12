@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2 } from "lucide-react";
+import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins } from "lucide-react";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
   id: string;
@@ -31,6 +32,7 @@ export default function Settings() {
   const [cui, setCui] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [currency, setCurrency] = useState("RON");
   const [savingCompany, setSavingCompany] = useState(false);
 
   // Team state
@@ -82,19 +84,22 @@ export default function Settings() {
     if (!tenantId) return;
     const { data } = await supabase
       .from("tenants")
-      .select("max_provider_seats, subscription_tier, unique_tenant_id")
+      .select("max_provider_seats, subscription_tier, unique_tenant_id, currency")
       .eq("id", tenantId)
       .single();
     if (data) {
       setMaxSeats(data.max_provider_seats);
       setSubscriptionTier(data.subscription_tier);
       setUniqueTenantId(data.unique_tenant_id || null);
+      setCurrency((data as any).currency || "RON");
     }
   };
 
   const handleSaveCompany = async () => {
     if (!user) return;
     setSavingCompany(true);
+
+    // Save profile fields
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -104,6 +109,15 @@ export default function Settings() {
         contact_phone: contactPhone || null,
       } as any)
       .eq("user_id", user.id);
+
+    // Save currency on tenant
+    if (tenantId) {
+      await supabase
+        .from("tenants")
+        .update({ currency } as any)
+        .eq("id", tenantId);
+    }
+
     if (error) {
       toast.error("Failed to save company information");
     } else {
@@ -180,7 +194,22 @@ export default function Settings() {
             <div className="space-y-2">
               <Label htmlFor="companyName">Company Name</Label>
               <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Your Company Ltd." />
+            <div className="space-y-2">
+              <Label htmlFor="currency" className="flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5" /> Billing Currency
+              </Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger id="currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
             <div className="space-y-2">
               <Label htmlFor="cui">CUI (Tax ID)</Label>
               <Input id="cui" value={cui} onChange={(e) => setCui(e.target.value)} placeholder="RO12345678" />
