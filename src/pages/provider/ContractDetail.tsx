@@ -38,6 +38,12 @@ export default function ContractDetail() {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [selectedInventoryItemId, setSelectedInventoryItemId] = useState("");
+  const [addFormQty, setAddFormQty] = useState("1");
+  const [addFormUnit, setAddFormUnit] = useState("visit");
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
