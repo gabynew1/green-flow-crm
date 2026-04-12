@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
@@ -294,9 +293,9 @@ export default function LandingPage() {
             <Button
               type="submit"
               className="w-full h-11 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold"
-              disabled={startFreeLoading}
+              disabled={false}
             >
-              {startFreeLoading ? "Checking…" : "Get Started Free 🌱"}
+              {"Get Started Free 🌱"}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               No credit card required • Free forever for solo operators
@@ -356,9 +355,9 @@ export default function LandingPage() {
               type="submit"
               size="lg"
               className="h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-lg px-8 whitespace-nowrap"
-              disabled={heroLoading}
+              disabled={false}
             >
-              {heroLoading ? "Checking…" : "Get Growing 🌱"}
+              {"Get Growing 🌱"}
             </Button>
           </form>
         </div>
