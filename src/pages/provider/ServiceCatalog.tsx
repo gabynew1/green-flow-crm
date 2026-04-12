@@ -18,6 +18,7 @@ type SortDir = "asc" | "desc";
 type ActiveFilter = "all" | "active" | "inactive";
 
 export default function ServiceCatalog() {
+  const currency = useTenantCurrency();
   const [services, setServices] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);

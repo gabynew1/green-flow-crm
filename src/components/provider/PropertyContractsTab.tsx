@@ -21,6 +21,7 @@ const freqLabel: Record<string, string> = {
 };
 
 export function PropertyContractsTab({ propertyId }: { propertyId: string }) {
+  const currency = useTenantCurrency();
   const [contracts, setContracts] = useState<any[]>([]);
   const [lineItemsByContract, setLineItemsByContract] = useState<Record<string, any[]>>({});
 
