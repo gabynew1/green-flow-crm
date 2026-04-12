@@ -108,18 +108,18 @@ export default function ClientVisitDetail() {
             <div className="rounded-lg border p-3 flex-1 min-w-[140px]">
               <p className="text-xs text-muted-foreground mb-1">Contract Services</p>
               <p className="text-lg font-semibold">{contractItems.length}</p>
-              <p className="text-xs text-green-600">Covered by contract</p>
+              <p className="text-xs text-success">Covered by contract</p>
             </div>
             {adHocItems.length > 0 && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex-1 min-w-[140px]">
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex-1 min-w-[140px]">
                 <p className="text-xs text-muted-foreground mb-1">Additional Services</p>
                 <p className="text-lg font-semibold">{adHocItems.length}</p>
-                <p className="text-xs text-amber-600">Will be billed separately</p>
+                <p className="text-xs text-warning">Will be billed separately</p>
               </div>
             )}
             {adHocItems.length === 0 && contractItems.length > 0 && (
-              <div className="rounded-lg border border-green-200 bg-green-50 p-3 flex-1 min-w-[140px]">
-                <p className="text-xs text-green-700 font-medium">✓ Fully covered</p>
+              <div className="rounded-lg border border-success/30 bg-success/5 p-3 flex-1 min-w-[140px]">
+                <p className="text-xs text-success font-medium">✓ Fully covered</p>
                 <p className="text-xs text-muted-foreground mt-1">No additional charges</p>
               </div>
             )}
