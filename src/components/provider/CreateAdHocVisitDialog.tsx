@@ -464,7 +464,32 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             </Select>
 
             {selectedCategory && (
-              <div className="border rounded-md max-h-40 overflow-y-auto p-2 space-y-1">
+              <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
+                <div className="flex items-center justify-between px-2 pb-1 border-b mb-1">
+                  <span className="text-xs font-medium text-muted-foreground">{filteredServices.length} services</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => {
+                        const ids = filteredServices.map(s => s.id);
+                        setSelectedServiceIds(prev => [...new Set([...prev, ...ids])]);
+                      }}
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:underline"
+                      onClick={() => {
+                        const ids = new Set(filteredServices.map(s => s.id));
+                        setSelectedServiceIds(prev => prev.filter(id => !ids.has(id)));
+                      }}
+                    >
+                      Unselect all
+                    </button>
+                  </div>
+                </div>
                 {filteredServices.length > 0 ? filteredServices.map((svc) => (
                   <label
                     key={svc.id}
