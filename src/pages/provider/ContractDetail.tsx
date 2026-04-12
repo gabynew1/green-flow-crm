@@ -515,18 +515,15 @@ export default function ContractDetail() {
                   )}
                 </TableRow>
               ))}
-              {/* Total row */}
-              {lineItems.some(li => li.unit_price != null) && (
-                <tfoot>
-                  <tr className="border-t font-semibold">
-                    <td className="p-2 text-right" colSpan={5}>Contract Total</td>
-                    <td className="p-2">${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</td>
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
-              )}
-            </Table>
-          </div>
+            </TableBody>
+          </Table>
+          {/* Total row */}
+          {lineItems.some(li => li.unit_price != null) && (
+            <div className="border-t px-4 py-2 flex justify-between text-sm font-semibold">
+              <span>Contract Total</span>
+              <span>${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</span>
+            </div>
+          )}
         )}
 
       {/* Consumption Summary */}
