@@ -15,8 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSunday } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkdays } from "@/hooks/useWorkdays";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -41,6 +43,8 @@ const statusLabels: Record<string, string> = {
 const allStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL", "APPROVED", "SENT_TO_CLIENT", "CANCELED"];
 
 export default function VisitDetail() {
+  const { tenantId } = useAuth();
+  const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const { visitId } = useParams();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
