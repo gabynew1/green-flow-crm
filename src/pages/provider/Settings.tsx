@@ -448,7 +448,18 @@ export default function Settings() {
                   <div className="flex items-center gap-2">
                     {member.user_id === user?.id ? (
                       <Badge variant="secondary" className="text-xs">You</Badge>
-                    ) : null}
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs gap-1"
+                        disabled={resettingUserId === member.user_id}
+                        onClick={() => handleResetPassword(member)}
+                      >
+                        <KeyRound className="h-3 w-3" />
+                        {resettingUserId === member.user_id ? "Resetting…" : "Reset Password"}
+                      </Button>
+                    )}
                     <Select
                       value={member.provider_permission || "full_admin"}
                       onValueChange={(val) => handleUpdatePermission(member.id, member.user_id, val)}
