@@ -194,7 +194,22 @@ export default function Settings() {
             <div className="space-y-2">
               <Label htmlFor="companyName">Company Name</Label>
               <Input id="companyName" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Your Company Ltd." />
+            <div className="space-y-2">
+              <Label htmlFor="currency" className="flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5" /> Billing Currency
+              </Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger id="currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </div>
             <div className="space-y-2">
               <Label htmlFor="cui">CUI (Tax ID)</Label>
               <Input id="cui" value={cui} onChange={(e) => setCui(e.target.value)} placeholder="RO12345678" />
