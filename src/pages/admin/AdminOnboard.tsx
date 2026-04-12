@@ -228,7 +228,7 @@ const STEP_LABELS_PUBLIC = ["Welcome", "Type", "Details", "Done"];
 export default function AdminOnboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const isPublic = searchParams.get("source") === "landing";
+  const isPublic = searchParams.get("source") === "landing" || window.location.pathname === "/onboard";
   const prefilledEmail = searchParams.get("email") || "";
 
   const [step, setStep] = useState(0); // 0-indexed, 0 = welcome
