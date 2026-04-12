@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,10 +154,8 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [heroEmail, setHeroEmail] = useState("");
-  const [heroLoading, setHeroLoading] = useState(false);
   const [startFreeOpen, setStartFreeOpen] = useState(false);
   const [startFreeEmail, setStartFreeEmail] = useState("");
-  const [startFreeLoading, setStartFreeLoading] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -171,7 +168,11 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleGetGrowing = async () => {
+  /**
+   * SECURITY: No email_exists check on the landing page.
+   * Always route to /auth — the auth page handles the rest.
+   */
+  const handleGetGrowing = () => {
     const email = heroEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -181,20 +182,10 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setHeroLoading(true);
-    try {
-      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-      if (exists) {
-        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
-      } else {
-        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
-      }
-    } finally {
-      setHeroLoading(false);
-    }
+    navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
 
-  const handleStartFreeSubmit = async () => {
+  const handleStartFreeSubmit = () => {
     const email = startFreeEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -204,18 +195,8 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setStartFreeLoading(true);
-    try {
-      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-      setStartFreeOpen(false);
-      if (exists) {
-        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
-      } else {
-        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
-      }
-    } finally {
-      setStartFreeLoading(false);
-    }
+    setStartFreeOpen(false);
+    navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
 
   return (
@@ -312,9 +293,9 @@ export default function LandingPage() {
             <Button
               type="submit"
               className="w-full h-11 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold"
-              disabled={startFreeLoading}
+              disabled={false}
             >
-              {startFreeLoading ? "Checking…" : "Get Started Free 🌱"}
+              {"Get Started Free 🌱"}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               No credit card required • Free forever for solo operators
@@ -374,9 +355,9 @@ export default function LandingPage() {
               type="submit"
               size="lg"
               className="h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-lg px-8 whitespace-nowrap"
-              disabled={heroLoading}
+              disabled={false}
             >
-              {heroLoading ? "Checking…" : "Get Growing 🌱"}
+              {"Get Growing 🌱"}
             </Button>
           </form>
         </div>
