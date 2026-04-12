@@ -44,6 +44,9 @@ export default function ContractDetail() {
   const [selectedInventoryItemId, setSelectedInventoryItemId] = useState("");
   const [addFormQty, setAddFormQty] = useState("1");
   const [addFormUnit, setAddFormUnit] = useState("visit");
+  const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
+  const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
+  const [addFormTimesPerFreq, setAddFormTimesPerFreq] = useState("1");
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
@@ -227,6 +230,9 @@ export default function ContractDetail() {
       setSelectedInventoryItemId("");
       setAddFormQty("1");
       setAddFormUnit("visit");
+      setAddFormUnitPrice("");
+      setAddFormFrequency("PER_VISIT");
+      setAddFormTimesPerFreq("1");
       loadInventoryItems();
     }
   };
@@ -234,6 +240,14 @@ export default function ContractDetail() {
   const categories = [...new Set(catalog.map(s => s.code))].sort();
   const filteredServices = selectedCategory ? catalog.filter(s => s.code === selectedCategory) : [];
 
+  const handleServiceSelect = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    const svc = catalog.find(s => s.id === serviceId);
+    if (svc) {
+      if (svc.default_price != null) setAddFormUnitPrice(String(svc.default_price));
+      if (svc.default_unit) setAddFormUnit(svc.default_unit);
+    }
+  };
   const handleInventorySelect = (itemId: string) => {
     setSelectedInventoryItemId(itemId);
     if (itemId) {
@@ -249,18 +263,16 @@ export default function ContractDetail() {
     e.preventDefault();
     if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
-    const maxOcc = form.get("max_occurrences") as string;
-    const unitPrice = form.get("unit_price") as string;
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
-      frequency_type: form.get("frequency") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
+      frequency_type: addFormFrequency as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
       quantity: Number(addFormQty) || 1,
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
-      max_occurrences_per_period: maxOcc ? Number(maxOcc) : null,
-      unit_price: unitPrice ? Number(unitPrice) : null,
+      max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
+      unit_price: addFormUnitPrice ? Number(addFormUnitPrice) : null,
     }] as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
@@ -460,10 +472,10 @@ export default function ContractDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Service *</Label>
-                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId} disabled={!selectedCategory}>
+                  <Select value={selectedServiceId} onValueChange={handleServiceSelect} disabled={!selectedCategory}>
                     <SelectTrigger><SelectValue placeholder={selectedCategory ? "Select service" : "Select category first"} /></SelectTrigger>
                     <SelectContent>
-                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}{s.default_price != null ? ` — ${formatCurrency(s.default_price, currency)}` : ""}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -486,7 +498,7 @@ export default function ContractDetail() {
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
                   <Label>Frequency</Label>
-                  <Select name="frequency" defaultValue="PER_VISIT">
+                  <Select value={addFormFrequency} onValueChange={(v) => { setAddFormFrequency(v); if (v === "ONE_TIME" || v === "PER_VISIT") setAddFormTimesPerFreq("1"); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="PER_VISIT">Per Visit</SelectItem>
@@ -496,13 +508,19 @@ export default function ContractDetail() {
                     </SelectContent>
                   </Select>
                 </div>
+                {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH") && (
+                  <div className="space-y-2">
+                    <Label>Times per {addFormFrequency === "PER_WEEK" ? "week" : "month"}</Label>
+                    <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
                   <div className="space-y-2"><Label>Unit</Label><Input value={addFormUnit} onChange={e => setAddFormUnit(e.target.value)} /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Unit Price *</Label><Input name="unit_price" type="number" step="0.01" required min="0" placeholder="0.00" /></div>
-                  <div className="space-y-2"><Label>Max / Period</Label><Input name="max_occurrences" type="number" placeholder="∞" /></div>
+                <div className="space-y-2">
+                  <Label>Unit Price *</Label>
+                  <Input type="number" step="0.01" required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
