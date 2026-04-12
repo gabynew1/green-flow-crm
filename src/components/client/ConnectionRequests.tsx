@@ -88,6 +88,30 @@ export function ConnectionRequests() {
       return;
     }
     toast.success(status === "APPROVED" ? "Connection approved!" : "Connection denied");
+
+    // Send email to client when connection is approved
+    if (status === "APPROVED") {
+      const { data: clientProfile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("user_id", requests.find(r => r.id === id)?.client_user_id || "")
+        .maybeSingle();
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("name")
+        .eq("id", tenantId)
+        .single();
+      if (clientProfile?.email) {
+        const { sendAppEmail } = await import("@/lib/send-app-email");
+        sendAppEmail({
+          templateName: "connection-approved",
+          recipientEmail: clientProfile.email,
+          idempotencyKey: `connection-approved-${id}`,
+          templateData: { providerName: tenant?.name },
+        });
+      }
+    }
+
     loadRequests();
   };
 
