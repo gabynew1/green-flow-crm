@@ -332,6 +332,8 @@ export default function VisitDetail() {
                   onSelect={setRescheduleDate}
                   initialFocus
                   className="rounded-md border pointer-events-auto"
+                  modifiers={{ nonWorkday: (date) => !isWorkday(date) }}
+                  modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }}
                 />
                 <Button onClick={handleReschedule} className="w-full" disabled={!rescheduleDate}>
                   <CalendarClock className="h-4 w-4 mr-2" /> Reschedule to {rescheduleDate ? format(rescheduleDate, "PPP") : "…"}
