@@ -63,6 +63,7 @@ const TIME_SLOTS = [
 
 export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, defaultCustomerId, defaultPropertyId }: Props) {
   const { user, tenantId } = useAuth();
+  const { isWorkday } = useWorkdays(tenantId);
   const navigate = useNavigate();
 
   const [customers, setCustomers] = useState<any[]>([]);
