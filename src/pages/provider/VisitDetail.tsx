@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus } from "lucide-react";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isSunday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ export default function VisitDetail() {
   const { tenantId } = useAuth();
   const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const { visitId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -607,8 +608,39 @@ export default function VisitDetail() {
       </Card>
 
       {/* Save button */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         <Button onClick={saveAll}><Save className="h-4 w-4 mr-2" /> Save Changes</Button>
+        <div className="flex-1" />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2">
+              <Trash2 className="h-4 w-4" /> Delete Visit
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this service visit?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this visit, all its service items, and any associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={async () => {
+                  await supabase.from("service_order_items").delete().eq("service_order_id", visitId!);
+                  const { error } = await supabase.from("service_orders").delete().eq("id", visitId!);
+                  if (error) { toast.error(error.message); return; }
+                  toast.success("Visit deleted");
+                  navigate("/provider/visits");
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Delete Permanently
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
