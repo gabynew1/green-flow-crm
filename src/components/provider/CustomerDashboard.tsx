@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   startOfMonth, endOfMonth, startOfYear, endOfYear, format, parseISO,
-  startOfWeek, endOfWeek, isWithinInterval, addMonths,
+  startOfWeek, endOfWeek, isWithinInterval, addMonths, differenceInWeeks, differenceInMonths,
 } from "date-fns";
 import {
   BarChart3, Calendar, TrendingUp, Receipt, CheckCircle2, Clock, AlertTriangle,
