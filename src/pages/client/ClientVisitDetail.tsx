@@ -146,7 +146,7 @@ export default function ClientVisitDetail() {
 
       {adHocItems.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Additional Services <span className="text-xs font-normal text-amber-600">(billed separately)</span></CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Additional Services <span className="text-xs font-normal text-warning">(billed separately)</span></CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {adHocItems.map(i => (
               <div key={i.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
