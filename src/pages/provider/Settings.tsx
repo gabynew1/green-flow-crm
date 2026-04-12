@@ -14,7 +14,6 @@ import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle,
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
-import TeamManager from "@/components/provider/TeamManager";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
