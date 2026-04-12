@@ -202,7 +202,14 @@ export default function ServiceVisits() {
                           <div className="h-6 w-6 rounded-full shrink-0" style={{ backgroundColor: teamColor }} title={(o.teams as any)?.name} />
                         )}
                         <div>
-                          <p className="font-medium">{(o.properties as any)?.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{(o.properties as any)?.name}</p>
+                            {o.contract_id && !o.created_by_user_id ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Auto</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {(o.properties as any)?.customers?.name}
                             {timeSlot && ` · ${timeSlot}`}
@@ -315,7 +322,14 @@ export default function ServiceVisits() {
                           <div className="h-5 w-5 rounded-full shrink-0" style={{ backgroundColor: teamColor }} />
                         )}
                         <div>
-                          <p className="font-medium">{(o.properties as any)?.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{(o.properties as any)?.name}</p>
+                            {o.contract_id && !o.created_by_user_id ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Auto</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {(o.properties as any)?.customers?.name}
                             {timeSlot && ` · ${timeSlot}`}

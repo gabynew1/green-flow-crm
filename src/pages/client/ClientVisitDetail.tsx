@@ -100,6 +100,33 @@ export default function ClientVisitDetail() {
         </Card>
       )}
 
+      {/* Billing summary for client */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Billing</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4">
+            <div className="rounded-lg border p-3 flex-1 min-w-[140px]">
+              <p className="text-xs text-muted-foreground mb-1">Contract Services</p>
+              <p className="text-lg font-semibold">{contractItems.length}</p>
+              <p className="text-xs text-success">Covered by contract</p>
+            </div>
+            {adHocItems.length > 0 && (
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex-1 min-w-[140px]">
+                <p className="text-xs text-muted-foreground mb-1">Additional Services</p>
+                <p className="text-lg font-semibold">{adHocItems.length}</p>
+                <p className="text-xs text-warning">Will be billed separately</p>
+              </div>
+            )}
+            {adHocItems.length === 0 && contractItems.length > 0 && (
+              <div className="rounded-lg border border-success/30 bg-success/5 p-3 flex-1 min-w-[140px]">
+                <p className="text-xs text-success font-medium">✓ Fully covered</p>
+                <p className="text-xs text-muted-foreground mt-1">No additional charges</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {contractItems.length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Contract Services</CardTitle></CardHeader>
@@ -119,7 +146,7 @@ export default function ClientVisitDetail() {
 
       {adHocItems.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Additional Services</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Additional Services <span className="text-xs font-normal text-warning">(billed separately)</span></CardTitle></CardHeader>
           <CardContent className="space-y-2">
             {adHocItems.map(i => (
               <div key={i.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
