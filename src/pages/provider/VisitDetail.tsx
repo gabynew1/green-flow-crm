@@ -469,14 +469,18 @@ export default function VisitDetail() {
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Contract Services</p>
               <p className="text-lg font-semibold">{contractItems.length}</p>
-              <p className="text-xs text-success">Covered by contract</p>
+              <p className="text-xs text-success">{formatCurrency(contractTotal, currency)}</p>
             </div>
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Ad-hoc Services</p>
               <p className="text-lg font-semibold">{adHocItems.length}</p>
-              <p className={cn("text-xs", adHocItems.length > 0 ? "text-warning" : "text-muted-foreground")}>
-                {adHocItems.length > 0 ? "Additional billing required" : "No extra charges"}
+              <p className={cn("text-xs font-medium", adHocItems.length > 0 ? "text-warning" : "text-muted-foreground")}>
+                {adHocItems.length > 0 ? formatCurrency(adHocTotal, currency) : "No extra charges"}
               </p>
+            </div>
+            <div className="rounded-lg border p-3 flex-1 min-w-[160px] bg-muted/30">
+              <p className="text-xs text-muted-foreground mb-1">Visit Total</p>
+              <p className="text-lg font-bold">{formatCurrency(visitTotal, currency)}</p>
             </div>
           </div>
         </CardContent>
