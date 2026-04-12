@@ -7,10 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, CalendarDays, DollarSign, ClipboardList, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getContractConsumption, type LineItemConsumption } from "@/lib/contract-consumption";
 
 const statusColors: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
@@ -43,6 +45,7 @@ export default function ClientContractDetail() {
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
+  const [consumption, setConsumption] = useState<LineItemConsumption[]>([]);
   const [loading, setLoading] = useState(true);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectComment, setRejectComment] = useState("");
@@ -60,6 +63,11 @@ export default function ClientContractDetail() {
     setContract(contractRes.data);
     setLineItems(itemsRes.data ?? []);
     setUpcomingVisits(visitsRes.data ?? []);
+    // Load consumption for active/signed contracts
+    if (contractRes.data && ["ACTIVE", "SIGNED"].includes(contractRes.data.status)) {
+      const cons = await getContractConsumption(contractId!, contractRes.data.start_date, contractRes.data.end_date);
+      setConsumption(cons);
+    }
     setLoading(false);
   };
 
@@ -225,21 +233,56 @@ export default function ClientContractDetail() {
             <p className="text-sm text-muted-foreground text-center py-4">No line items defined</p>
           ) : (
             <div className="space-y-2">
-              {lineItems.map(li => (
-                <div key={li.id} className="flex items-center justify-between text-sm py-2 px-3 border rounded-md">
-                  <div>
-                    <p className="font-medium">{li.custom_name || li.service_catalog?.name || "Service"}</p>
-                    <p className="text-xs text-muted-foreground">{li.quantity} {li.unit || "unit(s)"} · {li.frequency_type.replace(/_/g, " ").toLowerCase()}</p>
+              {lineItems.map(li => {
+                const maxOcc = li.max_occurrences_per_period;
+                return (
+                  <div key={li.id} className="flex items-center justify-between text-sm py-2 px-3 border rounded-md">
+                    <div>
+                      <p className="font-medium">{li.custom_name || li.service_catalog?.name || "Service"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {li.quantity} {li.unit || "unit(s)"} · {li.frequency_type.replace(/_/g, " ").toLowerCase()}
+                        {maxOcc != null && <span className="ml-1">· max {maxOcc}/{li.frequency_type.replace("PER_", "").toLowerCase()}</span>}
+                      </p>
+                    </div>
+                    {li.service_catalog?.default_price && (
+                      <span className="text-muted-foreground">${(li.service_catalog.default_price * li.quantity).toFixed(2)}</span>
+                    )}
                   </div>
-                  {li.service_catalog?.default_price && (
-                    <span className="text-muted-foreground">${(li.service_catalog.default_price * li.quantity).toFixed(2)}</span>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Consumption Summary */}
+      {["ACTIVE", "SIGNED"].includes(contract.status) && consumption.length > 0 && consumption.some(c => c.maxOccurrences !== null) && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Service Usage</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {consumption.filter(c => c.maxOccurrences !== null).map(c => {
+              const pct = c.maxOccurrences! > 0 ? Math.min(100, (c.consumed / c.maxOccurrences!) * 100) : 0;
+              return (
+                <div key={c.lineItemId} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{c.serviceName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">{c.consumed}/{c.maxOccurrences} {c.periodLabel}</span>
+                      <Badge
+                        variant={c.isOverScope ? "destructive" : "default"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {c.isOverScope ? "Over Limit" : "In Scope"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {upcomingVisits.length > 0 && (
         <Card>

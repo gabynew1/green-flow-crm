@@ -19,6 +19,7 @@ import { format, parseISO, isSunday } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
+import { getVisitScopeStatus } from "@/lib/contract-consumption";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -66,6 +67,7 @@ export default function VisitDetail() {
   const [editPerformedDate, setEditPerformedDate] = useState<Date | undefined>();
   const [editPeriodLabel, setEditPeriodLabel] = useState("");
   const [editPeriodType, setEditPeriodType] = useState("");
+  const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -94,6 +96,13 @@ export default function VisitDetail() {
 
     const { data: cat } = await supabase.from("service_catalog").select("*").eq("is_active", true);
     setCatalog(cat ?? []);
+
+    // Load scope status if linked to contract
+    if (o?.contract_id) {
+      const { data: ctr } = await supabase.from("contracts").select("start_date, end_date").eq("id", o.contract_id).single();
+      const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
+      setScopeMap(sm);
+    }
   };
 
   const toggleItem = async (itemId: string, current: boolean) => {
@@ -536,21 +545,37 @@ export default function VisitDetail() {
             Contract Services
             <Badge variant="secondary" className="text-xs">Covered</Badge>
           </p>
-          {contractItems.map(item => (
-            <Card key={item.id}>
-              <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                <Checkbox
-                  checked={item.is_completed}
-                  onCheckedChange={() => toggleItem(item.id, item.is_completed)}
-                />
-                <div className="flex-1">
-                  <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
-                  <p className="text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
-                </div>
-                <Badge variant="outline" className="text-xs text-success border-success/30">CONTRACT</Badge>
-              </CardContent>
-            </Card>
-          ))}
+          {contractItems.map(item => {
+            const scope = scopeMap.get(item.id);
+            return (
+              <Card key={item.id}>
+                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                  <Checkbox
+                    checked={item.is_completed}
+                    onCheckedChange={() => toggleItem(item.id, item.is_completed)}
+                  />
+                  <div className="flex-1">
+                    <p className={`font-medium ${item.is_completed ? "line-through text-muted-foreground" : ""}`}>{item.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.quantity} {item.unit}
+                      {scope?.max != null && <span className="ml-1">· {scope.consumed}/{scope.max} {scope.periodLabel}</span>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {scope && scope.max != null && (
+                      <Badge
+                        variant={scope.inScope ? "default" : "destructive"}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {scope.inScope ? "In Scope" : "Extra"}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs text-success border-success/30">CONTRACT</Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
