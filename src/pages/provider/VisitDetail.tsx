@@ -633,7 +633,7 @@ export default function VisitDetail() {
                   const { error } = await supabase.from("service_orders").delete().eq("id", visitId!);
                   if (error) { toast.error(error.message); return; }
                   toast.success("Visit deleted");
-                  navigate("/provider/visits");
+                  navigate(-1);
                 }}
               >
                 <Trash2 className="h-4 w-4 mr-2" /> Delete Permanently
