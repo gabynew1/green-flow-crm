@@ -230,7 +230,7 @@ export default function VisitDetail() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 flex-wrap">
-        <Link to="/provider/visits"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold">Service Visit</h1>
@@ -633,7 +633,7 @@ export default function VisitDetail() {
                   const { error } = await supabase.from("service_orders").delete().eq("id", visitId!);
                   if (error) { toast.error(error.message); return; }
                   toast.success("Visit deleted");
-                  navigate("/provider/visits");
+                  navigate(-1);
                 }}
               >
                 <Trash2 className="h-4 w-4 mr-2" /> Delete Permanently
