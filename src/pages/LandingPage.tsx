@@ -155,8 +155,10 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [heroEmail, setHeroEmail] = useState("");
+  const [heroLoading, setHeroLoading] = useState(false);
   const [startFreeOpen, setStartFreeOpen] = useState(false);
   const [startFreeEmail, setStartFreeEmail] = useState("");
+  const [startFreeLoading, setStartFreeLoading] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -179,11 +181,16 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-    if (exists) {
-      navigate(`/auth?email=${encodeURIComponent(email)}`);
-    } else {
-      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    setHeroLoading(true);
+    try {
+      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+      if (exists) {
+        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
+      } else {
+        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+      }
+    } finally {
+      setHeroLoading(false);
     }
   };
 
@@ -197,12 +204,17 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setStartFreeOpen(false);
-    const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-    if (exists) {
-      navigate(`/auth?email=${encodeURIComponent(email)}`);
-    } else {
-      navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+    setStartFreeLoading(true);
+    try {
+      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
+      setStartFreeOpen(false);
+      if (exists) {
+        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
+      } else {
+        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
+      }
+    } finally {
+      setStartFreeLoading(false);
     }
   };
 
@@ -300,8 +312,9 @@ export default function LandingPage() {
             <Button
               type="submit"
               className="w-full h-11 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold"
+              disabled={startFreeLoading}
             >
-              Get Started Free 🌱
+              {startFreeLoading ? "Checking…" : "Get Started Free 🌱"}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               No credit card required • Free forever for solo operators
@@ -361,8 +374,9 @@ export default function LandingPage() {
               type="submit"
               size="lg"
               className="h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-lg px-8 whitespace-nowrap"
+              disabled={heroLoading}
             >
-              Get Growing 🌱
+              {heroLoading ? "Checking…" : "Get Growing 🌱"}
             </Button>
           </form>
         </div>
