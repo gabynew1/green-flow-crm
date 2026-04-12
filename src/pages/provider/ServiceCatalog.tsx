@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 type SortField = "code" | "name" | "default_price";
 type SortDir = "asc" | "desc";
@@ -345,7 +347,7 @@ export default function ServiceCatalog() {
                   <TableCell className="text-xs">{s.code}</TableCell>
                   <TableCell className="font-medium">{s.name}</TableCell>
                   <TableCell>{s.default_unit}</TableCell>
-                  <TableCell>{s.default_price != null ? `$${s.default_price}` : "—"}</TableCell>
+                  <TableCell>{s.default_price != null ? formatCurrency(s.default_price, currency) : "—"}</TableCell>
                   <TableCell>
                     <Switch checked={s.is_active} onCheckedChange={() => toggleActive(s.id, s.is_active)} />
                   </TableCell>

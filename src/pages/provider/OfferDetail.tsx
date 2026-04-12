@@ -20,6 +20,8 @@ import {
 import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2, Check, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowEngine } from "@/lib/workflow-engine";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 const statusLabels: Record<string, string> = {
   DRAFT: "Draft", IN_PROGRESS: "In Progress", SENT_TO_CLIENT: "Sent to Client",
@@ -29,6 +31,7 @@ const statusLabels: Record<string, string> = {
 export default function OfferDetail() {
   const { offerId } = useParams();
   const { user, profile } = useAuth();
+  const currency = useTenantCurrency();
   const navigate = useNavigate();
   const [offer, setOffer] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
@@ -258,7 +261,7 @@ export default function OfferDetail() {
                         onCheckedChange={(checked) => toggleService(s.id, !!checked)}
                       />
                       <label htmlFor={`svc-${s.id}`} className="flex-1 text-sm cursor-pointer">
-                        {s.name} {s.default_price ? `— $${s.default_price}` : ""}
+                        {s.name} {s.default_price ? `— ${formatCurrency(s.default_price, currency)}` : ""}
                       </label>
                     </div>
                   ))}

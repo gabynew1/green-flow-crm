@@ -12,6 +12,8 @@ import { Plus, Search, ArrowUpDown, ArrowUp, ArrowDown, Download, X } from "luci
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 const statusVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
@@ -508,7 +510,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono tabular-nums">
-                    {totalValue != null ? `$${totalValue.toFixed(2)}` : "—"}
+                    {totalValue != null ? formatCurrency(totalValue, currency) : "—"}
                   </TableCell>
                   <TableCell>
                     {c.visit_frequency_count && c.visit_frequency_type

@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 const statusColor: Record<string, string> = {
   DRAFT: "bg-muted text-muted-foreground",
@@ -69,7 +71,7 @@ export function PropertyContractsTab({ propertyId }: { propertyId: string }) {
                     {items.map(li => (
                       <p key={li.id} className="text-xs text-muted-foreground">
                         {li.custom_name || (li.service_catalog as any)?.name} — {li.quantity} × {freqLabel[li.frequency_type] || li.frequency_type}
-                        {li.unit_price != null && ` · $${Number(li.unit_price).toFixed(2)}/unit`}
+                        {li.unit_price != null && ` · ${formatCurrency(Number(li.unit_price), currency)}/unit`}
                         {li.max_occurrences_per_period != null && ` · max ${li.max_occurrences_per_period}`}
                       </p>
                     ))}
