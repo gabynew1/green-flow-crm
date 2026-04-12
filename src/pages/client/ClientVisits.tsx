@@ -21,7 +21,7 @@ export default function ClientVisits() {
     supabase
       .from("service_orders")
       .select("*, properties(name)")
-      .order("scheduled_date", { ascending: false })
+      .order("scheduled_date", { ascending: true })
       .then(({ data }) => setOrders(data ?? []));
   }, []);
 

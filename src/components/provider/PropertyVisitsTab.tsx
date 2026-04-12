@@ -16,7 +16,7 @@ export function PropertyVisitsTab({ propertyId }: { propertyId: string }) {
 
   useEffect(() => {
     supabase.from("service_orders").select("*").eq("property_id", propertyId)
-      .order("scheduled_date", { ascending: false })
+      .order("scheduled_date", { ascending: true })
       .then(({ data }) => setOrders(data ?? []));
   }, [propertyId]);
 
