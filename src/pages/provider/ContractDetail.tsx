@@ -21,13 +21,15 @@ import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
-import { formatCurrency, CurrencyCode } from "@/lib/currency";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
   const { user, tenantId } = useAuth();
   const navigate = useNavigate();
   const { isWorkday } = useWorkdays(tenantId);
+  const currency = useTenantCurrency();
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -36,7 +38,6 @@ export default function ContractDetail() {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
-  const [currency, setCurrency] = useState<CurrencyCode>("RON");
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
@@ -48,12 +49,6 @@ export default function ContractDetail() {
       .eq("id", contractId!)
       .single();
     setContract(c);
-
-    // Load tenant currency
-    if (tenantId) {
-      const { data: t } = await supabase.from("tenants").select("currency").eq("id", tenantId).single();
-      if (t?.currency) setCurrency(t.currency as CurrencyCode);
-    }
     const { data: li } = await supabase
       .from("contract_line_items")
       .select("*, service_catalog(name, code)")
