@@ -21,6 +21,7 @@ import { format, getISOWeek } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
+import { formatCurrency, CurrencyCode } from "@/lib/currency";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
@@ -35,6 +36,7 @@ export default function ContractDetail() {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
+  const [currency, setCurrency] = useState<CurrencyCode>("RON");
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
@@ -47,6 +49,11 @@ export default function ContractDetail() {
       .single();
     setContract(c);
 
+    // Load tenant currency
+    if (tenantId) {
+      const { data: t } = await supabase.from("tenants").select("currency").eq("id", tenantId).single();
+      if (t?.currency) setCurrency(t.currency as CurrencyCode);
+    }
     const { data: li } = await supabase
       .from("contract_line_items")
       .select("*, service_catalog(name, code)")
@@ -483,11 +490,11 @@ export default function ContractDetail() {
                         }}
                       />
                     ) : (
-                      <span>{li.unit_price != null ? `$${Number(li.unit_price).toFixed(2)}` : "—"}</span>
+                      <span>{li.unit_price != null ? formatCurrency(Number(li.unit_price), currency) : "—"}</span>
                     )}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {li.unit_price != null ? `$${(Number(li.unit_price) * Number(li.quantity)).toFixed(2)}` : "—"}
+                    {li.unit_price != null ? formatCurrency(Number(li.unit_price) * Number(li.quantity), currency) : "—"}
                   </TableCell>
                   <TableCell>
                     {editable ? (
@@ -521,7 +528,7 @@ export default function ContractDetail() {
           {lineItems.some(li => li.unit_price != null) && (
             <div className="border-t px-4 py-2 flex justify-between text-sm font-semibold">
               <span>Contract Total</span>
-              <span>${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</span>
+              <span>{formatCurrency(lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0), currency)}</span>
             </div>
           )}
         </div>
