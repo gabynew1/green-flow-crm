@@ -429,6 +429,9 @@ export default function ClientProfile() {
           </Button>
         </div>
       )}
+
+      {/* Change Password */}
+      {!editing && <ChangePasswordCard />}
     </div>
   );
 }
