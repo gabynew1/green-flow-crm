@@ -588,7 +588,7 @@ export default function VisitDetail() {
             const scope = scopeMap.get(item.id);
             return (
               <Card key={item.id}>
-                <CardContent className="pt-4 pb-4 flex items-center gap-3">
+              <CardContent className="pt-4 pb-4 flex items-center gap-3">
                   <Checkbox
                     checked={item.is_completed}
                     onCheckedChange={() => toggleItem(item.id, item.is_completed)}
@@ -601,6 +601,7 @@ export default function VisitDetail() {
                       {scope?.max != null && <span className="ml-1">· {scope.consumed}/{scope.max} {scope.periodLabel}</span>}
                     </p>
                   </div>
+                  <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
                   <div className="flex items-center gap-1.5">
                     {scope && scope.max != null && (
                       <Badge
