@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2 } from "lucide-react";
+import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins } from "lucide-react";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
   id: string;
@@ -97,6 +98,8 @@ export default function Settings() {
   const handleSaveCompany = async () => {
     if (!user) return;
     setSavingCompany(true);
+
+    // Save profile fields
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -106,6 +109,15 @@ export default function Settings() {
         contact_phone: contactPhone || null,
       } as any)
       .eq("user_id", user.id);
+
+    // Save currency on tenant
+    if (tenantId) {
+      await supabase
+        .from("tenants")
+        .update({ currency } as any)
+        .eq("id", tenantId);
+    }
+
     if (error) {
       toast.error("Failed to save company information");
     } else {
