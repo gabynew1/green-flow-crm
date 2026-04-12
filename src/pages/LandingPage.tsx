@@ -171,7 +171,11 @@ export default function LandingPage() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleGetGrowing = async () => {
+  /**
+   * SECURITY: No email_exists check on the landing page.
+   * Always route to /auth — the auth page handles the rest.
+   */
+  const handleGetGrowing = () => {
     const email = heroEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -181,20 +185,10 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setHeroLoading(true);
-    try {
-      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-      if (exists) {
-        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
-      } else {
-        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
-      }
-    } finally {
-      setHeroLoading(false);
-    }
+    navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
 
-  const handleStartFreeSubmit = async () => {
+  const handleStartFreeSubmit = () => {
     const email = startFreeEmail.trim();
     if (!email) {
       toast.error("Please enter your email address");
@@ -204,18 +198,8 @@ export default function LandingPage() {
       toast.error("Please enter a valid email address");
       return;
     }
-    setStartFreeLoading(true);
-    try {
-      const { data: exists } = await supabase.rpc("email_exists", { _email: email });
-      setStartFreeOpen(false);
-      if (exists) {
-        navigate(`/auth?email=${encodeURIComponent(email)}&tab=signin`);
-      } else {
-        navigate(`/onboard?email=${encodeURIComponent(email)}&source=landing`);
-      }
-    } finally {
-      setStartFreeLoading(false);
-    }
+    setStartFreeOpen(false);
+    navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
 
   return (
