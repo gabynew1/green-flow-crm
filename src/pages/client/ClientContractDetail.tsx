@@ -67,6 +67,31 @@ export default function ClientContractDetail() {
     const { error } = await supabase.from("contracts").update({ status: "SIGNED" } as any).eq("id", contractId!);
     if (error) { toast.error(error.message); return; }
     toast.success("Contract signed!");
+    // Notify provider
+    if (contract) {
+      const { data: tenant } = await supabase.from("tenants").select("name").eq("id", contract.properties?.tenant_id).maybeSingle();
+      const { data: providerProfiles } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("tenant_id", contract.properties?.tenant_id)
+        .not("email", "is", null)
+        .limit(1);
+      const providerEmail = providerProfiles?.[0]?.email;
+      if (providerEmail) {
+        const { sendAppEmail } = await import("@/lib/send-app-email");
+        sendAppEmail({
+          templateName: "contract-response",
+          recipientEmail: providerEmail,
+          idempotencyKey: `contract-response-signed-${contractId}`,
+          templateData: {
+            contractName: contract.contract_name,
+            propertyName: contract.properties?.name,
+            clientName: user?.user_metadata?.full_name || user?.email,
+            response: "signed",
+          },
+        });
+      }
+    }
     load();
   };
 
@@ -76,6 +101,31 @@ export default function ClientContractDetail() {
     } as any).eq("id", contractId!);
     if (error) { toast.error(error.message); return; }
     toast.success("Contract rejected");
+    // Notify provider
+    if (contract) {
+      const { data: providerProfiles } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("tenant_id", contract.properties?.tenant_id)
+        .not("email", "is", null)
+        .limit(1);
+      const providerEmail = providerProfiles?.[0]?.email;
+      if (providerEmail) {
+        const { sendAppEmail } = await import("@/lib/send-app-email");
+        sendAppEmail({
+          templateName: "contract-response",
+          recipientEmail: providerEmail,
+          idempotencyKey: `contract-response-rejected-${contractId}`,
+          templateData: {
+            contractName: contract.contract_name,
+            propertyName: contract.properties?.name,
+            clientName: user?.user_metadata?.full_name || user?.email,
+            response: "rejected",
+            rejectionComment: rejectComment.trim() || undefined,
+          },
+        });
+      }
+    }
     setRejectOpen(false);
     load();
   };
