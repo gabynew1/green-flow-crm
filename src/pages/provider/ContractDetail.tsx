@@ -38,6 +38,12 @@ export default function ContractDetail() {
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [selectedInventoryItemId, setSelectedInventoryItemId] = useState("");
+  const [addFormQty, setAddFormQty] = useState("1");
+  const [addFormUnit, setAddFormUnit] = useState("visit");
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
@@ -202,18 +208,56 @@ export default function ContractDetail() {
     }
   };
 
+  const loadInventoryItems = async () => {
+    if (!contract?.properties?.id) return;
+    const { data: inv } = await supabase.from("inventory").select("id").eq("property_id", (contract.properties as any).id).maybeSingle();
+    if (inv) {
+      const { data: items } = await supabase.from("inventory_items").select("*").eq("inventory_id", inv.id).order("name");
+      setInventoryItems(items ?? []);
+    } else {
+      setInventoryItems([]);
+    }
+  };
+
+  const handleAddDialogOpen = (open: boolean) => {
+    setAddOpen(open);
+    if (open) {
+      setSelectedCategory("");
+      setSelectedServiceId("");
+      setSelectedInventoryItemId("");
+      setAddFormQty("1");
+      setAddFormUnit("visit");
+      loadInventoryItems();
+    }
+  };
+
+  const categories = [...new Set(catalog.map(s => s.code))].sort();
+  const filteredServices = selectedCategory ? catalog.filter(s => s.code === selectedCategory) : [];
+
+  const handleInventorySelect = (itemId: string) => {
+    setSelectedInventoryItemId(itemId);
+    if (itemId) {
+      const item = inventoryItems.find(i => i.id === itemId);
+      if (item) {
+        setAddFormQty(String(item.quantity ?? 1));
+        setAddFormUnit(item.unit || "count");
+      }
+    }
+  };
+
   const handleAddLine = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
     const maxOcc = form.get("max_occurrences") as string;
     const unitPrice = form.get("unit_price") as string;
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
-      service_catalog_id: form.get("service_id") as string,
+      service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
       frequency_type: form.get("frequency") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
-      quantity: Number(form.get("quantity")) || 1,
-      unit: form.get("unit") as string,
+      quantity: Number(addFormQty) || 1,
+      unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: maxOcc ? Number(maxOcc) : null,
       unit_price: unitPrice ? Number(unitPrice) : null,
@@ -400,20 +444,45 @@ export default function ContractDetail() {
               toast.success(`${toAdd.length} service(s) added`);
               load();
             }}>Add All</Button>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <Dialog open={addOpen} onOpenChange={handleAddDialogOpen}>
             <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Line</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add Line Item</DialogTitle></DialogHeader>
               <form onSubmit={handleAddLine} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Service *</Label>
-                  <Select name="service_id" required>
-                    <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
+                  <Label>Category *</Label>
+                  <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setSelectedServiceId(""); }}>
+                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
-                      {catalog.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2">
+                  <Label>Service *</Label>
+                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId} disabled={!selectedCategory}>
+                    <SelectTrigger><SelectValue placeholder={selectedCategory ? "Select service" : "Select category first"} /></SelectTrigger>
+                    <SelectContent>
+                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {inventoryItems.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Inventory Item (optional)</Label>
+                    <Select value={selectedInventoryItemId} onValueChange={handleInventorySelect}>
+                      <SelectTrigger><SelectValue placeholder="Link to asset…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none">— None —</SelectItem>
+                        {inventoryItems.map(i => (
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.name} — {i.quantity ?? "?"} {i.unit || ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
                   <Label>Frequency</Label>
@@ -428,8 +497,8 @@ export default function ContractDetail() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Quantity *</Label><Input name="quantity" type="number" defaultValue="1" required min="1" /></div>
-                  <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="visit" /></div>
+                  <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
+                  <div className="space-y-2"><Label>Unit</Label><Input value={addFormUnit} onChange={e => setAddFormUnit(e.target.value)} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Unit Price *</Label><Input name="unit_price" type="number" step="0.01" required min="0" placeholder="0.00" /></div>
