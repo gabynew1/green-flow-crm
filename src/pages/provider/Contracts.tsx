@@ -116,6 +116,21 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
     if (!startDate || !endDate) { toast.error("Start and end dates are required"); return; }
     if (selectedServiceIds.length === 0) { toast.error("Select at least one service"); return; }
 
+    // Check inventory exists for all selected properties
+    const { data: inventories } = await supabase
+      .from("inventory")
+      .select("property_id, inventory_items(id)")
+      .in("property_id", selectedPropertyIds);
+    const propsWithInventory = new Set(
+      (inventories ?? []).filter((inv: any) => inv.inventory_items?.length > 0).map((inv: any) => inv.property_id)
+    );
+    const missingProps = selectedPropertyIds.filter(id => !propsWithInventory.has(id));
+    if (missingProps.length > 0) {
+      const names = missingProps.map(id => properties.find((p: any) => p.id === id)?.name || "Unknown").join(", ");
+      toast.error(`Cannot create contract: property "${names}" has no inventory. Add inventory items first (lawn size, tree count, etc.).`);
+      return;
+    }
+
     const inserts = selectedPropertyIds.map((propertyId) => ({
       contract_name: contractName,
       property_id: propertyId,
