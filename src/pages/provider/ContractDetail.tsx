@@ -524,7 +524,8 @@ export default function ContractDetail() {
               <span>${lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0).toFixed(2)}</span>
             </div>
           )}
-        )}
+        </div>
+      )}
 
       {/* Consumption Summary */}
       {["ACTIVE", "SIGNED"].includes(contract?.status) && consumption.length > 0 && consumption.some(c => c.maxOccurrences !== null) && (
