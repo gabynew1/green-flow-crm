@@ -46,7 +46,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
     const form = new FormData(e.currentTarget);
     const { error } = await supabase.from("inventory_items").insert([{
       inventory_id: inventory.id,
-      category: form.get("category") as "TREE" | "LAWN" | "SHRUB" | "FLOWER_BED" | "OTHER",
+      category: form.get("category") as string,
       name: form.get("name") as string,
       quantity: Number(form.get("quantity")) || 1,
       unit: form.get("unit") as string || "count",
@@ -105,7 +105,15 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
               <div className="space-y-2"><Label>Name *</Label><Input name="name" required placeholder="e.g. Oak tree, Front lawn" /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
-                <div className="space-y-2"><Label>Unit</Label><Input name="unit" defaultValue="count" placeholder="count, m², linear_meters" /></div>
+                <div className="space-y-2">
+                  <Label>Unit</Label>
+                  <Select name="unit" defaultValue="count">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
               <Button type="submit" className="w-full">Add Item</Button>
