@@ -40,10 +40,14 @@ export default function ChangePassword() {
     }
 
     // Clear temporary_password
-    await supabase
+    const { error: updateErr } = await supabase
       .from("profiles")
-      .update({ temporary_password: null } as any)
+      .update({ temporary_password: null })
       .eq("user_id", user.id);
+
+    if (updateErr) {
+      console.error("Failed to clear temporary_password:", updateErr);
+    }
 
     toast.success("Password updated successfully!");
     await refreshProfile();
