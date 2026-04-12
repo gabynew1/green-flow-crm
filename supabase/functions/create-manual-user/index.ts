@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,16 +49,15 @@ Deno.serve(async (req) => {
         { global: { headers: { Authorization: authHeader } } }
       );
 
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
+      const { data: userData, error: userError } = await anonClient.auth.getUser();
+      if (userError || !userData?.user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      callerUserId = claimsData.claims.sub;
+      callerUserId = userData.user.id;
 
       const { data: isAdmin } = await anonClient.rpc("is_super_admin", { _user_id: callerUserId });
       if (!isAdmin) {
