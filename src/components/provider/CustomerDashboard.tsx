@@ -79,7 +79,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const overdueVisits = allScheduled.filter(v => {
     return v.scheduled_date && parseISO(v.scheduled_date) < monthStart;
   });
-  const totalPlannedThisMonth = completedThisMonth.length + scheduledThisMonth.length;
+  // Calculate contractual monthly visit obligation from active contracts
+  let contractualMonthlyVisits = 0;
+  for (const c of activeContracts) {
+    const vfc = c.visit_frequency_count || 0;
+    const vft = c.visit_frequency_type;
+    if (vft === "WEEK") contractualMonthlyVisits += vfc * 4.33;
+    else if (vft === "MONTH") contractualMonthlyVisits += vfc;
+  }
+  const expectedThisMonth = Math.round(contractualMonthlyVisits);
+  const totalPlannedThisMonth = Math.max(expectedThisMonth, completedThisMonth.length + scheduledThisMonth.length);
 
   // ── Financial Metrics ──
   const contractLinesByContract = new Map<string, any[]>();
