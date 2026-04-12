@@ -13,6 +13,7 @@ interface ConnectionRequest {
   status: string;
   requested_at: string;
   tenant_id: string;
+  client_user_id: string;
 }
 
 export function ConnectionRequests() {
