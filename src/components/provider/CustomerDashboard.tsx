@@ -220,9 +220,20 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
 
             {/* Total Upcoming */}
             <div className="rounded-lg border p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Upcoming</p>
-              <p className="text-2xl font-bold mt-1 text-primary">{allScheduled.length}</p>
-              <p className="text-xs text-muted-foreground">visits scheduled</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Scheduled</p>
+              <p className="text-2xl font-bold mt-1 text-primary">
+                {allScheduled.length}
+                {totalExpectedVisits > 0 && (
+                  <span className="text-sm font-normal text-muted-foreground">/{totalExpectedVisits}</span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">visits planned</p>
+              {totalExpectedVisits > 0 && (
+                <Progress
+                  value={(totalDeliveredOrScheduled / totalExpectedVisits) * 100}
+                  className="h-1.5 mt-2"
+                />
+              )}
             </div>
 
             {/* YTD Completed */}
