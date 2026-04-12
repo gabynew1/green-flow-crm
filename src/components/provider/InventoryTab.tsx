@@ -70,6 +70,12 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
       LAWN: "bg-green-500/10 text-green-600 border-green-500/20",
       SHRUB: "bg-amber-500/10 text-amber-600 border-amber-500/20",
       FLOWER_BED: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+      HEDGE: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+      IRRIGATION: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+      PAVING: "bg-stone-500/10 text-stone-600 border-stone-500/20",
+      PLANTER: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+      LIGHTING: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+      FENCE: "bg-orange-500/10 text-orange-600 border-orange-500/20",
       OTHER: "bg-slate-500/10 text-slate-600 border-slate-500/20",
     };
     return colors[cat] || colors.OTHER;
