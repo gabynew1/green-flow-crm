@@ -59,6 +59,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
 
   // ── Delivery Metrics ──
   const completedVisits = visits.filter(v => v.status === "COMPLETED");
+  const allScheduled = visits.filter(v => v.status === "SCHEDULED");
   const completedThisMonth = completedVisits.filter(v => {
     const d = v.performed_date || v.scheduled_date;
     return d && isWithinInterval(parseISO(d), { start: monthStart, end: monthEnd });
@@ -67,13 +68,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     const d = v.performed_date || v.scheduled_date;
     return d && isWithinInterval(parseISO(d), { start: yearStart, end: yearEnd });
   });
-  const scheduledThisMonth = visits.filter(v => {
-    return v.status === "SCHEDULED" && v.scheduled_date &&
+  const scheduledThisMonth = allScheduled.filter(v => {
+    return v.scheduled_date &&
       isWithinInterval(parseISO(v.scheduled_date), { start: monthStart, end: monthEnd });
   });
-  const scheduledNextMonth = visits.filter(v => {
-    return v.status === "SCHEDULED" && v.scheduled_date &&
+  const scheduledNextMonth = allScheduled.filter(v => {
+    return v.scheduled_date &&
       isWithinInterval(parseISO(v.scheduled_date), { start: nextMonthStart, end: nextMonthEnd });
+  });
+  const overdueVisits = allScheduled.filter(v => {
+    return v.scheduled_date && parseISO(v.scheduled_date) < monthStart;
   });
   const totalPlannedThisMonth = completedThisMonth.length + scheduledThisMonth.length;
 
