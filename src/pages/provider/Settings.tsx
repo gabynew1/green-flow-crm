@@ -10,8 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins } from "lucide-react";
+import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins, KeyRound } from "lucide-react";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
+import TeamManager from "@/components/provider/TeamManager";
+import ChangePasswordCard from "@/components/ChangePasswordCard";
 import TeamManager from "@/components/provider/TeamManager";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
@@ -48,6 +50,10 @@ export default function Settings() {
   const [invitePermission, setInvitePermission] = useState("field_staff");
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ email: string; password: string } | null>(null);
+
+  // Reset password state
+  const [resetResult, setResetResult] = useState<{ name: string; password: string } | null>(null);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
 
   // Load company info from profile
   useEffect(() => {
