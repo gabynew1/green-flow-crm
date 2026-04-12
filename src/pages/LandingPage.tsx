@@ -312,8 +312,9 @@ export default function LandingPage() {
             <Button
               type="submit"
               className="w-full h-11 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold"
+              disabled={startFreeLoading}
             >
-              Get Started Free 🌱
+              {startFreeLoading ? "Checking…" : "Get Started Free 🌱"}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
               No credit card required • Free forever for solo operators
@@ -373,8 +374,9 @@ export default function LandingPage() {
               type="submit"
               size="lg"
               className="h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-lg px-8 whitespace-nowrap"
+              disabled={heroLoading}
             >
-              Get Growing 🌱
+              {heroLoading ? "Checking…" : "Get Growing 🌱"}
             </Button>
           </form>
         </div>
