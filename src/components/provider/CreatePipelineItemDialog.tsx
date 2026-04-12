@@ -40,6 +40,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
+  const [alsoCreateInventory, setAlsoCreateInventory] = useState(false);
 
   // Contract-specific state
   const [startDate, setStartDate] = useState("");
@@ -119,6 +120,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
     setSelectedPropertyIds([]);
     setName("");
     setNotes("");
+    setAlsoCreateInventory(false);
     setStartDate("");
     setEndDate("");
     setBillingCycle("MONTHLY");
@@ -191,7 +193,16 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
         toast.success("Inspection created!");
         resetForm();
         onOpenChange(false);
-        navigate(`/provider/inspections/${data.id}`);
+        if (alsoCreateInventory) {
+          // Ensure inventory record exists for the property
+          const { data: existingInv } = await supabase.from("inventory").select("id").eq("property_id", data.property_id).maybeSingle();
+          if (!existingInv) {
+            await supabase.from("inventory").insert({ property_id: data.property_id });
+          }
+          navigate(`/provider/properties/${data.property_id}`);
+        } else {
+          navigate(`/provider/inspections/${data.id}`);
+        }
       } else if (type === "offer") {
         const { data, error } = await supabase.from("offers").insert({
           offer_name: name.trim(),
@@ -457,6 +468,20 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
             <div className="space-y-2">
               <Label>Notes</Label>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes…" rows={2} />
+            </div>
+          )}
+
+          {type === "inspection" && selectedPropertyId && (
+            <div className="flex items-center gap-2 rounded-md border p-3 bg-muted/30">
+              <Checkbox
+                id="also-inventory"
+                checked={alsoCreateInventory}
+                onCheckedChange={(v) => setAlsoCreateInventory(!!v)}
+              />
+              <label htmlFor="also-inventory" className="text-sm cursor-pointer leading-tight">
+                Also set up property inventory
+                <span className="block text-xs text-muted-foreground mt-0.5">You'll be taken to the property page to add trees, lawns, etc.</span>
+              </label>
             </div>
           )}
 
