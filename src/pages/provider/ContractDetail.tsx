@@ -44,6 +44,9 @@ export default function ContractDetail() {
   const [selectedInventoryItemId, setSelectedInventoryItemId] = useState("");
   const [addFormQty, setAddFormQty] = useState("1");
   const [addFormUnit, setAddFormUnit] = useState("visit");
+  const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
+  const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
+  const [addFormTimesPerFreq, setAddFormTimesPerFreq] = useState("1");
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
