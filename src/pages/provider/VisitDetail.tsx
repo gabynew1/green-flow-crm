@@ -365,7 +365,7 @@ export default function VisitDetail() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={editScheduledDate} onSelect={setEditScheduledDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    <Calendar mode="single" selected={editScheduledDate} onSelect={setEditScheduledDate} initialFocus className={cn("p-3 pointer-events-auto")} modifiers={{ nonWorkday: (date) => !isWorkday(date) }} modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }} />
                   </PopoverContent>
                 </Popover>
               </div>
