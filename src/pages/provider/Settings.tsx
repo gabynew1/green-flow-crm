@@ -176,6 +176,19 @@ export default function Settings() {
     }
   };
 
+  const handleResetPassword = async (member: TeamMember) => {
+    setResettingUserId(member.user_id);
+    const { data, error } = await supabase.functions.invoke("reset-user-password", {
+      body: { target_user_id: member.user_id },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Failed to reset password");
+    } else {
+      setResetResult({ name: member.full_name || member.email || "User", password: data.temporary_password });
+    }
+    setResettingUserId(null);
+  };
+
   const seatLimitReached = teamMembers.length >= maxSeats;
 
   return (
