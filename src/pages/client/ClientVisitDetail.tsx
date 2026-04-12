@@ -6,11 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Check, X, Star } from "lucide-react";
+import { ArrowLeft, Check, Star } from "lucide-react";
 import { toast } from "sonner";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
+
+const statusColor: Record<string, string> = {
+  SCHEDULED: "bg-muted text-muted-foreground",
+  IN_PROGRESS: "bg-info/10 text-info",
+  COMPLETED: "bg-success/10 text-success",
+  CANCELED: "bg-destructive/10 text-destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  SCHEDULED: "Scheduled",
+  IN_PROGRESS: "In Progress",
+  COMPLETED: "Completed",
+  CANCELED: "Canceled",
+};
 
 export default function ClientVisitDetail() {
   const { visitId } = useParams();
@@ -21,7 +33,6 @@ export default function ClientVisitDetail() {
   const [comment, setComment] = useState("");
   const [existingFeedback, setExistingFeedback] = useState<any>(null);
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
-  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -58,21 +69,6 @@ export default function ClientVisitDetail() {
     }
   };
 
-  const approve = async () => {
-    await supabase.from("service_orders").update({ status: "APPROVED" }).eq("id", visitId!);
-    toast.success("Visit approved!");
-    load();
-  };
-
-  const reject = async () => {
-    await supabase.from("service_orders").update({
-      status: "CANCELED" as any,
-      notes: (order.notes ? order.notes + "\n" : "") + `Client rejection reason: ${rejectReason}`,
-    }).eq("id", visitId!);
-    toast.success("Visit rejected");
-    load();
-  };
-
   const submitFeedback = async () => {
     if (rating === 0) { toast.error("Please select a rating"); return; }
     const { error } = await supabase.from("feedback").insert({
@@ -90,6 +86,7 @@ export default function ClientVisitDetail() {
 
   const contractItems = items.filter(i => i.source === "CONTRACT");
   const adHocItems = items.filter(i => i.source === "AD_HOC");
+  const displayStatus = statusLabels[order.status] || order.status.replace(/_/g, " ");
 
   return (
     <div className="space-y-6">
@@ -99,7 +96,9 @@ export default function ClientVisitDetail() {
           <h1 className="text-2xl font-bold">{(order.properties as any)?.name}</h1>
           <p className="text-sm text-muted-foreground">{order.period_label} · {order.scheduled_date}</p>
         </div>
-        <Badge variant="secondary">{order.status.replace(/_/g, " ")}</Badge>
+        <Badge className={statusColor[order.status] || "bg-muted text-muted-foreground"} variant="secondary">
+          {displayStatus}
+        </Badge>
       </div>
 
       {order.client_summary && (
@@ -181,38 +180,8 @@ export default function ClientVisitDetail() {
         </Card>
       )}
 
-      {/* Approve/Reject */}
-      {order.status === "SENT_TO_CLIENT" && (
-        <Card>
-          <CardContent className="pt-6 flex gap-3">
-            <Button className="flex-1" onClick={approve}><Check className="h-4 w-4 mr-2" /> Approve</Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="flex-1"><X className="h-4 w-4 mr-2" /> Reject</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reject this visit report?</AlertDialogTitle>
-                  <AlertDialogDescription>Please provide a reason so the provider can address your concerns.</AlertDialogDescription>
-                </AlertDialogHeader>
-                <Textarea
-                  value={rejectReason}
-                  onChange={e => setRejectReason(e.target.value)}
-                  placeholder="Reason for rejection…"
-                  rows={3}
-                />
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={reject} className="bg-destructive text-destructive-foreground">Reject</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Feedback */}
-      {(order.status === "APPROVED" || order.status === "CANCELED") && !existingFeedback && (
+      {/* Feedback — available after visit is completed */}
+      {order.status === "COMPLETED" && !existingFeedback && (
         <Card>
           <CardHeader><CardTitle className="text-base">Leave Feedback</CardTitle></CardHeader>
           <CardContent className="space-y-4">
