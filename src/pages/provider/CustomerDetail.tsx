@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { format, addYears } from "date-fns";
+import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
