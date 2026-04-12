@@ -1,44 +1,60 @@
 
 
-## Plan: Enhanced Contract Line Item Dialog
+## Plan: Password Management — Admin Reset, Forced Change, and Self-Service
 
-### What changes
+### What it does
 
-The "Add Line Item" dialog in Contract Detail will be redesigned with three key improvements:
+1. **Admin can reset passwords for team members**: In Settings > Team Management, each team member row gets a "Reset Password" button. Clicking it generates a new temporary password (stored in `profiles.temporary_password`) and updates the user's auth password via the existing `invite-team-member` pattern. Admin can also reset their own password this way.
 
-1. **Category → Service cascading selects**: Instead of a flat service list, the user first picks a category (e.g., "Regular Maintenance", "Garden Landscaping"), then picks a service within that category. The service list filters based on the selected category.
+2. **Force password change on first login with temporary password**: After successful login in `Auth.tsx`, check if `profiles.temporary_password` is not null. If set, redirect to a new `/change-password` page that forces the user to set a new password before proceeding. On successful change, clear `temporary_password` in profiles.
 
-2. **Inventory item picker**: After selecting a property-linked contract, the dialog fetches inventory items for that property. A new "Inventory Item" dropdown lets the user link a line item to a specific asset (e.g., "Lawn - 100 m²"). When selected, it auto-fills quantity and unit from the inventory item.
+3. **Self-service password change from profile**: Add a "Change Password" card to `Settings.tsx` (for providers) and `ClientProfile.tsx` (for clients) with old password verification + new password fields. Uses `supabase.auth.signInWithPassword` to verify old password, then `supabase.auth.updateUser` to set new one.
 
-3. **Frequency selector**: Already exists but will be kept in the improved layout.
+### Technical details
 
-### File changes
+**New edge function: `reset-user-password`**
+- Accepts `{ target_user_id: string }`
+- Validates caller is PROVIDER_ADMIN in same tenant as target (or same user)
+- Generates random temporary password
+- Updates auth user password via admin API
+- Updates `profiles.temporary_password` with the temp password
+- Returns `{ temporary_password: string }`
 
-**`src/pages/provider/ContractDetail.tsx`**:
-- Add state for `selectedCategory`, `inventoryItems`, and load inventory on dialog open using the contract's `property_id`
-- Group `catalog` items by their `code` (category) field to extract unique categories
-- Replace the single "Service" select with two selects: "Category" then "Service" (filtered by category)
-- Add an "Inventory Item (optional)" select that shows items from the property's inventory (e.g., "Lawn A - 100 m²"), and on selection auto-populates quantity and unit fields
-- Keep frequency, unit price, max/period, and notes fields as-is
+**New page: `src/pages/ChangePassword.tsx`**
+- Shown when `temporary_password` is set on profile after login
+- Two fields: new password + confirm
+- Calls `supabase.auth.updateUser({ password })` then clears `temporary_password` in profiles
+- Cannot be skipped — route guard in `App.tsx`
+
+**Modified files:**
+
+| File | Change |
+|------|--------|
+| `src/App.tsx` | Add `/change-password` route; add guard that redirects to it when `profile.temporary_password` is set |
+| `src/hooks/useAuth.tsx` | Expose `temporary_password` from profile data |
+| `src/pages/ChangePassword.tsx` | New forced password change page |
+| `src/pages/provider/Settings.tsx` | Add "Reset Password" button per team member; add "Change Your Password" card for self-service |
+| `src/pages/client/ClientProfile.tsx` | Add "Change Password" card (old + new password) |
+| `supabase/functions/reset-user-password/index.ts` | New edge function for admin password reset |
 
 ### UI flow
 
 ```text
-┌─────────────────────────────────┐
-│ Add Line Item                   │
-├─────────────────────────────────┤
-│ Category *      [▼ Regular Maintenance ]│
-│ Service *       [▼ Lawn Repair        ]│
-│ Inventory Item  [▼ Main Lawn - 100 m² ]│  ← optional, auto-fills qty/unit
-│ Frequency       [▼ Per Visit          ]│
-│ Quantity   [100]   Unit   [m²]         │  ← pre-filled from inventory
-│ Unit Price [15]    Max/Period [∞]      │
-│ Notes      [___]                       │
-│ [        Add        ]                  │
-└─────────────────────────────────┘
+Admin resets password:
+  Settings → Team row → [Reset Password] → dialog shows new temp password
+
+Forced change on login:
+  Auth login → profile has temporary_password → redirect /change-password
+  → user sets new password → temporary_password cleared → normal redirect
+
+Self-service change:
+  Settings/Profile → Change Password card
+  → enter old password + new password → verified & updated
 ```
 
-### Data queries
-- Categories derived from `catalog` grouped by `code` field (already loaded)
-- Inventory: `supabase.from("inventory").select("id").eq("property_id", contract.properties.id)` then `supabase.from("inventory_items").select("*").eq("inventory_id", inventoryId)` — fetched when dialog opens
+### Security
+- Edge function validates caller is PROVIDER_ADMIN in same tenant
+- Old password verified via `signInWithPassword` before allowing self-service change
+- Password policy enforced (min 6 chars, 1 uppercase, 1 number)
+- `temporary_password` cleared from profiles immediately after change
 
