@@ -15,8 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSunday } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useWorkdays } from "@/hooks/useWorkdays";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -41,6 +43,8 @@ const statusLabels: Record<string, string> = {
 const allStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL", "APPROVED", "SENT_TO_CLIENT", "CANCELED"];
 
 export default function VisitDetail() {
+  const { tenantId } = useAuth();
+  const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const { visitId } = useParams();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
@@ -328,6 +332,8 @@ export default function VisitDetail() {
                   onSelect={setRescheduleDate}
                   initialFocus
                   className="rounded-md border pointer-events-auto"
+                  modifiers={{ nonWorkday: (date) => !isWorkday(date) }}
+                  modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }}
                 />
                 <Button onClick={handleReschedule} className="w-full" disabled={!rescheduleDate}>
                   <CalendarClock className="h-4 w-4 mr-2" /> Reschedule to {rescheduleDate ? format(rescheduleDate, "PPP") : "…"}
@@ -359,7 +365,7 @@ export default function VisitDetail() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={editScheduledDate} onSelect={setEditScheduledDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    <Calendar mode="single" selected={editScheduledDate} onSelect={setEditScheduledDate} initialFocus className={cn("p-3 pointer-events-auto")} modifiers={{ nonWorkday: (date) => !isWorkday(date) }} modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }} />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -373,7 +379,7 @@ export default function VisitDetail() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={editPerformedDate} onSelect={setEditPerformedDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    <Calendar mode="single" selected={editPerformedDate} onSelect={setEditPerformedDate} initialFocus className={cn("p-3 pointer-events-auto")} modifiers={{ nonWorkday: (date) => !isWorkday(date) }} modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }} />
                   </PopoverContent>
                 </Popover>
               </div>
