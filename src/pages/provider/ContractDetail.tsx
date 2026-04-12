@@ -263,18 +263,16 @@ export default function ContractDetail() {
     e.preventDefault();
     if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
-    const maxOcc = form.get("max_occurrences") as string;
-    const unitPrice = form.get("unit_price") as string;
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
-      frequency_type: form.get("frequency") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
+      frequency_type: addFormFrequency as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
       quantity: Number(addFormQty) || 1,
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
-      max_occurrences_per_period: maxOcc ? Number(maxOcc) : null,
-      unit_price: unitPrice ? Number(unitPrice) : null,
+      max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
+      unit_price: addFormUnitPrice ? Number(addFormUnitPrice) : null,
     }] as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
