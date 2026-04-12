@@ -76,7 +76,7 @@ export async function getContractConsumption(
     .from("service_order_items")
     .select("contract_line_item_id, service_orders!inner(status, performed_date, scheduled_date)")
     .in("contract_line_item_id", lineItemIds)
-    .in("service_orders.status", ["COMPLETED", "APPROVED", "SENT_TO_CLIENT"]);
+    .in("service_orders.status", ["COMPLETED"]);
 
   for (const li of lineItems) {
     const bounds = getPeriodBounds(li.frequency_type, contractStart, contractEnd);
