@@ -203,7 +203,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
         // Insert contract line items with per-service config
         const lineItems = (created ?? []).flatMap((contract) =>
           selectedServiceIds.map((serviceId) => {
-            const cfg = serviceConfig[serviceId] || {};
+            const cfg = serviceConfig[serviceId] || { frequency_type: "PER_VISIT", quantity: 1, unit_price: "", max_occurrences: "" };
             return {
               contract_id: contract.id,
               service_catalog_id: serviceId,
