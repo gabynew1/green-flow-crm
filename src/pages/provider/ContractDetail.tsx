@@ -230,6 +230,9 @@ export default function ContractDetail() {
       setSelectedInventoryItemId("");
       setAddFormQty("1");
       setAddFormUnit("visit");
+      setAddFormUnitPrice("");
+      setAddFormFrequency("PER_VISIT");
+      setAddFormTimesPerFreq("1");
       loadInventoryItems();
     }
   };
