@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{6,}$/;
 
 export default function ChangePassword() {
   const { user, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -32,14 +34,8 @@ export default function ChangePassword() {
     }
 
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      toast.error("Failed to update password: " + error.message);
-      setSaving(false);
-      return;
-    }
 
-    // Clear temporary_password
+    // 1. Clear temporary_password FIRST so route guard won't loop
     const { error: updateErr } = await supabase
       .from("profiles")
       .update({ temporary_password: null })
@@ -49,9 +45,20 @@ export default function ChangePassword() {
       console.error("Failed to clear temporary_password:", updateErr);
     }
 
-    toast.success("Password updated successfully!");
+    // 2. Refresh profile so React state reflects cleared value
     await refreshProfile();
+
+    // 3. Now update auth password (triggers onAuthStateChange, but profile is already clean)
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      toast.error("Failed to update password: " + error.message);
+      setSaving(false);
+      return;
+    }
+
+    toast.success("Password updated successfully!");
     setSaving(false);
+    navigate("/", { replace: true });
   };
 
   const eyeButton = (show: boolean, toggle: () => void) => (
