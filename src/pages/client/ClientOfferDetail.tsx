@@ -60,6 +60,7 @@ export default function ClientOfferDetail() {
       offer_id: offerId,
       start_date: new Date().toISOString().split("T")[0],
       status: "DRAFT",
+      tenant_id: offer.tenant_id,
     } as any).select().single();
 
     if (!cErr && contract && lineItems.length > 0) {
@@ -70,6 +71,7 @@ export default function ClientOfferDetail() {
         quantity: li.quantity,
         unit: li.unit,
         notes: li.notes,
+        tenant_id: offer.tenant_id,
       }));
       await supabase.from("contract_line_items").insert(contractLines);
     }

@@ -111,9 +111,9 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const loadData = async () => {
     const [custRes, propRes, svcRes, teamRes] = await Promise.all([
-      supabase.from("customers").select("id, name, company_name").order("name"),
-      supabase.from("properties").select("id, name, customer_id").order("name"),
-      supabase.from("service_catalog").select("id, name, code").eq("is_active", true).order("name"),
+      tenantId ? supabase.from("customers").select("id, name, company_name").eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
+      tenantId ? supabase.from("properties").select("id, name, customer_id").eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
+      tenantId ? supabase.from("service_catalog").select("id, name, code").eq("is_active", true).eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
       tenantId ? supabase.from("teams").select("id, name, color").eq("tenant_id", tenantId).order("created_at") : Promise.resolve({ data: [] }),
     ]);
     const loadedCustomers = custRes.data ?? [];
@@ -264,6 +264,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
           notes: notes.trim() || null,
           created_by_user_id: user!.id,
           contract_id: isContractSource ? selectedSource : null,
+          tenant_id: tenantId,
         })
         .select()
         .single();
@@ -279,6 +280,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
           name: svc?.name ?? "Service",
           quantity: 1,
           source: itemSource,
+          tenant_id: tenantId,
         };
       });
 

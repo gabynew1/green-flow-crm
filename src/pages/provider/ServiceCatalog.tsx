@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ type ActiveFilter = "all" | "active" | "inactive";
 
 export default function ServiceCatalog() {
   const currency = useTenantCurrency();
+  const { profile } = useAuth();
   const [services, setServices] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -41,7 +43,8 @@ export default function ServiceCatalog() {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
-    const { data } = await supabase.from("service_catalog").select("*").order("code");
+    if (!profile?.tenant_id) return;
+    const { data } = await supabase.from("service_catalog").select("*").eq("tenant_id", profile.tenant_id).order("code");
     setServices(data ?? []);
   };
 
@@ -113,6 +116,7 @@ export default function ServiceCatalog() {
       default_unit: form.get("unit") as string,
       default_price: Number(form.get("price")) || null,
       is_active: true,
+      tenant_id: profile?.tenant_id,
     };
 
     if (editing) {

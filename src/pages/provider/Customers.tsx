@@ -41,9 +41,10 @@ export default function Customers() {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
+    if (!profile?.tenant_id) return;
     const [custRes, contractRes] = await Promise.all([
-      supabase.from("customers").select("*, properties(id)").order("name"),
-      supabase.from("contracts").select("id, status, end_date, property_id, properties(customer_id)"),
+      supabase.from("customers").select("*, properties(id)").eq("tenant_id", profile.tenant_id).order("name"),
+      supabase.from("contracts").select("id, status, end_date, property_id, properties(customer_id)").eq("tenant_id", profile.tenant_id),
     ]);
     setCustomers(custRes.data ?? []);
     setContracts(contractRes.data ?? []);
