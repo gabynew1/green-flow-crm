@@ -1,7 +1,7 @@
 import { addDays, addWeeks, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isBefore, isAfter, parseISO, differenceInCalendarDays } from "date-fns";
 
-const TIME_SLOTS = ["08:00", "10:00", "12:00", "14:00"] as const;
-const MAX_SLOTS_PER_DAY = 4;
+const TIME_SLOTS = ["08:00", "10:00", "12:00", "14:00", "16:00"] as const;
+const MAX_SLOTS_PER_DAY = 5;
 
 export interface ScheduleInput {
   startDate: string; // yyyy-MM-dd
