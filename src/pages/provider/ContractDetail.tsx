@@ -37,6 +37,7 @@ export default function ContractDetail() {
   const [consumption, setConsumption] = useState<LineItemConsumption[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
@@ -438,8 +439,21 @@ export default function ContractDetail() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Line Items</h2>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold">Line Items</h2>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Categories</SelectItem>
+              {Array.from(new Set(lineItems.map(li => (li.service_catalog as any)?.code).filter(Boolean))).sort().map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         {editable && (
           <div className="flex gap-2">
             {checkedIds.size > 0 ? (
@@ -566,6 +580,7 @@ export default function ContractDetail() {
                     />
                   </TableHead>
                 )}
+              <TableHead>Category</TableHead>
               <TableHead>Service</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
@@ -577,7 +592,7 @@ export default function ContractDetail() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lineItems.map(li => (
+              {lineItems.filter(li => categoryFilter === "ALL" || (li.service_catalog as any)?.code === categoryFilter).map(li => (
                 <TableRow key={li.id}>
                   {editable && (
                     <TableCell>
@@ -591,6 +606,7 @@ export default function ContractDetail() {
                       />
                     </TableCell>
                   )}
+                  <TableCell className="text-xs text-muted-foreground">{(li.service_catalog as any)?.code || "—"}</TableCell>
                   <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
