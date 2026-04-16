@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Outlet, Link } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ProviderSidebar } from "./ProviderSidebar";
-import { AIChatBox } from "@/components/AIChatBox";
+
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, ClipboardCheck, FileOutput, LayoutDashboard } from "lucide-react";
+import { Plus, ClipboardCheck, FileOutput, LayoutDashboard, Sparkles } from "lucide-react";
 import CreateAdHocVisitDialog from "./CreateAdHocVisitDialog";
 
 export function ProviderLayout() {

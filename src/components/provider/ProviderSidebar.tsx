@@ -9,6 +9,7 @@ import {
   Shield,
   ClipboardCheck,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -35,6 +36,7 @@ const allNavItems = [
   { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen, requiredPermission: "full_admin" as const },
   { title: "Feedback", url: "/provider/feedback", icon: MessageSquare, requiredPermission: "full_admin" as const },
   { title: "Settings", url: "/provider/settings", icon: Settings, requiredPermission: "full_admin" as const },
+  { title: "AI Assistant", url: "/provider/ai", icon: Sparkles, requiredPermission: null },
 ];
 
 export function ProviderSidebar() {
