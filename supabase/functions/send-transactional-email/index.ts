@@ -31,7 +31,33 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Validate caller JWT
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+
+  // Quick auth check via getClaims
+  const authClient = createClient(supabaseUrl!, anonKey!, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(
+    authHeader.replace('Bearer ', '')
+  )
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey) {
