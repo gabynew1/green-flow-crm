@@ -439,8 +439,21 @@ export default function ContractDetail() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Line Items</h2>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold">Line Items</h2>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Categories</SelectItem>
+              {Array.from(new Set(lineItems.map(li => (li.service_catalog as any)?.code).filter(Boolean))).sort().map(cat => (
+                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         {editable && (
           <div className="flex gap-2">
             {checkedIds.size > 0 ? (
