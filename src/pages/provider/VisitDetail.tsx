@@ -667,7 +667,23 @@ export default function VisitDetail() {
                       {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
                     </p>
                   </div>
-                  <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
+                  {!isCompleted ? (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="h-7 w-20 text-xs"
+                      defaultValue={getItemPrice(item) || ""}
+                      placeholder="0.00"
+                      onBlur={async (e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
+                        toast.success("Price updated");
+                        load();
+                      }}
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
+                  )}
                   <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
                 </CardContent>
               </Card>
