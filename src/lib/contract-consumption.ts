@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
-  startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, parseISO,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, parseISO,
 } from "date-fns";
 
 export interface LineItemConsumption {
