@@ -124,6 +124,7 @@ export default function CustomerDetail() {
       visit_frequency_count: oldContract.visit_frequency_count,
       visit_frequency_type: oldContract.visit_frequency_type,
       status: "ACTIVE" as const,
+      tenant_id: oldContract.tenant_id,
     } as any).select().single();
     if (error) { toast.error(error.message); return; }
 
@@ -137,6 +138,7 @@ export default function CustomerDetail() {
         quantity: li.quantity,
         unit: li.unit,
         notes: li.notes,
+        tenant_id: li.tenant_id,
       }));
       await supabase.from("contract_line_items").insert(newLines);
     }

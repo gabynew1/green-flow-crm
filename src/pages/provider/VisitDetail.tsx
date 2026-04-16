@@ -223,6 +223,7 @@ export default function VisitDetail() {
         quantity: 1,
         unit: svc?.default_unit || "visit",
         source: "AD_HOC" as const,
+        tenant_id: tenantId,
       };
     });
     const { error } = await supabase.from("service_order_items").insert(inserts);

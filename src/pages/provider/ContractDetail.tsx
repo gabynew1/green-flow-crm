@@ -173,10 +173,12 @@ export default function ContractDetail() {
         );
 
         if (visits.length > 0) {
+          // Add tenant_id to each visit
+          const visitsWithTenant = visits.map(v => ({ ...v, tenant_id: tenantId }));
           // Batch insert service orders
           const { data: createdOrders, error: soError } = await supabase
             .from("service_orders")
-            .insert(visits)
+            .insert(visitsWithTenant)
             .select("id");
 
           if (soError) throw soError;
