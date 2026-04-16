@@ -1211,7 +1211,7 @@ export type Database = {
           scheduled_start_time: string | null
           status: Database["public"]["Enums"]["service_order_status"]
           team_id: string | null
-          tenant_id: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1230,7 +1230,7 @@ export type Database = {
           scheduled_start_time?: string | null
           status?: Database["public"]["Enums"]["service_order_status"]
           team_id?: string | null
-          tenant_id: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1249,7 +1249,7 @@ export type Database = {
           scheduled_start_time?: string | null
           status?: Database["public"]["Enums"]["service_order_status"]
           team_id?: string | null
-          tenant_id?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Relationships: [
