@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
@@ -552,7 +553,7 @@ export default function ContractDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Unit Price *</Label>
-                  <Input type="number" step="0.01" required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
+                  <CurrencyInput currency={currency} required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
@@ -604,10 +605,9 @@ export default function ContractDetail() {
                   <TableCell>{li.unit}</TableCell>
                   <TableCell>
                     {editable ? (
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="h-7 w-20 text-xs"
+                      <CurrencyInput
+                        currency={currency}
+                        className="h-7 w-28 text-xs"
                         placeholder="0.00"
                         defaultValue={li.unit_price ?? ""}
                         onBlur={async (e) => {

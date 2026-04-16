@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +32,7 @@ interface Props {
 export default function CreatePipelineItemDialog({ open, onOpenChange, type, defaultCustomerId, onCreated }: Props) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const currency = useTenantCurrency();
   const [customers, setCustomers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -412,7 +415,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
                             </div>
                             <div className="space-y-1">
                               <Label className="text-[10px]">Unit Price *</Label>
-                              <Input className="h-7 text-xs" type="number" step="0.01" min="0" placeholder="0.00"
+                              <CurrencyInput className="h-7 text-xs" currency={currency} min="0" placeholder="0.00"
                                 value={cfg.unit_price}
                                 onChange={(e) => updateServiceConfig(id, "unit_price", e.target.value)} />
                             </div>

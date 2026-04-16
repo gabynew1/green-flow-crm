@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -270,7 +271,7 @@ export default function ServiceCatalog() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Default Price</Label><Input name="price" type="number" step="0.01" defaultValue={editing?.default_price} /></div>
+                  <div className="space-y-2"><Label>Default Price</Label><CurrencyInput name="price" currency={currency} defaultValue={editing?.default_price} /></div>
                 </div>
                 <Button type="submit" className="w-full">Save</Button>
               </form>
