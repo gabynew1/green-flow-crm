@@ -309,6 +309,7 @@ export default function ContractDetail() {
         quantity: li.quantity,
         unit: li.unit,
         notes: li.notes,
+        tenant_id: tenantId,
       }));
       await supabase.from("contract_line_items").insert(newLines);
     }
