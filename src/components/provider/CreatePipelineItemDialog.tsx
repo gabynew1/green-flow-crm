@@ -68,15 +68,17 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   }, [open, defaultCustomerId]);
 
   const loadData = async () => {
+    if (!profile?.tenant_id) return;
+    const tid = profile.tenant_id;
     const [custRes, propRes] = await Promise.all([
-      supabase.from("customers").select("id, name, email, company_name").order("name"),
-      supabase.from("properties").select("id, name, customer_id").order("name"),
+      supabase.from("customers").select("id, name, email, company_name").eq("tenant_id", tid).order("name"),
+      supabase.from("properties").select("id, name, customer_id").eq("tenant_id", tid).order("name"),
     ]);
     setCustomers(custRes.data ?? []);
     setProperties(propRes.data ?? []);
 
     if (type === "contract") {
-      const svcRes = await supabase.from("service_catalog").select("*").eq("is_active", true).order("code").order("name");
+      const svcRes = await supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tid).order("code").order("name");
       setServices(svcRes.data ?? []);
     }
   };
@@ -232,6 +234,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
           visit_frequency_count: visitCount,
           visit_frequency_type: visitType,
           status: "DRAFT" as const,
+          tenant_id: profile?.tenant_id,
         } as any));
 
         const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
@@ -248,6 +251,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
               frequency_type: (cfg.frequency_type || "PER_VISIT") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME",
               unit_price: cfg.unit_price ? Number(cfg.unit_price) : null,
               max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+              tenant_id: profile?.tenant_id,
             };
           })
         );

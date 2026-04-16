@@ -57,9 +57,10 @@ export default function CreateOpportunityDialog({ open, onOpenChange }: Props) {
   }, [open]);
 
   const loadData = async () => {
+    if (!profile?.tenant_id) return;
     const [custRes, propRes] = await Promise.all([
-      supabase.from("customers").select("id, name, email, company_name").order("name"),
-      supabase.from("properties").select("id, name, customer_id").order("name"),
+      supabase.from("customers").select("id, name, email, company_name").eq("tenant_id", profile.tenant_id).order("name"),
+      supabase.from("properties").select("id, name, customer_id").eq("tenant_id", profile.tenant_id).order("name"),
     ]);
     setCustomers(custRes.data ?? []);
     setProperties(propRes.data ?? []);
