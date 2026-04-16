@@ -53,9 +53,11 @@ export default function ServiceVisits() {
   useEffect(() => { load(); loadTeams(); }, []);
 
   const load = async () => {
+    if (!tenantId) return;
     const { data } = await supabase
       .from("service_orders")
       .select("*, properties(name, customers(name)), teams(id, name, color)")
+      .eq("tenant_id", tenantId)
       .order("scheduled_date", { ascending: true });;
     setOrders(data ?? []);
   };

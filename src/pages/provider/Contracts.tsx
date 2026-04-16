@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ const INACTIVE_STATUSES = ["CLOSED", "DRAFT"];
 
 export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const currency = useTenantCurrency();
+  const { profile } = useAuth();
   const [contracts, setContracts] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [lineItemTotals, setLineItemTotals] = useState<Map<string, number>>(new Map());
@@ -66,16 +68,20 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   useEffect(() => { load(); }, []);
 
   const load = async () => {
+    if (!profile?.tenant_id) return;
+    const tid = profile.tenant_id;
     const [contractRes, propRes, lineItemRes, svcRes] = await Promise.all([
       supabase
         .from("contracts")
         .select("*, properties(name, customers(name))")
+        .eq("tenant_id", tid)
         .order("start_date", { ascending: false }),
-      supabase.from("properties").select("id, name, address, customers(name)").order("name"),
+      supabase.from("properties").select("id, name, address, customers(name)").eq("tenant_id", tid).order("name"),
       supabase
         .from("contract_line_items")
-        .select("contract_id, quantity, service_catalog(default_price)"),
-      supabase.from("service_catalog").select("*").eq("is_active", true).order("code").order("name"),
+        .select("contract_id, quantity, service_catalog(default_price)")
+        .eq("tenant_id", tid),
+      supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tid).order("code").order("name"),
     ]);
     setContracts(contractRes.data ?? []);
     setProperties(propRes.data ?? []);
@@ -147,6 +153,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
       visit_frequency_count: visitCount,
       visit_frequency_type: visitType,
       status: "DRAFT" as const,
+      tenant_id: profile?.tenant_id,
     } as any));
 
     const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
@@ -159,6 +166,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
         service_catalog_id: serviceId,
         quantity: 1,
         frequency_type: "PER_VISIT" as const,
+        tenant_id: profile?.tenant_id,
       }))
     );
     if (lineItems.length > 0) {
