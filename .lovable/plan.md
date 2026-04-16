@@ -1,79 +1,48 @@
 
 
-## Plan: Complete Multi-Tenant Data Isolation
+## Plan: Clean Up Orphaned Data and Fix Insert Gaps
 
 ### Problem
-Right now, most provider-facing RLS policies check only `is_provider(auth.uid())` without scoping to `tenant_id`. This means **any provider can see every other provider's customers, properties, contracts, visits, offers, and service catalog**. This is a critical data leak.
+After the tenant isolation migration, there are records with NULL `tenant_id` that are now invisible due to RLS. Since this is non-production, we can delete orphaned data and fix the code gaps that would create new orphaned records.
 
-### Root Cause
-1. **Missing `tenant_id` columns** on several tables (properties, contracts, service_orders, service_order_items, contract_line_items, offer_line_items, feedback, activity_log, tasks)
-2. **RLS policies too broad** — use `is_provider()` without `tenant_id = get_user_tenant_id()`
-3. **App queries missing tenant filter** — many pages query without `.eq("tenant_id", tenantId)`
+### Phase 1: Database Migration — Delete orphaned data and enforce NOT NULL
 
-### What Changes
+Delete all records with NULL `tenant_id` (cascading from children up to parents), then add NOT NULL constraints to prevent future orphans.
 
-#### Phase 1: Database Migration — Add `tenant_id` where missing
+**Delete order** (children first):
+1. `inventory_items` WHERE `tenant_id IS NULL` (1 row)
+2. `inventory` WHERE `tenant_id IS NULL` (4 rows)
+3. `service_order_items` WHERE `tenant_id IS NULL` (22 rows)
+4. `service_orders` WHERE `tenant_id IS NULL` (7 rows)
+5. `contract_line_items` WHERE `tenant_id IS NULL` (59 rows)
+6. `contracts` WHERE `tenant_id IS NULL` (6 rows)
+7. `properties` WHERE `tenant_id IS NULL` (4 rows)
+8. `customers` WHERE `tenant_id IS NULL` (4 rows)
 
-Add `tenant_id uuid` column to these tables (nullable initially, then backfilled from related data):
-- `properties` (derive from `customers.tenant_id`)
-- `contracts` (derive from `properties.tenant_id` after properties is fixed)
-- `service_orders` (derive from `properties.tenant_id`)
-- `contract_line_items` (derive from `contracts.tenant_id`)
-- `offer_line_items` (derive from `offers.tenant_id`)
-- `service_order_items` (derive from `service_orders.tenant_id`)
-- `feedback` (derive from `service_orders.tenant_id`)
-- `activity_log` (derive from `properties.tenant_id`)
-- `tasks` (derive from related property/service_order)
+**Then add NOT NULL constraints** on `tenant_id` for: `customers`, `properties`, `contracts`, `service_orders`, `service_order_items`, `contract_line_items`, `inventory`, `inventory_items`.
 
-Backfill existing rows using UPDATE + JOIN, then set columns to NOT NULL.
-
-#### Phase 2: Database Migration — Fix RLS Policies
-
-Replace all `is_provider(auth.uid())` provider policies with tenant-scoped versions:
-
-```text
-Table                 Current USING                          New USING
-─────────────────────────────────────────────────────────────────────────
-customers             is_provider() AND (tenant_id = ... OR NULL)   is_provider() AND tenant_id = get_user_tenant_id()
-properties            is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-contracts             is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-service_orders        is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-service_order_items   is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-contract_line_items   is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-offer_line_items      is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-inspections           already scoped ✓
-offers                already scoped ✓
-service_catalog       already scoped ✓ (via RLS)
-feedback              is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-activity_log          is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-tasks                 is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-inventory             is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
-inventory_items       is_provider()                          is_provider() AND tenant_id = get_user_tenant_id()
+**Update `handle_new_property` trigger** to copy `tenant_id` from the new property into the auto-created inventory record:
+```sql
+INSERT INTO public.inventory (property_id, tenant_id)
+VALUES (NEW.id, NEW.tenant_id);
 ```
 
-#### Phase 3: App-Level Tenant Filtering
+### Phase 2: Fix code insert gaps
 
-Update all provider page queries to include `.eq("tenant_id", tenantId)` as a defense-in-depth measure (RLS is the real guard, but app-level filtering prevents confusion):
+**`CustomerDetail.tsx`** — Property insert missing `tenant_id`:
+```typescript
+// Add tenant_id to property insert
+tenant_id: profile?.tenant_id,
+```
 
-- `Customers.tsx` — add tenant filter to customer + contract queries
-- `ServiceCatalog.tsx` — add tenant filter  
-- `Contracts.tsx` — add tenant filter
-- `ServiceVisits.tsx` / `Dashboard.tsx` — add tenant filter to service_orders
-- `CreateAdHocVisitDialog.tsx`, `CreateOpportunityDialog.tsx`, `CreatePipelineItemDialog.tsx` — add tenant filter to customer/property/catalog lookups
-- All insert operations — ensure `tenant_id` is always set from `profile.tenant_id`
+**`InventoryTab.tsx`** — Inventory item insert missing `tenant_id`:
+```typescript
+// Derive tenant_id from the inventory record
+tenant_id: inventory.tenant_id,
+```
 
-#### Phase 4: Ensure Catalog Isolation
-
-The `service_catalog` RLS already filters by `tenant_id` on SELECT. However, the app query in `ServiceCatalog.tsx` doesn't filter — it shows all tenants' services. Add `.eq("tenant_id", tenantId)` to the load query and all catalog lookups.
-
-### Technical Details
-
-- Single large migration with backfill + column addition + RLS policy drops/recreates
-- `inventory` and `inventory_items` also need `tenant_id` added (derive from `properties`)
-- All INSERT statements across provider pages will be audited to include `tenant_id`
-- The `useTenantQuery` hook's `TENANT_TABLES` set will be expanded to include all newly-scoped tables
-
-### Risk
-- Existing data without `tenant_id` needs careful backfill before NOT NULL is enforced
-- If any tenant has properties linked to customers from another tenant, those will be orphaned (data integrity check first)
+### Technical details
+- Total orphaned rows to delete: ~103 across 8 tables
+- All are test/fake data ("Fake Client 1", etc.)
+- After NOT NULL enforcement, any future insert without `tenant_id` will fail loudly rather than silently creating invisible records
 
