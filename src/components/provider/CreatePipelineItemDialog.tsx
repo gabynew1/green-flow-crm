@@ -400,6 +400,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
                                   <SelectItem value="PER_VISIT">Per Visit</SelectItem>
                                   <SelectItem value="PER_WEEK">Per Week</SelectItem>
                                   <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                  <SelectItem value="PER_YEAR">Per Year</SelectItem>
                                   <SelectItem value="ONE_TIME">One-time</SelectItem>
                                 </SelectContent>
                               </Select>
