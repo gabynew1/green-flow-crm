@@ -205,12 +205,16 @@ export default function Dashboard() {
             ) : (
               <ul className="space-y-3">
                 {upcomingVisits.map((v) => (
-                  <li key={v.id} className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium">{(v.properties as any)?.name}</p>
-                      <p className="text-xs text-muted-foreground">{(v.properties as any)?.customers?.name}</p>
-                    </div>
-                    <Badge variant="secondary">{v.scheduled_date}</Badge>
+                  <li key={v.id}>
+                    <Link to={`/provider/visits/${v.id}`}>
+                      <div className="flex items-center justify-between text-sm p-2 rounded hover:bg-muted/50 transition-colors cursor-pointer">
+                        <div>
+                          <p className="font-medium">{(v.properties as any)?.name}</p>
+                          <p className="text-xs text-muted-foreground">{(v.properties as any)?.customers?.name}</p>
+                        </div>
+                        <Badge variant="secondary">{v.scheduled_date}</Badge>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
