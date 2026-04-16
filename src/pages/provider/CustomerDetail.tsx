@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import CreatePipelineItemDialog from "@/components/provider/CreatePipelineItemDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,7 @@ const statusLabels: Record<string, string> = {
 
 export default function CustomerDetail() {
   const { customerId } = useParams();
+  const { tenantId } = useAuth();
   const [customer, setCustomer] = useState<any>(null);
   const [properties, setProperties] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
@@ -105,7 +107,7 @@ export default function CustomerDetail() {
       city: form.get("city") as string,
       address: form.get("address") as string,
       description: form.get("description") as string,
-      tenant_id: profile?.tenant_id,
+      tenant_id: tenantId,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Property added!");
