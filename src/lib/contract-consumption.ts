@@ -34,6 +34,11 @@ function getPeriodBounds(
       const e = endOfMonth(now);
       return { start: format(s, "yyyy-MM-dd"), end: format(e, "yyyy-MM-dd"), label: "this month" };
     }
+    case "PER_YEAR": {
+      const s = startOfYear(now);
+      const e = endOfYear(now);
+      return { start: format(s, "yyyy-MM-dd"), end: format(e, "yyyy-MM-dd"), label: "this year" };
+    }
     case "ONE_TIME": {
       return {
         start: contractStart || "2000-01-01",

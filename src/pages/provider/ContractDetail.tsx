@@ -504,13 +504,14 @@ export default function ContractDetail() {
                       <SelectItem value="PER_VISIT">Per Visit</SelectItem>
                       <SelectItem value="PER_WEEK">Per Week</SelectItem>
                       <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                      <SelectItem value="PER_YEAR">Per Year</SelectItem>
                       <SelectItem value="ONE_TIME">One-time</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH") && (
+                {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH" || addFormFrequency === "PER_YEAR") && (
                   <div className="space-y-2">
-                    <Label>Times per {addFormFrequency === "PER_WEEK" ? "week" : "month"}</Label>
+                    <Label>Times per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
                     <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
                   </div>
                 )}

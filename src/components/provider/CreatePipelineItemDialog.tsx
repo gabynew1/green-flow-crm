@@ -242,7 +242,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
               contract_id: contract.id,
               service_catalog_id: serviceId,
               quantity: cfg.quantity || 1,
-              frequency_type: (cfg.frequency_type || "PER_VISIT") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
+              frequency_type: (cfg.frequency_type || "PER_VISIT") as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME",
               unit_price: cfg.unit_price ? Number(cfg.unit_price) : null,
               max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
             };
