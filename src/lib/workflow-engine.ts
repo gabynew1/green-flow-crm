@@ -71,6 +71,7 @@ export const WorkflowEngine = {
                 offer_id: offerId,
                 start_date: new Date().toISOString().split("T")[0],
                 status: "DRAFT",
+                tenant_id: offer.tenant_id,
             } as any)
             .select()
             .single();
@@ -89,6 +90,7 @@ export const WorkflowEngine = {
                 quantity: li.quantity,
                 unit: li.unit,
                 notes: li.notes,
+                tenant_id: offer.tenant_id,
             }));
             const { error: linesError } = await supabase.from("contract_line_items").insert(contractLines);
             if (linesError) {
