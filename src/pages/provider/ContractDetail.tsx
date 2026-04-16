@@ -442,14 +442,19 @@ export default function ContractDetail() {
         <h2 className="text-lg font-semibold">Line Items</h2>
         {editable && (
           <div className="flex gap-2">
-            {lineItems.length > 0 && lineItems.length === catalog.length ? (
-              <Button size="sm" variant="outline" onClick={async () => {
-                const ids = lineItems.map(li => li.id);
+            {checkedIds.size > 0 ? (
+              <Button size="sm" variant="destructive" onClick={async () => {
+                const ids = Array.from(checkedIds);
                 const { error } = await supabase.from("contract_line_items").delete().in("id", ids);
                 if (error) { toast.error(error.message); return; }
                 toast.success(`${ids.length} service(s) removed`);
+                setCheckedIds(new Set());
                 load();
-              }}>Remove All</Button>
+              }}>Remove Checked ({checkedIds.size})</Button>
+            ) : lineItems.length > 0 && lineItems.length === catalog.length ? (
+              <Button size="sm" variant="outline" onClick={() => {
+                setCheckedIds(new Set(lineItems.map(li => li.id)));
+              }}>Check All</Button>
             ) : (
               <Button size="sm" variant="outline" onClick={async () => {
                 const existingIds = new Set(lineItems.map(li => li.service_catalog_id));
