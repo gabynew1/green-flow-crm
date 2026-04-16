@@ -117,7 +117,7 @@ export type Database = {
           notes: string | null
           quantity: number
           service_catalog_id: string
-          tenant_id: string | null
+          tenant_id: string
           unit: string | null
           unit_price: number | null
           updated_at: string
@@ -132,7 +132,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           service_catalog_id: string
-          tenant_id?: string | null
+          tenant_id: string
           unit?: string | null
           unit_price?: number | null
           updated_at?: string
@@ -147,7 +147,7 @@ export type Database = {
           notes?: string | null
           quantity?: number
           service_catalog_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           unit?: string | null
           unit_price?: number | null
           updated_at?: string
@@ -189,7 +189,7 @@ export type Database = {
           rejection_comment: string | null
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
           visit_frequency_count: number | null
           visit_frequency_type: string | null
@@ -206,7 +206,7 @@ export type Database = {
           rejection_comment?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
-          tenant_id?: string | null
+          tenant_id: string
           updated_at?: string
           visit_frequency_count?: number | null
           visit_frequency_type?: string | null
@@ -223,7 +223,7 @@ export type Database = {
           rejection_comment?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           visit_frequency_count?: number | null
           visit_frequency_type?: string | null
@@ -576,7 +576,7 @@ export type Database = {
           id: string
           last_ai_update_summary: string | null
           property_id: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -584,7 +584,7 @@ export type Database = {
           id?: string
           last_ai_update_summary?: string | null
           property_id: string
-          tenant_id?: string | null
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -592,7 +592,7 @@ export type Database = {
           id?: string
           last_ai_update_summary?: string | null
           property_id?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -622,7 +622,7 @@ export type Database = {
           notes: string | null
           quantity: number | null
           source: Database["public"]["Enums"]["inventory_source"]
-          tenant_id: string | null
+          tenant_id: string
           unit: string | null
           updated_at: string
         }
@@ -635,7 +635,7 @@ export type Database = {
           notes?: string | null
           quantity?: number | null
           source?: Database["public"]["Enums"]["inventory_source"]
-          tenant_id?: string | null
+          tenant_id: string
           unit?: string | null
           updated_at?: string
         }
@@ -648,7 +648,7 @@ export type Database = {
           notes?: string | null
           quantity?: number | null
           source?: Database["public"]["Enums"]["inventory_source"]
-          tenant_id?: string | null
+          tenant_id?: string
           unit?: string | null
           updated_at?: string
         }
@@ -1126,7 +1126,7 @@ export type Database = {
           service_catalog_id: string | null
           service_order_id: string
           source: Database["public"]["Enums"]["service_order_item_source"]
-          tenant_id: string | null
+          tenant_id: string
           unit: string | null
           unit_price: number | null
           updated_at: string
@@ -1142,7 +1142,7 @@ export type Database = {
           service_catalog_id?: string | null
           service_order_id: string
           source?: Database["public"]["Enums"]["service_order_item_source"]
-          tenant_id?: string | null
+          tenant_id: string
           unit?: string | null
           unit_price?: number | null
           updated_at?: string
@@ -1158,7 +1158,7 @@ export type Database = {
           service_catalog_id?: string | null
           service_order_id?: string
           source?: Database["public"]["Enums"]["service_order_item_source"]
-          tenant_id?: string | null
+          tenant_id?: string
           unit?: string | null
           unit_price?: number | null
           updated_at?: string

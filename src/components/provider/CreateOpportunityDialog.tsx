@@ -158,6 +158,7 @@ export default function CreateOpportunityDialog({ open, onOpenChange }: Props) {
         name: newPropertyName.trim(),
         address: newPropertyAddress.trim() || null,
         customer_id: customerId,
+        tenant_id: profile?.tenant_id,
       });
       if (propErr) throw propErr;
 
@@ -231,6 +232,7 @@ export default function CreateOpportunityDialog({ open, onOpenChange }: Props) {
           id: propertyId,
           name: `${lookupResult.full_name || "Client"}'s Property`,
           customer_id: customerId,
+          tenant_id: profile?.tenant_id,
         });
         if (propErr) throw propErr;
       }
