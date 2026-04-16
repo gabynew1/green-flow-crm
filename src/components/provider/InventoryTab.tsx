@@ -46,6 +46,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
     const form = new FormData(e.currentTarget);
     const { error } = await supabase.from("inventory_items").insert([{
       inventory_id: inventory.id,
+      tenant_id: inventory.tenant_id,
       category: form.get("category") as any,
       name: form.get("name") as string,
       quantity: Number(form.get("quantity")) || 1,

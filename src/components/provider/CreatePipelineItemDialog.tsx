@@ -202,7 +202,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
           // Ensure inventory record exists for the property
           const { data: existingInv } = await supabase.from("inventory").select("id").eq("property_id", data.property_id).maybeSingle();
           if (!existingInv) {
-            await supabase.from("inventory").insert({ property_id: data.property_id });
+            await supabase.from("inventory").insert({ property_id: data.property_id, tenant_id: profile!.tenant_id! });
           }
           navigate(`/provider/properties/${data.property_id}`);
         } else {
