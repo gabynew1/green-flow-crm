@@ -152,7 +152,7 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
           {messages.map((m, i) => (
             <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
               <div className={cn("rounded-xl px-3 py-2 text-sm max-w-[85%] whitespace-pre-wrap", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
-                {m.role === "assistant" ? <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-1 [&>ul]:mb-1">{m.content}</ReactMarkdown> : m.content}
+                {m.role === "assistant" ? <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-1 [&>ul]:mb-1"><ReactMarkdown>{m.content}</ReactMarkdown></div> : m.content}
               </div>
             </div>
           ))}
