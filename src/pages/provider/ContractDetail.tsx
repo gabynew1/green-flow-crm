@@ -579,6 +579,18 @@ export default function ContractDetail() {
             <TableBody>
               {lineItems.map(li => (
                 <TableRow key={li.id}>
+                  {editable && (
+                    <TableCell>
+                      <Checkbox
+                        checked={checkedIds.has(li.id)}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(checkedIds);
+                          checked ? next.add(li.id) : next.delete(li.id);
+                          setCheckedIds(next);
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
