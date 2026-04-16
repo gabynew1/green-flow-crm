@@ -10,7 +10,18 @@ const TENANT_TABLES = new Set([
     "profiles",
     "service_catalog",
     "provider_invites",
-    "client_connections"
+    "client_connections",
+    "properties",
+    "contracts",
+    "service_orders",
+    "service_order_items",
+    "contract_line_items",
+    "offer_line_items",
+    "feedback",
+    "activity_log",
+    "tasks",
+    "inventory",
+    "inventory_items",
 ]);
 
 export function useTenantQuery() {

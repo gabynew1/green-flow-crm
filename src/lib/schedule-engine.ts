@@ -26,6 +26,7 @@ export interface ScheduledVisit {
   property_id: string;
   contract_id: string;
   team_id: string;
+  tenant_id?: string;
   scheduled_date: string;
   scheduled_start_time: string;
   scheduled_end_time: string;
