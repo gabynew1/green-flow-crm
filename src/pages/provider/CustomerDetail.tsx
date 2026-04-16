@@ -105,6 +105,7 @@ export default function CustomerDetail() {
       city: form.get("city") as string,
       address: form.get("address") as string,
       description: form.get("description") as string,
+      tenant_id: profile?.tenant_id,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Property added!");
