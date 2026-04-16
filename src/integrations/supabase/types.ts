@@ -1564,7 +1564,12 @@ export type Database = {
         | "ACTIVE"
         | "CLOSED"
         | "REJECTED"
-      frequency_type: "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME"
+      frequency_type:
+        | "PER_VISIT"
+        | "PER_WEEK"
+        | "PER_MONTH"
+        | "ONE_TIME"
+        | "PER_YEAR"
       inspection_status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "OFFER_GENERATED"
       inventory_category:
         | "TREE"
@@ -1737,7 +1742,13 @@ export const Constants = {
         "CLOSED",
         "REJECTED",
       ],
-      frequency_type: ["PER_VISIT", "PER_WEEK", "PER_MONTH", "ONE_TIME"],
+      frequency_type: [
+        "PER_VISIT",
+        "PER_WEEK",
+        "PER_MONTH",
+        "ONE_TIME",
+        "PER_YEAR",
+      ],
       inspection_status: ["DRAFT", "SCHEDULED", "COMPLETED", "OFFER_GENERATED"],
       inventory_category: [
         "TREE",

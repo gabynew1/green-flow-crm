@@ -1,0 +1,1 @@
+ALTER TYPE public.frequency_type ADD VALUE IF NOT EXISTS 'PER_YEAR';
