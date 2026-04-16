@@ -240,11 +240,14 @@ export default function VisitDetail() {
   const canMarkDone = ["SCHEDULED", "IN_PROGRESS"].includes(order.status);
 
   // Cost helpers
-  const getItemCost = (item: any): number => {
-    const price = (item.contract_line_items as any)?.unit_price
+  const getItemPrice = (item: any): number => {
+    return item.unit_price
+      ?? (item.contract_line_items as any)?.unit_price
       ?? (item.service_catalog as any)?.default_price
       ?? 0;
-    return price * (item.quantity || 1);
+  };
+  const getItemCost = (item: any): number => {
+    return getItemPrice(item) * (item.quantity || 1);
   };
   const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
   const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
