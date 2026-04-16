@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -35,6 +36,7 @@ export default function ContractDetail() {
   const [catalog, setCatalog] = useState<any[]>([]);
   const [consumption, setConsumption] = useState<LineItemConsumption[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
@@ -440,14 +442,19 @@ export default function ContractDetail() {
         <h2 className="text-lg font-semibold">Line Items</h2>
         {editable && (
           <div className="flex gap-2">
-            {lineItems.length > 0 && lineItems.length === catalog.length ? (
-              <Button size="sm" variant="outline" onClick={async () => {
-                const ids = lineItems.map(li => li.id);
+            {checkedIds.size > 0 ? (
+              <Button size="sm" variant="destructive" onClick={async () => {
+                const ids = Array.from(checkedIds);
                 const { error } = await supabase.from("contract_line_items").delete().in("id", ids);
                 if (error) { toast.error(error.message); return; }
                 toast.success(`${ids.length} service(s) removed`);
+                setCheckedIds(new Set());
                 load();
-              }}>Remove All</Button>
+              }}>Remove Checked ({checkedIds.size})</Button>
+            ) : lineItems.length > 0 && lineItems.length === catalog.length ? (
+              <Button size="sm" variant="outline" onClick={() => {
+                setCheckedIds(new Set(lineItems.map(li => li.id)));
+              }}>Check All</Button>
             ) : (
               <Button size="sm" variant="outline" onClick={async () => {
                 const existingIds = new Set(lineItems.map(li => li.service_catalog_id));
@@ -549,7 +556,17 @@ export default function ContractDetail() {
           <Table>
             <TableHeader>
               <TableRow>
-             <TableHead>Service</TableHead>
+                {editable && (
+                  <TableHead className="w-8">
+                    <Checkbox
+                      checked={lineItems.length > 0 && checkedIds.size === lineItems.length}
+                      onCheckedChange={(checked) => {
+                        setCheckedIds(checked ? new Set(lineItems.map(li => li.id)) : new Set());
+                      }}
+                    />
+                  </TableHead>
+                )}
+              <TableHead>Service</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit</TableHead>
@@ -562,6 +579,18 @@ export default function ContractDetail() {
             <TableBody>
               {lineItems.map(li => (
                 <TableRow key={li.id}>
+                  {editable && (
+                    <TableCell>
+                      <Checkbox
+                        checked={checkedIds.has(li.id)}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(checkedIds);
+                          checked ? next.add(li.id) : next.delete(li.id);
+                          setCheckedIds(next);
+                        }}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
