@@ -1,30 +1,25 @@
 
 
-## Plan: Fix Password Change Stuck Loop
+## Plan: Allow closing visits with a past performed date (up to 30 days back)
 
-### Root Cause
-Race condition in `ChangePassword.tsx`:
-1. `updateUser({ password })` fires → triggers `onAuthStateChange` → re-fetches profile (temporary_password still set)
-2. THEN code clears `temporary_password` in DB
-3. THEN `refreshProfile()` runs — but `onAuthStateChange` may fire again and overwrite state with stale data
+### What changes
 
-The user stays trapped because the route guard in `App.tsx` keeps seeing `temporary_password` as truthy.
+**File: `src/pages/provider/VisitDetail.tsx`**
 
-### Fix
+1. **Add a date picker to the "Complete" confirmation dialog** — between the summary textarea and the billing info, add a date picker labeled "Performed date" that defaults to today but allows selecting any date from up to 30 days ago through today. Future dates are disabled.
 
-**1. `src/pages/ChangePassword.tsx`** — Swap the order: clear `temporary_password` from the database FIRST, then update the auth password, then refresh profile. This ensures that when `onAuthStateChange` fires and re-fetches the profile, `temporary_password` is already null.
+2. **Update `markAsDone`** — use the selected performed date instead of always defaulting to today.
 
-```
-// New order:
-1. Clear temporary_password in profiles table
-2. refreshProfile() — so React state reflects the cleared value
-3. updateUser({ password }) — now when onAuthStateChange re-fetches, it gets null
-```
+3. **Update `changeStatus`** — when status changes to COMPLETED via the dropdown, also use today (current behavior is fine as fallback since the main flow is via the dialog).
 
-Also add `useNavigate` as a fallback to force redirect to `/` after success.
+4. **Update dialog description text** — change "set today as the performed date" to "set the performed date" to reflect the new flexibility.
 
-**2. Database fix** — Run a query to clear the stuck `temporary_password` for `office@serenegarden.ro` so the user is unblocked immediately.
+### Technical details
 
-### Files changed
-- `src/pages/ChangePassword.tsx` — reorder operations, add navigate fallback
+- Use the existing `Calendar` + `Popover` components (already in the project) for the date picker.
+- Disable dates older than 30 days (`subDays(new Date(), 30)`) and future dates.
+- Store selection in a new local state `completionDate` initialized to `new Date()`.
+- Pass `format(completionDate, "yyyy-MM-dd")` to the `performed_date` field in `markAsDone`.
+
+No database changes needed — `performed_date` already accepts any date.
 
