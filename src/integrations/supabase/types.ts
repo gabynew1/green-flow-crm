@@ -1057,6 +1057,7 @@ export type Database = {
           service_order_id: string
           source: Database["public"]["Enums"]["service_order_item_source"]
           unit: string | null
+          unit_price: number | null
           updated_at: string
         }
         Insert: {
@@ -1071,6 +1072,7 @@ export type Database = {
           service_order_id: string
           source?: Database["public"]["Enums"]["service_order_item_source"]
           unit?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Update: {
@@ -1085,6 +1087,7 @@ export type Database = {
           service_order_id?: string
           source?: Database["public"]["Enums"]["service_order_item_source"]
           unit?: string | null
+          unit_price?: number | null
           updated_at?: string
         }
         Relationships: [
