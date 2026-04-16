@@ -556,7 +556,17 @@ export default function ContractDetail() {
           <Table>
             <TableHeader>
               <TableRow>
-             <TableHead>Service</TableHead>
+                {editable && (
+                  <TableHead className="w-8">
+                    <Checkbox
+                      checked={lineItems.length > 0 && checkedIds.size === lineItems.length}
+                      onCheckedChange={(checked) => {
+                        setCheckedIds(checked ? new Set(lineItems.map(li => li.id)) : new Set());
+                      }}
+                    />
+                  </TableHead>
+                )}
+              <TableHead>Service</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
                 <TableHead>Unit</TableHead>
