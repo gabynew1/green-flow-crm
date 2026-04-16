@@ -580,6 +580,7 @@ export default function ContractDetail() {
                     />
                   </TableHead>
                 )}
+              <TableHead>Category</TableHead>
               <TableHead>Service</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
@@ -591,7 +592,7 @@ export default function ContractDetail() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {lineItems.map(li => (
+              {lineItems.filter(li => categoryFilter === "ALL" || (li.service_catalog as any)?.code === categoryFilter).map(li => (
                 <TableRow key={li.id}>
                   {editable && (
                     <TableCell>
@@ -605,6 +606,7 @@ export default function ContractDetail() {
                       />
                     </TableCell>
                   )}
+                  <TableCell className="text-xs text-muted-foreground">{(li.service_catalog as any)?.code || "—"}</TableCell>
                   <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
