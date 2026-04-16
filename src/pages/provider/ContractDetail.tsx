@@ -36,6 +36,7 @@ export default function ContractDetail() {
   const [catalog, setCatalog] = useState<any[]>([]);
   const [consumption, setConsumption] = useState<LineItemConsumption[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [teams, setTeams] = useState<any[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [activating, setActivating] = useState(false);
