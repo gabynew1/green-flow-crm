@@ -1,0 +1,1 @@
+ALTER TABLE public.service_order_items ADD COLUMN unit_price numeric DEFAULT NULL;

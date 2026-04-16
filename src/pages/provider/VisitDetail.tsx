@@ -240,11 +240,14 @@ export default function VisitDetail() {
   const canMarkDone = ["SCHEDULED", "IN_PROGRESS"].includes(order.status);
 
   // Cost helpers
-  const getItemCost = (item: any): number => {
-    const price = (item.contract_line_items as any)?.unit_price
+  const getItemPrice = (item: any): number => {
+    return item.unit_price
+      ?? (item.contract_line_items as any)?.unit_price
       ?? (item.service_catalog as any)?.default_price
       ?? 0;
-    return price * (item.quantity || 1);
+  };
+  const getItemCost = (item: any): number => {
+    return getItemPrice(item) * (item.quantity || 1);
   };
   const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
   const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
@@ -604,7 +607,23 @@ export default function VisitDetail() {
                       {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
                     </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
+                  {!isCompleted ? (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="h-7 w-20 text-xs"
+                      defaultValue={getItemPrice(item) || ""}
+                      placeholder="0.00"
+                      onBlur={async (e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
+                        toast.success("Price updated");
+                        load();
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
+                  )}
                   <div className="flex items-center gap-1.5">
                     {scope && scope.max != null && (
                       <Badge
@@ -648,7 +667,23 @@ export default function VisitDetail() {
                       {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
                     </p>
                   </div>
-                  <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
+                  {!isCompleted ? (
+                    <Input
+                      type="number"
+                      step="0.01"
+                      className="h-7 w-20 text-xs"
+                      defaultValue={getItemPrice(item) || ""}
+                      placeholder="0.00"
+                      onBlur={async (e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
+                        toast.success("Price updated");
+                        load();
+                      }}
+                    />
+                  ) : (
+                    <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
+                  )}
                   <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
                 </CardContent>
               </Card>
