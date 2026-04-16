@@ -22,10 +22,11 @@ function extractContext(pathname: string) {
 
 interface AIChatBoxProps {
   mobileTriggerOnly?: boolean;
+  inline?: boolean;
 }
 
-export function AIChatBox({ mobileTriggerOnly }: AIChatBoxProps) {
-  const [open, setOpen] = useState(false);
+export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
+  const [open, setOpen] = useState(!!inline);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -114,6 +115,65 @@ export function AIChatBox({ mobileTriggerOnly }: AIChatBoxProps) {
       send();
     }
   };
+
+  if (inline) {
+    return (
+      <div className="flex flex-col rounded-2xl border bg-card shadow-sm" style={{ height: "calc(100vh - 12rem)" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">AI Assistant</span>
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+              {isProvider ? "Provider" : "Client"}
+            </span>
+          </div>
+        </div>
+        {/* Messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+          {messages.length === 0 && (
+            <div className="text-center text-sm text-muted-foreground py-8 space-y-2">
+              <Sparkles className="h-8 w-8 mx-auto text-primary/40" />
+              <p className="font-medium">How can I help?</p>
+              {isProvider ? (
+                <div className="space-y-1 text-xs">
+                  <p>🌿 Describe greenery to populate inventory</p>
+                  <p>✅ Tell me tasks are done to mark them complete</p>
+                  <p>📝 Ask me to summarize a visit for the client</p>
+                </div>
+              ) : (
+                <div className="space-y-1 text-xs">
+                  <p>🏡 Describe what you need for your property</p>
+                  <p>📋 I'll create a service request for you</p>
+                </div>
+              )}
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
+              <div className={cn("rounded-xl px-3 py-2 text-sm max-w-[85%] whitespace-pre-wrap", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+                {m.role === "assistant" ? <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:mb-1 [&>ul]:mb-1"><ReactMarkdown>{m.content}</ReactMarkdown></div> : m.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-xl px-3 py-2"><Loader2 className="h-4 w-4 animate-spin" /></div>
+            </div>
+          )}
+        </div>
+        {/* Input */}
+        <div className="border-t p-3">
+          <div className="flex gap-2">
+            <Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Ask anything…" rows={1} className="min-h-[38px] max-h-24 resize-none text-sm" />
+            <Button size="icon" className="shrink-0 h-[38px] w-[38px]" onClick={send} disabled={loading || !input.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

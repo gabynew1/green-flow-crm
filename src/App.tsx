@@ -29,6 +29,7 @@ import InspectionDetail from "./pages/provider/InspectionDetail";
 import OfferDetail from "./pages/provider/OfferDetail";
 import SalesPipeline from "./pages/provider/SalesPipeline";
 import ProviderSettings from "./pages/provider/Settings";
+import AIAssistant from "./pages/provider/AIAssistant";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
@@ -144,6 +145,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits/:visitId" element={<VisitDetail />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="settings" element={<ProviderSettings />} />
+        <Route path="ai" element={<AIAssistant />} />
       </Route>
 
       {/* Client routes — block providers */}

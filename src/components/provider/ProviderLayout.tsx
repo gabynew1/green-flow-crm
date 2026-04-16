@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Outlet, Link } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ProviderSidebar } from "./ProviderSidebar";
-import { AIChatBox } from "@/components/AIChatBox";
+
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, ClipboardCheck, FileOutput, LayoutDashboard } from "lucide-react";
+import { Plus, ClipboardCheck, FileOutput, LayoutDashboard, Sparkles } from "lucide-react";
 import CreateAdHocVisitDialog from "./CreateAdHocVisitDialog";
 
 export function ProviderLayout() {
@@ -46,14 +46,14 @@ export function ProviderLayout() {
             <FileOutput className="h-5 w-5" />
             <span className="text-[10px]">Offers</span>
           </Link>
-          <AIChatBox mobileTriggerOnly />
+          <Link to="/provider/ai" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary">
+            <Sparkles className="h-5 w-5" />
+            <span className="text-[10px]">AI</span>
+          </Link>
         </div>
 
         <CreateAdHocVisitDialog open={quickVisitOpen} onOpenChange={setQuickVisitOpen} />
 
-        <div className="hidden md:block">
-          <AIChatBox />
-        </div>
       </div>
     </SidebarProvider>
   );
