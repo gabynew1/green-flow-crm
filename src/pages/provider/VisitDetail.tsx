@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
-import { format, parseISO, isSunday } from "date-fns";
+import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
@@ -56,6 +56,7 @@ export default function VisitDetail() {
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>();
   const [clientSummary, setClientSummary] = useState("");
+  const [completionDate, setCompletionDate] = useState<Date>(new Date());
 
   // Ad-hoc service picker state
   const [adHocCategory, setAdHocCategory] = useState<string | null>(null);
@@ -166,7 +167,7 @@ export default function VisitDetail() {
   const markAsDone = async () => {
     const updates: any = {
       status: "COMPLETED",
-      performed_date: order.performed_date || new Date().toISOString().split("T")[0],
+      performed_date: format(completionDate, "yyyy-MM-dd"),
       client_summary: clientSummary || null,
     };
     await supabase.from("service_orders").update(updates).eq("id", visitId!);
@@ -323,10 +324,30 @@ export default function VisitDetail() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Complete this visit?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently close the visit, set today as the performed date, and send a report to the client. <strong>Completed visits cannot be reopened.</strong>
+                  This will permanently close the visit, set the performed date, and send a report to the client. <strong>Completed visits cannot be reopened.</strong>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="space-y-3">
+                <Label>Performed date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !completionDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(completionDate, "PPP")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={completionDate}
+                      onSelect={(d) => d && setCompletionDate(d)}
+                      disabled={(date) => date > new Date() || date < subDays(new Date(), 30)}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">You can select up to 30 days in the past.</p>
                 <Label>Summary for client (optional)</Label>
                 <Textarea
                   value={clientSummary}
