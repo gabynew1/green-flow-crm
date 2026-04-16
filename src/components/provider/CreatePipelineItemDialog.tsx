@@ -32,6 +32,7 @@ interface Props {
 export default function CreatePipelineItemDialog({ open, onOpenChange, type, defaultCustomerId, onCreated }: Props) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const currency = useTenantCurrency();
   const [customers, setCustomers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
