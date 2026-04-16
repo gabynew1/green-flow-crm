@@ -264,7 +264,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           status: string
-          tenant_id: string
+          tenant_id: string | null
           updated_at: string
         }
         Insert: {
@@ -278,7 +278,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           status?: string
-          tenant_id: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -292,7 +292,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           status?: string
-          tenant_id?: string
+          tenant_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -933,7 +933,7 @@ export type Database = {
           id: string
           name: string
           status: Database["public"]["Enums"]["property_status"]
-          tenant_id: string
+          tenant_id: string | null
           unique_property_id: string | null
           updated_at: string
         }
@@ -948,7 +948,7 @@ export type Database = {
           id?: string
           name: string
           status?: Database["public"]["Enums"]["property_status"]
-          tenant_id: string
+          tenant_id?: string | null
           unique_property_id?: string | null
           updated_at?: string
         }
@@ -963,7 +963,7 @@ export type Database = {
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["property_status"]
-          tenant_id?: string
+          tenant_id?: string | null
           unique_property_id?: string | null
           updated_at?: string
         }
