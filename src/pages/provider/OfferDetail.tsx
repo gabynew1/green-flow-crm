@@ -304,6 +304,7 @@ export default function OfferDetail() {
                                     <SelectItem value="PER_VISIT">Per Visit</SelectItem>
                                     <SelectItem value="PER_WEEK">Per Week</SelectItem>
                                     <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                    <SelectItem value="PER_YEAR">Per Year</SelectItem>
                                     <SelectItem value="ONE_TIME">One Time</SelectItem>
                                   </SelectContent>
                                 </Select>

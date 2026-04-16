@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
-  startOfWeek, endOfWeek, startOfMonth, endOfMonth, format, parseISO,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, parseISO,
 } from "date-fns";
 
 export interface LineItemConsumption {
@@ -33,6 +33,11 @@ function getPeriodBounds(
       const s = startOfMonth(now);
       const e = endOfMonth(now);
       return { start: format(s, "yyyy-MM-dd"), end: format(e, "yyyy-MM-dd"), label: "this month" };
+    }
+    case "PER_YEAR": {
+      const s = startOfYear(now);
+      const e = endOfYear(now);
+      return { start: format(s, "yyyy-MM-dd"), end: format(e, "yyyy-MM-dd"), label: "this year" };
     }
     case "ONE_TIME": {
       return {
