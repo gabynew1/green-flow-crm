@@ -45,6 +45,7 @@ export default function VisitDetail() {
   const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const { visitId } = useParams();
   const navigate = useNavigate();
+  const currency = useTenantCurrency();
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -248,7 +249,6 @@ export default function VisitDetail() {
   const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
   const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
   const visitTotal = contractTotal + adHocTotal;
-  const currency = useTenantCurrency();
 
   return (
     <div className="space-y-6">
