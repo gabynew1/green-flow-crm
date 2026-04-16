@@ -267,7 +267,7 @@ export default function ContractDetail() {
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
-      frequency_type: addFormFrequency as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "ONE_TIME",
+      frequency_type: addFormFrequency as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME",
       quantity: Number(addFormQty) || 1,
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
