@@ -191,6 +191,7 @@ export default function ContractDetail() {
               quantity: li.quantity,
               unit: li.unit,
               source: "CONTRACT" as const,
+              tenant_id: tenantId,
             }))
           );
 
@@ -277,6 +278,7 @@ export default function ContractDetail() {
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
       unit_price: addFormUnitPrice ? Number(addFormUnitPrice) : null,
+      tenant_id: tenantId,
     }] as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Line item added!");
@@ -330,6 +332,7 @@ export default function ContractDetail() {
       status: "SCHEDULED",
       created_by_user_id: user?.id,
       team_id: selectedTeamId || null,
+      tenant_id: tenantId,
     }).select().single();
 
     if (error) { toast.error(error.message); return; }
@@ -342,6 +345,7 @@ export default function ContractDetail() {
       quantity: li.quantity,
       unit: li.unit,
       source: "CONTRACT" as const,
+      tenant_id: tenantId,
     }));
 
     await supabase.from("service_order_items").insert(items);
@@ -481,6 +485,7 @@ export default function ContractDetail() {
                   quantity: 1,
                   frequency_type: "PER_VISIT" as const,
                   unit: s.default_unit || "visit",
+                  tenant_id: tenantId,
                 }));
                 const { error } = await supabase.from("contract_line_items").insert(inserts);
                 if (error) { toast.error(error.message); return; }
