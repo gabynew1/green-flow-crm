@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -608,10 +609,9 @@ export default function VisitDetail() {
                     </p>
                   </div>
                   {!isCompleted ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="h-7 w-20 text-xs"
+                    <CurrencyInput
+                      currency={currency}
+                      className="h-7 w-28 text-xs"
                       defaultValue={getItemPrice(item) || ""}
                       placeholder="0.00"
                       onBlur={async (e) => {
@@ -668,10 +668,9 @@ export default function VisitDetail() {
                     </p>
                   </div>
                   {!isCompleted ? (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="h-7 w-20 text-xs"
+                    <CurrencyInput
+                      currency={currency}
+                      className="h-7 w-28 text-xs"
                       defaultValue={getItemPrice(item) || ""}
                       placeholder="0.00"
                       onBlur={async (e) => {

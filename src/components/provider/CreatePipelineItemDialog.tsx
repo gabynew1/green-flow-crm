@@ -412,7 +412,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
                             </div>
                             <div className="space-y-1">
                               <Label className="text-[10px]">Unit Price *</Label>
-                              <Input className="h-7 text-xs" type="number" step="0.01" min="0" placeholder="0.00"
+                              <CurrencyInput className="h-7 text-xs" currency={currency} min="0" placeholder="0.00"
                                 value={cfg.unit_price}
                                 onChange={(e) => updateServiceConfig(id, "unit_price", e.target.value)} />
                             </div>

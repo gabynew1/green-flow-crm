@@ -270,7 +270,7 @@ export default function ServiceCatalog() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Default Price</Label><Input name="price" type="number" step="0.01" defaultValue={editing?.default_price} /></div>
+                  <div className="space-y-2"><Label>Default Price</Label><CurrencyInput name="price" currency={currency} defaultValue={editing?.default_price} /></div>
                 </div>
                 <Button type="submit" className="w-full">Save</Button>
               </form>
