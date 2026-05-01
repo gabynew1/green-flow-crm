@@ -179,11 +179,9 @@ export default function CreateOpportunityDialog({ open, onOpenChange }: Props) {
     setLookupLoading(true);
     setLookupResult(null);
     const { data } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, email, customer_id, unique_client_id")
-      .eq("unique_client_id", clientId.trim().toUpperCase())
-      .single();
-    setLookupResult(data || "NOT_FOUND");
+      .rpc("lookup_client_by_code", { _code: clientId.trim().toUpperCase() });
+    const row = Array.isArray(data) ? data[0] : null;
+    setLookupResult(row || "NOT_FOUND");
     setLookupLoading(false);
   };
 
