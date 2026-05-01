@@ -48,7 +48,7 @@ export default function ContractNew() {
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "YEARLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
   const [visitType, setVisitType] = useState("WEEK");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -229,7 +229,7 @@ export default function ContractNew() {
         .filter(Boolean)
         .join(", ");
 
-      const lineItems = (created ?? []).flatMap((c: any) => {
+      const lineItems: any[] = (created ?? []).flatMap((c: any): any[] => {
         if (isFlatFeeMode) {
           // One row per included service (no per-line price), plus a single flat-fee row
           const serviceRows = selectedServiceIds.map((serviceId) => ({
