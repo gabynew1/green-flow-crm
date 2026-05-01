@@ -14,6 +14,130 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_task_comments: {
+        Row: {
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+          tenant_id: string
+        }
+        Insert: {
+          author_user_id: string
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+          tenant_id: string
+        }
+        Update: {
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "action_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_task_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["action_task_event_type"]
+          id: string
+          meta: Json
+          task_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: Database["public"]["Enums"]["action_task_event_type"]
+          id?: string
+          meta?: Json
+          task_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["action_task_event_type"]
+          id?: string
+          meta?: Json
+          task_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_task_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "action_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      action_tasks: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          id: string
+          initiator_role: string | null
+          initiator_user_id: string
+          payload: Json
+          status: Database["public"]["Enums"]["action_task_status"]
+          subject_entity_id: string | null
+          subject_entity_type: string | null
+          target_role: string | null
+          target_user_id: string | null
+          task_type: Database["public"]["Enums"]["action_task_type"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          initiator_role?: string | null
+          initiator_user_id: string
+          payload?: Json
+          status?: Database["public"]["Enums"]["action_task_status"]
+          subject_entity_id?: string | null
+          subject_entity_type?: string | null
+          target_role?: string | null
+          target_user_id?: string | null
+          task_type: Database["public"]["Enums"]["action_task_type"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          initiator_role?: string | null
+          initiator_user_id?: string
+          payload?: Json
+          status?: Database["public"]["Enums"]["action_task_status"]
+          subject_entity_id?: string | null
+          subject_entity_type?: string | null
+          target_role?: string | null
+          target_user_id?: string | null
+          task_type?: Database["public"]["Enums"]["action_task_type"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       activity_log: {
         Row: {
           created_at: string
@@ -668,6 +792,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notification_dedupe: {
+        Row: {
+          created_at: string
+          dedupe_key: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string
+        }
+        Relationships: []
       }
       offer_line_items: {
         Row: {
@@ -1599,6 +1738,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          read_at: string | null
+          task_id: string | null
+          tenant_id: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["notification_kind"]
+          read_at?: string | null
+          task_id?: string | null
+          tenant_id?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["notification_kind"]
+          read_at?: string | null
+          task_id?: string | null
+          tenant_id?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "action_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1622,9 +1811,55 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _apply_task_side_effects: {
+        Args: { _action: string; _task_id: string }
+        Returns: undefined
+      }
+      _client_user_id_for_customer: {
+        Args: { _customer_id: string }
+        Returns: string
+      }
+      _emit_notification: {
+        Args: {
+          _body: string
+          _entity_id: string
+          _entity_type: string
+          _kind: Database["public"]["Enums"]["notification_kind"]
+          _task_id: string
+          _tenant_id: string
+          _title: string
+          _user_id: string
+        }
+        Returns: string
+      }
+      _provider_admin_user_ids: {
+        Args: { _tenant_id: string }
+        Returns: string[]
+      }
+      act_on_task: {
+        Args: { _action: string; _comment: string; _task_id: string }
+        Returns: Json
+      }
+      add_task_comment: {
+        Args: { _body: string; _task_id: string }
+        Returns: string
+      }
       apply_tier_limits: {
         Args: { _tenant_id: string; _tier: string }
         Returns: undefined
+      }
+      create_action_task: {
+        Args: {
+          _due_at: string
+          _payload: Json
+          _subject_entity_id: string
+          _subject_entity_type: string
+          _target_role: string
+          _target_user_id: string
+          _task_type: Database["public"]["Enums"]["action_task_type"]
+          _tenant_id: string
+        }
+        Returns: string
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -1635,6 +1870,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_stale_action_tasks: { Args: never; Returns: number }
       expire_trials_to_patio: { Args: never; Returns: undefined }
       extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
       get_user_customer_id: { Args: { _user_id: string }; Returns: string }
@@ -1678,6 +1914,8 @@ export type Database = {
           unique_tenant_id: string
         }[]
       }
+      mark_all_notifications_read: { Args: never; Returns: number }
+      mark_notifications_read: { Args: { _ids: string[] }; Returns: number }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -1687,6 +1925,7 @@ export type Database = {
         }
         Returns: number
       }
+      notify_contract_renewals: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -1697,6 +1936,26 @@ export type Database = {
       }
     }
     Enums: {
+      action_task_event_type:
+        | "created"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "expired"
+        | "commented"
+        | "auto_approved"
+      action_task_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "cancelled"
+        | "expired"
+      action_task_type:
+        | "link_request"
+        | "offer_response"
+        | "contract_response"
+        | "inspection_confirmation"
+        | "contract_renewal"
       app_role: "PROVIDER_ADMIN" | "PROVIDER_STAFF" | "CLIENT_USER"
       billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME"
       connection_status: "PENDING" | "APPROVED" | "DENIED"
@@ -1727,6 +1986,25 @@ export type Database = {
         | "LIGHTING"
         | "FENCE"
       inventory_source: "MANUAL" | "AI_ASSISTED"
+      notification_kind:
+        | "task_created"
+        | "task_approved"
+        | "task_rejected"
+        | "task_commented"
+        | "task_expired"
+        | "inspection_scheduled"
+        | "inspection_completed"
+        | "offer_sent"
+        | "offer_accepted"
+        | "offer_rejected"
+        | "contract_sent"
+        | "contract_signed"
+        | "contract_rejected"
+        | "contract_expiring_soon"
+        | "contract_renewed"
+        | "feedback_received"
+        | "connection_approved"
+        | "connection_revoked"
       offer_status:
         | "DRAFT"
         | "IN_PROGRESS"
@@ -1874,6 +2152,29 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      action_task_event_type: [
+        "created",
+        "approved",
+        "rejected",
+        "cancelled",
+        "expired",
+        "commented",
+        "auto_approved",
+      ],
+      action_task_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "cancelled",
+        "expired",
+      ],
+      action_task_type: [
+        "link_request",
+        "offer_response",
+        "contract_response",
+        "inspection_confirmation",
+        "contract_renewal",
+      ],
       app_role: ["PROVIDER_ADMIN", "PROVIDER_STAFF", "CLIENT_USER"],
       billing_cycle: ["WEEKLY", "MONTHLY", "ONE_TIME"],
       connection_status: ["PENDING", "APPROVED", "DENIED"],
@@ -1907,6 +2208,26 @@ export const Constants = {
         "FENCE",
       ],
       inventory_source: ["MANUAL", "AI_ASSISTED"],
+      notification_kind: [
+        "task_created",
+        "task_approved",
+        "task_rejected",
+        "task_commented",
+        "task_expired",
+        "inspection_scheduled",
+        "inspection_completed",
+        "offer_sent",
+        "offer_accepted",
+        "offer_rejected",
+        "contract_sent",
+        "contract_signed",
+        "contract_rejected",
+        "contract_expiring_soon",
+        "contract_renewed",
+        "feedback_received",
+        "connection_approved",
+        "connection_revoked",
+      ],
       offer_status: [
         "DRAFT",
         "IN_PROGRESS",
