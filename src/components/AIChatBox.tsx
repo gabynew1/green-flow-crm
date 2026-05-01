@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
+import { useTenantSubscription } from "@/hooks/useTenantSubscription";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -35,6 +38,8 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [userProperties, setUserProperties] = useState<{ id: string; name: string; address: string | null; city: string | null }[]>([]);
+  const { data: tenant } = useTenantSubscription();
+  const aiLocked = isProvider && tenant && tenant.ai_tier === "none";
 
   // Fetch user properties for context
   useEffect(() => {
