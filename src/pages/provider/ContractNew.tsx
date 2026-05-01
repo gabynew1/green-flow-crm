@@ -603,6 +603,15 @@ export default function ContractNew() {
                 {visitCount} / {visitType.toLowerCase()}
               </Row>
               <Row label="Billing">{billingCycle.replace("_", " ").toLowerCase()}</Row>
+              {isFlatFeeMode && (
+                <Row label="Flat fee">
+                  {flatFee && Number(flatFee) > 0 ? (
+                    <span className="font-medium">{Number(flatFee).toLocaleString()} {currency} / {billingCyclePeriod}</span>
+                  ) : (
+                    <Muted>—</Muted>
+                  )}
+                </Row>
+              )}
               <Row label="Inventory">
                 {selectedPropertyIds.length === 0 ? (
                   <Muted>—</Muted>
