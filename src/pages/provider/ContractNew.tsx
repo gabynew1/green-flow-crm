@@ -320,9 +320,9 @@ export default function ContractNew() {
                   <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="WEEKLY">Weekly</SelectItem>
                       <SelectItem value="MONTHLY">Monthly</SelectItem>
                       <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
+                      <SelectItem value="YEARLY">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
