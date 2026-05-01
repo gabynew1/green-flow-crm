@@ -19,7 +19,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { format, getISOWeek } from "date-fns";
+import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
