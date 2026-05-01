@@ -48,7 +48,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
   // Contract-specific state
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
   const [visitType, setVisitType] = useState("WEEK");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -463,7 +463,7 @@ export default function CreatePipelineItemDialog({ open, onOpenChange, type, def
                 <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="WEEKLY">Weekly</SelectItem>
+                    <SelectItem value="YEARLY">Yearly</SelectItem>
                     <SelectItem value="MONTHLY">Monthly</SelectItem>
                     <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
                   </SelectContent>

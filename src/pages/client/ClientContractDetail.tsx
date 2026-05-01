@@ -33,8 +33,8 @@ const statusLabels: Record<string, string> = {
 };
 
 const billingLabels: Record<string, string> = {
-  WEEKLY: "Weekly",
   MONTHLY: "Monthly",
+  YEARLY: "Yearly",
   ONE_TIME: "Ad hoc",
 };
 
