@@ -1902,6 +1902,7 @@ export type Database = {
         Args: { _code: string }
         Returns: {
           customer_id: string
+          email: string
           full_name: string
           unique_client_id: string
           user_id: string
