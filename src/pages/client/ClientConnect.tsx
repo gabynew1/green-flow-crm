@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link2, MapPin, Check, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
+import { createActionTask } from "@/hooks/useActionTasks";
 
 interface Property {
   id: string;
@@ -128,38 +129,27 @@ export default function ClientConnect() {
     if (!providerTenantId || selectedIds.size === 0) return;
     setConnecting(true);
 
-    // Update properties with tenant_id
     const ids = Array.from(selectedIds);
-    const { error: updateErr } = await supabase
-      .from("properties")
-      .update({ tenant_id: providerTenantId } as any)
-      .in("id", ids);
-
-    if (updateErr) {
-      toast.error("Failed to connect properties: " + updateErr.message);
-      setConnecting(false);
-      return;
-    }
-
-    // Create client_connection record
-    const { error: connErr } = await supabase
-      .from("client_connections")
-      .insert({
-        client_user_id: user!.id,
+    try {
+      await createActionTask({
+        task_type: "link_request",
         tenant_id: providerTenantId,
-        status: "APPROVED" as any,
-        requested_by: user!.id,
-        provider_name: providerName,
+        target_role: "PROVIDER_ADMIN",
+        subject_entity_type: "tenant",
+        subject_entity_id: providerTenantId,
+        payload: {
+          property_ids: ids,
+          provider_tenant_id: providerTenantId,
+          provider_name: providerName,
+        },
       });
-
-    if (connErr) {
-      console.error("Connection record error:", connErr);
-      // Properties already connected, don't block
+      toast.success("Request sent — awaiting provider approval");
+      navigate("/client/tasks");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to send link request");
+    } finally {
+      setConnecting(false);
     }
-
-    toast.success(`${ids.length} propert${ids.length > 1 ? "ies" : "y"} connected to ${providerName}!`);
-    setConnecting(false);
-    navigate("/client");
   };
 
   const availableCount = properties.filter(p => !p.tenant_id).length;
