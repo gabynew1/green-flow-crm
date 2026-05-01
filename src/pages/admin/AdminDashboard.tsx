@@ -8,10 +8,25 @@ import {
     Globe,
     ScrollText,
     Activity,
+    TrendingUp,
+    Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
+import { TIERS, TIER_ORDER, type TierId } from "@/lib/tiers";
+
+// Monthly price in EUR (excl. VAT) per tier — single source of truth for revenue math.
+const TIER_PRICE_EUR: Record<TierId, number> = {
+  patio: 0,
+  backyard: 5,
+  estate: 30,
+  territory: 100,
+  territory_trial: 0, // trials don't generate revenue
+};
+
+const formatEur = (n: number) =>
+  new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 const KpiCard = ({
     title,
@@ -56,32 +71,44 @@ export default function AdminDashboard() {
     const { data: stats, isLoading } = useQuery({
         queryKey: ["admin-stats"],
         queryFn: async () => {
-            const [
-                tenantsAll,
-                tenantsActive,
-                tenantsTrial,
-                tenantsPro,
-                tenantsEnt,
-                profiles,
-                openAlerts,
-            ] = await Promise.all([
-                supabase.from("tenants").select("id", { count: "exact", head: true }),
-                supabase.from("tenants").select("id", { count: "exact", head: true }).eq("status", "active"),
-                supabase.from("tenants").select("id", { count: "exact", head: true }).eq("subscription_tier", "trial"),
-                supabase.from("tenants").select("id", { count: "exact", head: true }).eq("subscription_tier", "professional"),
-                supabase.from("tenants").select("id", { count: "exact", head: true }).eq("subscription_tier", "enterprise"),
+            const [tenantsRows, profiles, openAlerts] = await Promise.all([
+                supabase.from("tenants").select("id, status, subscription_tier, trial_expires_at"),
                 supabase.from("profiles").select("id", { count: "exact", head: true }),
                 supabase.from("security_alerts").select("id", { count: "exact", head: true }).eq("resolved", false),
             ]);
 
+            const rows = tenantsRows.data ?? [];
+            const activeRows = rows.filter((r) => r.status === "active");
+
+            // Tier counts (active tenants only — paused/cancelled don't bill)
+            const tierCounts: Record<TierId, number> = {
+                patio: 0, backyard: 0, estate: 0, territory: 0, territory_trial: 0,
+            };
+            let mrrEur = 0;
+            for (const r of activeRows) {
+                const tier = (r.subscription_tier as TierId) ?? "patio";
+                if (tier in tierCounts) tierCounts[tier] += 1;
+                mrrEur += TIER_PRICE_EUR[tier] ?? 0;
+            }
+
+            // Trials expiring in next 30 days = at-risk / upcoming conversion opportunity
+            const now = Date.now();
+            const in30 = now + 30 * 24 * 60 * 60 * 1000;
+            const trialsExpiringSoon = activeRows.filter((r) => {
+                if (r.subscription_tier !== "territory_trial" || !r.trial_expires_at) return false;
+                const t = new Date(r.trial_expires_at).getTime();
+                return t >= now && t <= in30;
+            }).length;
+
             return {
-                tenantsAll: tenantsAll.count ?? 0,
-                tenantsActive: tenantsActive.count ?? 0,
-                tenantsTrial: tenantsTrial.count ?? 0,
-                tenantsPro: tenantsPro.count ?? 0,
-                tenantsEnt: tenantsEnt.count ?? 0,
+                tenantsAll: rows.length,
+                tenantsActive: activeRows.length,
+                tierCounts,
                 users: profiles.count ?? 0,
                 openAlerts: openAlerts.count ?? 0,
+                mrrEur,
+                arrEur: mrrEur * 12,
+                trialsExpiringSoon,
             };
         },
     });
@@ -120,11 +147,15 @@ export default function AdminDashboard() {
         );
     }
 
-    const breakdown = [
-        { label: "Trial", value: stats?.tenantsTrial ?? 0 },
-        { label: "Professional", value: stats?.tenantsPro ?? 0 },
-        { label: "Enterprise", value: stats?.tenantsEnt ?? 0 },
-    ];
+    const tierCounts = stats?.tierCounts;
+    const breakdown = TIER_ORDER.map((id) => ({
+        id,
+        label: TIERS[id].name,
+        priceLabel: TIERS[id].priceLabel,
+        value: tierCounts?.[id] ?? 0,
+        monthly: (tierCounts?.[id] ?? 0) * TIER_PRICE_EUR[id],
+    }));
+    const trialCount = tierCounts?.territory_trial ?? 0;
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -145,16 +176,17 @@ export default function AdminDashboard() {
                     description={`${stats?.tenantsAll ?? 0} total registered`}
                 />
                 <KpiCard
-                    title="Total Users"
-                    value={stats?.users ?? 0}
-                    icon={Users}
-                    description="Across all tenants"
+                    title="Projected MRR"
+                    value={formatEur(stats?.mrrEur ?? 0)}
+                    icon={Wallet}
+                    description={`${formatEur(stats?.arrEur ?? 0)} ARR · excl. VAT`}
+                    accent="success"
                 />
                 <KpiCard
-                    title="Trial Tenants"
-                    value={stats?.tenantsTrial ?? 0}
+                    title="Active Trials"
+                    value={trialCount}
                     icon={Activity}
-                    description="Currently on trial plan"
+                    description={`${stats?.trialsExpiringSoon ?? 0} expiring in 30 days`}
                 />
                 <KpiCard
                     title="Open Security Alerts"
@@ -164,6 +196,53 @@ export default function AdminDashboard() {
                     accent={stats?.openAlerts ? "warning" : "success"}
                 />
             </div>
+
+            <Card className="border-primary/10">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-primary" />
+                        Projected Revenue by Tier
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-4 md:grid-cols-4">
+                        {breakdown.map((b) => (
+                            <div
+                                key={b.id}
+                                className="rounded-xl border border-primary/10 p-4 bg-background hover:bg-muted/30 transition-colors"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        {b.label}
+                                    </p>
+                                    <span className="text-[10px] font-semibold text-muted-foreground">
+                                        {b.priceLabel}
+                                    </span>
+                                </div>
+                                <p className="text-2xl font-bold mt-2">{b.value}</p>
+                                <p className="text-xs text-muted-foreground font-medium mt-1">
+                                    {formatEur(b.monthly)} / mo
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <span className="text-muted-foreground">
+                            Total paying tenants:{" "}
+                            <span className="font-semibold text-foreground">
+                                {breakdown.reduce((acc, b) => acc + (b.id === "patio" ? 0 : b.value), 0)}
+                            </span>
+                            {" · "}Trials (non-revenue):{" "}
+                            <span className="font-semibold text-foreground">{trialCount}</span>
+                        </span>
+                        <span className="text-muted-foreground">
+                            MRR <span className="font-bold text-foreground">{formatEur(stats?.mrrEur ?? 0)}</span>
+                            {" · "}ARR <span className="font-bold text-foreground">{formatEur(stats?.arrEur ?? 0)}</span>
+                            <span className="ml-1 text-xs">(excl. VAT)</span>
+                        </span>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-6 lg:grid-cols-7">
                 <Card className="lg:col-span-4 border-primary/10">
@@ -254,11 +333,21 @@ export default function AdminDashboard() {
                                     Subscription Mix
                                 </p>
                                 {breakdown.map((b) => (
-                                    <div key={b.label} className="flex items-center justify-between text-sm">
+                                    <div key={b.id} className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">{b.label}</span>
                                         <span className="font-semibold">{b.value}</span>
                                     </div>
                                 ))}
+                                {trialCount > 0 && (
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">Territory Trial</span>
+                                        <span className="font-semibold">{trialCount}</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center justify-between text-sm pt-2 border-t mt-2">
+                                    <span className="text-muted-foreground">Total users</span>
+                                    <span className="font-semibold">{stats?.users ?? 0}</span>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
