@@ -1638,6 +1638,7 @@ export type Database = {
       expire_trials_to_patio: { Args: never; Returns: undefined }
       extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
       get_user_customer_id: { Args: { _user_id: string }; Returns: string }
+      get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
