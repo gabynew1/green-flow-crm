@@ -76,6 +76,18 @@ export function ClientLayout() {
     setShowIdInfo(false);
   };
 
+  const buildShareLink = () =>
+    profile?.unique_client_id
+      ? `${window.location.origin}/customers?connect=${profile.unique_client_id}`
+      : "";
+
+  const copyShareLink = () => {
+    const link = buildShareLink();
+    if (!link) return;
+    navigator.clipboard.writeText(link);
+    toast.success("Invite link copied!");
+  };
+
   const initials = profile?.full_name
     ? profile.full_name
         .split(" ")
