@@ -484,6 +484,7 @@ export default function TasksPage() {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Detail panel */}
