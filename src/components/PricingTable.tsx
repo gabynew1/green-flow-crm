@@ -1,10 +1,9 @@
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { TIER_ORDER, TIERS, getTierConfig, type TierId } from "@/lib/tiers";
+import { TIER_ORDER, TIERS, type TierId } from "@/lib/tiers";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 interface PricingTableProps {
   currentTier?: string | null;
@@ -13,11 +12,8 @@ interface PricingTableProps {
 }
 
 export function PricingTable({ currentTier, isOnTrial, className }: PricingTableProps) {
-  const handleChoose = async (tier: TierId) => {
+  const handleChoose = (tier: TierId) => {
     const cfg = TIERS[tier];
-    try {
-      await supabase.from("activity_log" as never).insert({} as never).then(() => null).catch(() => null);
-    } catch {}
     toast.success(`Thanks! Our team will reach out to upgrade you to ${cfg.name}.`);
   };
 
