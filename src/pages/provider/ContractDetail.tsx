@@ -25,6 +25,7 @@ import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
+import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
@@ -48,6 +49,7 @@ export default function ContractDetail() {
   const [selectedInventoryItemId, setSelectedInventoryItemId] = useState("");
   const [addFormQty, setAddFormQty] = useState("1");
   const [addFormUnit, setAddFormUnit] = useState("visit");
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
   const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
   const [addFormTimesPerFreq, setAddFormTimesPerFreq] = useState("1");
@@ -88,6 +90,11 @@ export default function ContractDetail() {
   };
 
   const updateStatus = async (status: string) => {
+    if (status === "CLOSED") {
+      // Use the dedicated end-of-day close flow with reason + audit + notifications.
+      setCloseDialogOpen(true);
+      return;
+    }
     await supabase.from("contracts").update({ status, rejection_comment: null } as any).eq("id", contractId!);
     toast.success(`Contract ${status.replace(/_/g, " ").toLowerCase()}`);
 
@@ -438,7 +445,7 @@ export default function ContractDetail() {
               </Button>
             )}
             {contract.status === "ACTIVE" && (
-              <Button size="sm" variant="destructive" onClick={() => updateStatus("CLOSED")}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
+              <Button size="sm" variant="destructive" onClick={() => setCloseDialogOpen(true)}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
             )}
             {contract.status === "ACTIVE" && (
               <Button size="sm" onClick={generateVisit}>Generate Visit</Button>
@@ -446,6 +453,14 @@ export default function ContractDetail() {
           </div>
         </CardContent>
       </Card>
+
+      <CloseContractDialog
+        contractId={contractId ?? null}
+        tenantId={tenantId ?? null}
+        open={closeDialogOpen}
+        onOpenChange={setCloseDialogOpen}
+        onClosed={load}
+      />
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
