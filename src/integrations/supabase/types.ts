@@ -1520,6 +1520,7 @@ export type Database = {
       }
       tenants: {
         Row: {
+          ai_tier: string
           created_at: string
           created_by: string | null
           currency: string
@@ -1527,6 +1528,7 @@ export type Database = {
           id: string
           max_client_seats: number
           max_provider_seats: number
+          max_teams: number
           name: string
           status: string
           subscription_tier: string
@@ -1535,6 +1537,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_tier?: string
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1542,6 +1545,7 @@ export type Database = {
           id?: string
           max_client_seats?: number
           max_provider_seats?: number
+          max_teams?: number
           name?: string
           status?: string
           subscription_tier?: string
@@ -1550,6 +1554,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_tier?: string
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -1557,12 +1562,40 @@ export type Database = {
           id?: string
           max_client_seats?: number
           max_provider_seats?: number
+          max_teams?: number
           name?: string
           status?: string
           subscription_tier?: string
           trial_expires_at?: string | null
           unique_tenant_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      trial_extensions: {
+        Row: {
+          created_at: string
+          days: number
+          extended_by: string
+          id: string
+          new_expiry: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          days?: number
+          extended_by: string
+          id?: string
+          new_expiry: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          days?: number
+          extended_by?: string
+          id?: string
+          new_expiry?: string
+          tenant_id?: string
         }
         Relationships: []
       }
@@ -1589,6 +1622,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_tier_limits: {
+        Args: { _tenant_id: string; _tier: string }
+        Returns: undefined
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -1598,6 +1635,8 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      expire_trials_to_patio: { Args: never; Returns: undefined }
+      extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
       get_user_customer_id: { Args: { _user_id: string }; Returns: string }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
