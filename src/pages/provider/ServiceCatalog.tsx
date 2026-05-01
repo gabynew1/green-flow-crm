@@ -339,6 +339,34 @@ export default function ServiceCatalog() {
         </div>
       </div>
 
+      {/* Empty-state helper for new tenants */}
+      {services.length === 0 && !emptyStateDismissed && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-primary/15 p-2 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Start with the GreenGrass default catalog</p>
+                <p className="text-sm text-muted-foreground">
+                  Add 54 ready-to-use landscaping services across 5 categories. You can edit prices, deactivate, or delete any of them afterwards.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setEmptyStateDismissed(true)}>
+                Start from scratch
+              </Button>
+              <Button size="sm" onClick={() => setImportConfirmOpen(true)} disabled={importing}>
+                <Download className="mr-2 h-4 w-4" />
+                Use default catalog
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
