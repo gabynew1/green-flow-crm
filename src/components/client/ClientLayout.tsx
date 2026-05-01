@@ -33,6 +33,7 @@ import {
   Bell,
   UserCircle,
   X,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,7 @@ const navItems = [
   { title: "Tasks", url: "/client/tasks", icon: Bell },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
-  { title: "Connect Provider", url: "/client/connect", icon: Link2 },
+  { title: "Providers", url: "/client/providers", icon: Building2, matchPaths: ["/client/providers", "/client/connect"] },
   { title: "My Profile", url: "/client/profile", icon: UserCircle },
 ];
 

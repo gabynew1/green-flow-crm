@@ -42,6 +42,7 @@ import ClientOffers from "./pages/client/ClientOffers";
 import ClientOfferDetail from "./pages/client/ClientOfferDetail";
 import ClientProfile from "./pages/client/ClientProfile";
 import ClientConnect from "./pages/client/ClientConnect";
+import ClientProviders from "./pages/client/ClientProviders";
 
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminOnboard from "./pages/admin/AdminOnboard";
@@ -167,6 +168,7 @@ function AppRoutes(): JSX.Element {
         <Route path="feedback" element={<ClientFeedback />} />
         <Route path="profile" element={<ClientProfile />} />
         <Route path="connect" element={<ClientConnect />} />
+        <Route path="providers" element={<ClientProviders />} />
         <Route path="tasks" element={<TasksPage />} />
       </Route>
 
