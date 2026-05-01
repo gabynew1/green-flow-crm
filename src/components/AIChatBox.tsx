@@ -14,6 +14,24 @@ import { useTenantSubscription } from "@/hooks/useTenantSubscription";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+function AILockedCard() {
+  return (
+    <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-2xl border bg-card p-8 text-center shadow-sm">
+      <div className="relative mb-4">
+        <Sparkles className="h-10 w-10 text-primary/40 blur-[1px]" />
+        <Lock className="absolute -bottom-1 -right-1 h-5 w-5 text-stone-700 bg-background rounded-full p-0.5" />
+      </div>
+      <h3 className="text-lg font-bold text-foreground">AI Assistant is locked</h3>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        Upgrade to <strong>Backyard</strong> or higher to unlock the AI assistant for task management, scheduling, and business insights.
+      </p>
+      <Button asChild className="mt-5 bg-emerald-800 hover:bg-emerald-900 text-white">
+        <Link to="/pricing">Upgrade to unlock AI assistant</Link>
+      </Button>
+    </div>
+  );
+}
+
 function extractContext(pathname: string) {
   const ctx: Record<string, string | undefined> = {};
   const propertyMatch = pathname.match(/properties\/([a-f0-9-]+)/);
