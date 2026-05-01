@@ -56,7 +56,6 @@ export default function CustomerDetail() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [visits, setVisits] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
-  const [contractOpen, setContractOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
 
   // Edit state
@@ -235,16 +234,12 @@ export default function CustomerDetail() {
       {/* Contracts Section */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Contracts</h2>
-        <Button size="sm" onClick={() => setContractOpen(true)}><Plus className="h-4 w-4 mr-1" /> New Contract</Button>
+        <Button size="sm" asChild>
+          <Link to={`/provider/contracts/new?customerId=${customerId}`}>
+            <Plus className="h-4 w-4 mr-1" /> New Contract
+          </Link>
+        </Button>
       </div>
-
-      <CreatePipelineItemDialog
-        open={contractOpen}
-        onOpenChange={setContractOpen}
-        type="contract"
-        defaultCustomerId={customerId}
-        onCreated={load}
-      />
 
       {contracts.length === 0 ? (
         <p className="text-muted-foreground text-center py-6">No contracts yet — create one to activate this client.</p>
