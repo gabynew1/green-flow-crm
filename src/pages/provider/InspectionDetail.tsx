@@ -89,6 +89,16 @@ export default function InspectionDetail() {
       toast.success(`Inspection scheduled for ${format(selectedDate, "PPP")}`);
       setScheduleOpen(false);
 
+      // Create a client confirmation task (Tasks → Schedule view)
+      try {
+        await supabase.rpc("emit_inspection_confirmation_task" as any, {
+          _inspection_id: inspectionId,
+          _scheduled_date: dateStr,
+        });
+      } catch (taskErr) {
+        console.warn("Could not create inspection confirmation task", taskErr);
+      }
+
       // Send inspection scheduled email to client
       if (inspection && customer?.email) {
         // Lookup customer id for the profile

@@ -18,11 +18,12 @@ import {
 import { useActionTasks, actOnTask, ActionTaskRow } from "@/hooks/useActionTasks";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Search, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Check, X, Search, ArrowDownLeft, ArrowUpRight, ListChecks, CalendarDays } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ApproveLinkDialog } from "@/components/client/ApproveLinkDialog";
+import ScheduleView from "./ScheduleView";
 
 const TYPE_LABEL: Record<string, string> = {
   link_request: "Property link request",
@@ -213,6 +214,7 @@ export default function TasksPage() {
   const [category, setCategory] = useState<string>("pending");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"tasks" | "schedule">("tasks");
 
   // Combine incoming + outgoing tasks with a direction marker
   const allTasks = useMemo(() => {
@@ -336,6 +338,34 @@ export default function TasksPage() {
           <p className="text-sm text-muted-foreground">All requests in one place</p>
         </div>
 
+        {/* View switcher */}
+        <div className="flex w-fit gap-1 rounded-lg bg-muted p-1">
+          <Button
+            size="sm"
+            variant={view === "tasks" ? "default" : "ghost"}
+            onClick={() => setView("tasks")}
+            className="gap-1.5"
+          >
+            <ListChecks className="h-3.5 w-3.5" />
+            Tasks
+          </Button>
+          <Button
+            size="sm"
+            variant={view === "schedule" ? "default" : "ghost"}
+            onClick={() => setView("schedule")}
+            className="gap-1.5"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Schedule
+          </Button>
+        </div>
+
+        {view === "schedule" ? (
+          <ScheduleView
+            pendingTasks={pendingForMe}
+            onSelectTask={(t) => openTask(t)}
+          />
+        ) : (
         <Card>
           <CardContent className="space-y-4 p-4">
             {/* Category pills */}
@@ -454,6 +484,7 @@ export default function TasksPage() {
             </div>
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Detail panel */}
