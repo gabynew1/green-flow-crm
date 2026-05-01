@@ -48,13 +48,28 @@ export default function ContractNew() {
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "YEARLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
   const [visitType, setVisitType] = useState("WEEK");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [serviceConfig, setServiceConfig] = useState<Record<string, ServiceCfg>>({});
   const [serviceSearch, setServiceSearch] = useState("");
+  const [flatFee, setFlatFee] = useState("");
+
+  const isFlatFeeMode = selectedCategory === "Regular Maintenance";
+
+  // Reset flat fee whenever category changes
+  useEffect(() => {
+    setFlatFee("");
+  }, [selectedCategory]);
+
+  const billingCycleLabel =
+    billingCycle === "MONTHLY" ? "Monthly" : billingCycle === "YEARLY" ? "Yearly" : "Ad hoc";
+  const billingCyclePeriod =
+    billingCycle === "MONTHLY" ? "month" : billingCycle === "YEARLY" ? "year" : "cycle";
+  const flatFeeFrequency: FrequencyType =
+    billingCycle === "YEARLY" ? "PER_YEAR" : billingCycle === "ONE_TIME" ? "ONE_TIME" : "PER_MONTH";
 
   // Inventory soft check — populated whenever selected properties change
   const [missingInventory, setMissingInventory] = useState<{ id: string; name: string }[]>([]);
@@ -178,11 +193,17 @@ export default function ContractNew() {
     if (!startDate || !endDate) return toast.error("Start and end dates are required");
     if (selectedServiceIds.length === 0) return toast.error("Select at least one service");
 
-    for (const svcId of selectedServiceIds) {
-      const cfg = serviceConfig[svcId];
-      if (!cfg?.unit_price || Number(cfg.unit_price) < 0) {
-        const svc = services.find((s) => s.id === svcId);
-        return toast.error(`Set a unit price for ${svc?.name || "service"}`);
+    if (isFlatFeeMode) {
+      if (!flatFee || Number(flatFee) <= 0) {
+        return toast.error(`Enter a flat fee per ${billingCycleLabel.toLowerCase()} cycle`);
+      }
+    } else {
+      for (const svcId of selectedServiceIds) {
+        const cfg = serviceConfig[svcId];
+        if (!cfg?.unit_price || Number(cfg.unit_price) < 0) {
+          const svc = services.find((s) => s.id === svcId);
+          return toast.error(`Set a unit price for ${svc?.name || "service"}`);
+        }
       }
     }
 
@@ -203,8 +224,37 @@ export default function ContractNew() {
       const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
       if (error) throw error;
 
-      const lineItems = (created ?? []).flatMap((c: any) =>
-        selectedServiceIds.map((serviceId) => {
+      const selectedServiceNames = selectedServiceIds
+        .map((id) => services.find((s) => s.id === id)?.name)
+        .filter(Boolean)
+        .join(", ");
+
+      const lineItems: any[] = (created ?? []).flatMap((c: any): any[] => {
+        if (isFlatFeeMode) {
+          // One row per included service (no per-line price), plus a single flat-fee row
+          const serviceRows = selectedServiceIds.map((serviceId) => ({
+            contract_id: c.id,
+            service_catalog_id: serviceId,
+            quantity: 1,
+            frequency_type: flatFeeFrequency,
+            unit_price: null,
+            max_occurrences_per_period: null,
+            tenant_id: profile?.tenant_id,
+          }));
+          const flatRow = {
+            contract_id: c.id,
+            service_catalog_id: selectedServiceIds[0],
+            custom_name: `Flat fee — Regular Maintenance (${billingCycleLabel})`,
+            quantity: 1,
+            frequency_type: flatFeeFrequency,
+            unit_price: Number(flatFee),
+            max_occurrences_per_period: null,
+            notes: `Flat fee covering: ${selectedServiceNames}`,
+            tenant_id: profile?.tenant_id,
+          };
+          return [...serviceRows, flatRow];
+        }
+        return selectedServiceIds.map((serviceId) => {
           const cfg = serviceConfig[serviceId] ?? defaultCfg();
           return {
             contract_id: c.id,
@@ -215,8 +265,8 @@ export default function ContractNew() {
             max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
             tenant_id: profile?.tenant_id,
           };
-        })
-      );
+        });
+      });
       if (lineItems.length > 0) {
         const { error: liError } = await supabase.from("contract_line_items").insert(lineItems);
         if (liError) toast.error("Contract created but failed to add service lines: " + liError.message);
@@ -412,12 +462,14 @@ export default function ContractNew() {
                             <th className="px-3 py-2 text-left font-medium">Name</th>
                             <th className="px-3 py-2 text-left font-medium">Description</th>
                             <th className="px-3 py-2 text-left font-medium">Unit</th>
-                            <th className="px-3 py-2 text-right font-medium">Default price</th>
+                            {!isFlatFeeMode && (
+                              <th className="px-3 py-2 text-right font-medium">Default price</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {visibleServices.length === 0 ? (
-                            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
+                            <tr><td colSpan={isFlatFeeMode ? 5 : 6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
                           ) : visibleServices.map((svc) => {
                             const checked = selectedServiceIds.includes(svc.id);
                             return (
@@ -433,7 +485,9 @@ export default function ContractNew() {
                                 <td className="px-3 py-2 font-medium">{svc.name}</td>
                                 <td className="px-3 py-2 text-muted-foreground max-w-[280px] truncate" title={svc.description ?? ""}>{svc.description ?? "—"}</td>
                                 <td className="px-3 py-2 text-muted-foreground">{svc.default_unit ?? "—"}</td>
-                                <td className="px-3 py-2 text-right tabular-nums">{svc.default_price != null ? `${svc.default_price} ${currency}` : "—"}</td>
+                                {!isFlatFeeMode && (
+                                  <td className="px-3 py-2 text-right tabular-nums">{svc.default_price != null ? `${svc.default_price} ${currency}` : "—"}</td>
+                                )}
                               </tr>
                             );
                           })}
@@ -447,7 +501,27 @@ export default function ContractNew() {
                 </div>
               )}
 
-              {selectedServiceIds.length > 0 && (
+              {isFlatFeeMode && selectedServiceIds.length > 0 && (
+                <div className="border rounded-md p-4 bg-primary/5 space-y-3">
+                  <div>
+                    <Label className="text-sm font-medium">Flat fee per {billingCycleLabel} billing cycle *</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Covers all {selectedServiceIds.length} selected service(s) for each billing cycle. Visits are scheduled per the cadence above.
+                    </p>
+                  </div>
+                  <div className="max-w-xs">
+                    <CurrencyInput
+                      currency={currency}
+                      min="0"
+                      placeholder="0.00"
+                      value={flatFee}
+                      onChange={(e) => setFlatFee(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!isFlatFeeMode && selectedServiceIds.length > 0 && (
                 <div className="space-y-3 pt-2">
                   <p className="text-xs text-muted-foreground font-medium">{selectedServiceIds.length} service(s) — configure each:</p>
                   {selectedServiceIds.map((id) => {
@@ -529,6 +603,15 @@ export default function ContractNew() {
                 {visitCount} / {visitType.toLowerCase()}
               </Row>
               <Row label="Billing">{billingCycle.replace("_", " ").toLowerCase()}</Row>
+              {isFlatFeeMode && (
+                <Row label="Flat fee">
+                  {flatFee && Number(flatFee) > 0 ? (
+                    <span className="font-medium">{Number(flatFee).toLocaleString()} {currency} / {billingCyclePeriod}</span>
+                  ) : (
+                    <Muted>—</Muted>
+                  )}
+                </Row>
+              )}
               <Row label="Inventory">
                 {selectedPropertyIds.length === 0 ? (
                   <Muted>—</Muted>
