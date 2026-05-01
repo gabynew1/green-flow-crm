@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { createActionTask } from "@/hooks/useActionTasks";
 import { Users, UserPlus, Link as LinkIcon, Loader2 } from "lucide-react";
 
 interface Props {
@@ -206,12 +207,21 @@ export default function CreateOpportunityDialog({ open, onOpenChange }: Props) {
         if (custErr) throw custErr;
       }
 
-      // Send connection request
-      await supabase.from("client_connections").insert({
-        client_user_id: lookupResult.user_id,
-        tenant_id: profile?.tenant_id!,
-        requested_by: user!.id,
-        provider_name: profile?.full_name || "Provider",
+      // Send connection request via the action_tasks workflow so it appears
+      // under Sent / Pending / Activity for both parties.
+      await createActionTask({
+        task_type: "link_request",
+        tenant_id: profile!.tenant_id!,
+        target_user_id: lookupResult.user_id,
+        target_role: "CLIENT_USER",
+        subject_entity_type: "tenant",
+        subject_entity_id: profile!.tenant_id!,
+        payload: {
+          provider_tenant_id: profile!.tenant_id,
+          provider_name: profile?.full_name || "Provider",
+          client_unique_id: lookupResult.unique_client_id,
+          client_full_name: lookupResult.full_name,
+        },
       });
 
       // Check if client has properties

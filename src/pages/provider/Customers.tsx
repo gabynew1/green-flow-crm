@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Building2, UserPlus, Clock } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { createActionTask } from "@/hooks/useActionTasks";
 
 function getContractTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
@@ -141,20 +142,23 @@ export default function Customers() {
         if (tenant) tenantName = tenant.name;
       }
 
-      const { error } = await supabase.from("client_connections").insert({
-        tenant_id: profile?.tenant_id,
-        client_user_id: clientProfile.user_id,
-        provider_name: tenantName,
-        requested_by: (await supabase.auth.getUser()).data.user?.id,
+      await createActionTask({
+        task_type: "link_request",
+        tenant_id: profile!.tenant_id!,
+        target_user_id: clientProfile.user_id,
+        target_role: "CLIENT_USER",
+        subject_entity_type: "tenant",
+        subject_entity_id: profile!.tenant_id!,
+        payload: {
+          provider_tenant_id: profile!.tenant_id,
+          provider_name: tenantName,
+          client_unique_id: clientProfile.unique_client_id ?? clientId.trim().toUpperCase(),
+          client_full_name: clientProfile.full_name,
+        },
       });
-
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success(`Connection request sent to ${clientProfile.full_name || "client"}!`);
-        setConnectOpen(false);
-        setClientId("");
-      }
+      toast.success(`Connection request sent to ${clientProfile.full_name || "client"}!`);
+      setConnectOpen(false);
+      setClientId("");
     } catch (err: any) {
       toast.error(err.message);
     }
