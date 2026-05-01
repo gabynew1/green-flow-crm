@@ -594,6 +594,8 @@ export type Database = {
           findings: string | null
           id: string
           inspected_date: string | null
+          inventory_marked_complete_at: string | null
+          inventory_marked_complete_by: string | null
           notes: string | null
           property_id: string
           status: Database["public"]["Enums"]["inspection_status"]
@@ -609,6 +611,8 @@ export type Database = {
           findings?: string | null
           id?: string
           inspected_date?: string | null
+          inventory_marked_complete_at?: string | null
+          inventory_marked_complete_by?: string | null
           notes?: string | null
           property_id: string
           status?: Database["public"]["Enums"]["inspection_status"]
@@ -624,6 +628,8 @@ export type Database = {
           findings?: string | null
           id?: string
           inspected_date?: string | null
+          inventory_marked_complete_at?: string | null
+          inventory_marked_complete_by?: string | null
           notes?: string | null
           property_id?: string
           status?: Database["public"]["Enums"]["inspection_status"]
