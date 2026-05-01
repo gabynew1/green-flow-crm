@@ -298,6 +298,17 @@ export function ClientLayout() {
                   <span className="font-mono font-semibold text-foreground">{profile?.unique_client_id}</span>.
                 </p>
                 <p>Share this number with a landscape provider to connect them to your account.</p>
+                <div className="rounded-md border bg-muted/40 p-2">
+                  <p className="mb-1 text-xs font-medium text-foreground">Or share a one-click invite link:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 truncate rounded bg-background px-2 py-1 text-[11px] font-mono text-foreground">
+                      {buildShareLink()}
+                    </code>
+                    <Button size="sm" variant="outline" onClick={copyShareLink} className="h-7 shrink-0 gap-1">
+                      <Copy className="h-3 w-3" /> Copy
+                    </Button>
+                  </div>
+                </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
