@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, X, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, X, AlertTriangle, Search } from "lucide-react";
 import { toast } from "sonner";
 
 type FrequencyType = "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME";
@@ -54,6 +54,7 @@ export default function ContractNew() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [serviceConfig, setServiceConfig] = useState<Record<string, ServiceCfg>>({});
+  const [serviceSearch, setServiceSearch] = useState("");
 
   // Inventory soft check — populated whenever selected properties change
   const [missingInventory, setMissingInventory] = useState<{ id: string; name: string }[]>([]);
@@ -116,6 +117,42 @@ export default function ContractNew() {
     () => services.filter((s) => s.code === selectedCategory),
     [services, selectedCategory]
   );
+  const visibleServices = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase();
+    if (!q) return filteredServices;
+    return filteredServices.filter((s) =>
+      [s.name, s.code, s.description, s.default_unit]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q))
+    );
+  }, [filteredServices, serviceSearch]);
+
+  const visibleIds = useMemo(() => visibleServices.map((s) => s.id), [visibleServices]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedServiceIds.includes(id));
+  const someVisibleSelected = visibleIds.some((id) => selectedServiceIds.includes(id));
+
+  const toggleAllVisible = () => {
+    if (allVisibleSelected) {
+      setSelectedServiceIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedServiceIds((prev) => {
+        const next = new Set(prev);
+        visibleIds.forEach((id) => next.add(id));
+        // ensure config exists for newly added
+        setServiceConfig((cfg) => {
+          const updated = { ...cfg };
+          visibleIds.forEach((id) => {
+            if (!updated[id]) {
+              const svc = services.find((s) => s.id === id);
+              updated[id] = defaultCfg(svc?.default_price);
+            }
+          });
+          return updated;
+        });
+        return Array.from(next);
+      });
+    }
+  };
 
   const toggleProperty = (id: string) =>
     setSelectedPropertyIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
@@ -333,40 +370,82 @@ export default function ContractNew() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Services</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2 max-w-xs">
+                <Label>Category</Label>
+                <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setServiceSearch(""); }}>
+                  <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedCategory && (
                 <div className="space-y-2">
-                  <Label>Category</Label>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {selectedCategory && (
-                  <div className="space-y-2">
-                    <Label>Pick services</Label>
-                    <div className="border rounded-md p-3 max-h-44 overflow-y-auto divide-y">
-                      {filteredServices.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-2">No services in this category.</p>
-                      ) : (
-                        filteredServices.map((svc) => (
-                          <div key={svc.id} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
-                            <Checkbox
-                              id={`ns-${svc.id}`}
-                              checked={selectedServiceIds.includes(svc.id)}
-                              onCheckedChange={() => toggleService(svc.id)}
-                            />
-                            <label htmlFor={`ns-${svc.id}`} className="text-sm cursor-pointer flex-1">{svc.name}</label>
-                          </div>
-                        ))
-                      )}
+                  <div className="flex items-center justify-between gap-3">
+                    <Label>Catalog services</Label>
+                    <div className="relative w-64">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        value={serviceSearch}
+                        onChange={(e) => setServiceSearch(e.target.value)}
+                        placeholder="Search services…"
+                        className="pl-8 h-9"
+                      />
                     </div>
                   </div>
-                )}
-              </div>
+                  <div className="border rounded-md overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50 text-xs text-muted-foreground sticky top-0">
+                          <tr>
+                            <th className="w-10 px-3 py-2 text-left">
+                              <Checkbox
+                                checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                                onCheckedChange={toggleAllVisible}
+                                aria-label="Select all visible"
+                              />
+                            </th>
+                            <th className="px-3 py-2 text-left font-medium">Code</th>
+                            <th className="px-3 py-2 text-left font-medium">Name</th>
+                            <th className="px-3 py-2 text-left font-medium">Description</th>
+                            <th className="px-3 py-2 text-left font-medium">Unit</th>
+                            <th className="px-3 py-2 text-right font-medium">Default price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {visibleServices.length === 0 ? (
+                            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
+                          ) : visibleServices.map((svc) => {
+                            const checked = selectedServiceIds.includes(svc.id);
+                            return (
+                              <tr
+                                key={svc.id}
+                                className={`hover:bg-muted/30 cursor-pointer ${checked ? "bg-primary/5" : ""}`}
+                                onClick={() => toggleService(svc.id)}
+                              >
+                                <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                                  <Checkbox checked={checked} onCheckedChange={() => toggleService(svc.id)} />
+                                </td>
+                                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{svc.code}</td>
+                                <td className="px-3 py-2 font-medium">{svc.name}</td>
+                                <td className="px-3 py-2 text-muted-foreground max-w-[280px] truncate" title={svc.description ?? ""}>{svc.description ?? "—"}</td>
+                                <td className="px-3 py-2 text-muted-foreground">{svc.default_unit ?? "—"}</td>
+                                <td className="px-3 py-2 text-right tabular-nums">{svc.default_price != null ? `${svc.default_price} ${currency}` : "—"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedServiceIds.filter((id) => filteredServices.some((s) => s.id === id)).length} of {filteredServices.length} selected in this category
+                  </p>
+                </div>
+              )}
 
               {selectedServiceIds.length > 0 && (
                 <div className="space-y-3 pt-2">
