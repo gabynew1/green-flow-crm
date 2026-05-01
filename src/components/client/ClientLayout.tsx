@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -29,6 +30,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Bell,
   UserCircle,
   X,
 } from "lucide-react";
@@ -38,6 +40,7 @@ const navItems = [
   { title: "My Properties", url: "/client", icon: Home, matchPaths: ["/client", "/client/properties"] },
   { title: "Offers", url: "/client/offers", icon: FileOutput },
   { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
+  { title: "Tasks", url: "/client/tasks", icon: Bell },
   { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
   { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
   { title: "Connect Provider", url: "/client/connect", icon: Link2 },
@@ -213,6 +216,7 @@ export function ClientLayout() {
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
+            <div className="absolute right-16 top-3"><NotificationBell /></div>
           </header>
 
           {mobileMenuOpen && (
