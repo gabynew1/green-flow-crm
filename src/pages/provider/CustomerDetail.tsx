@@ -15,6 +15,7 @@ import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, 
 import { toast } from "sonner";
 import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
+import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
@@ -57,6 +58,7 @@ export default function CustomerDetail() {
   const [visits, setVisits] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
+  const [closeContractId, setCloseContractId] = useState<string | null>(null);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -148,6 +150,11 @@ export default function CustomerDetail() {
   };
 
   const updateContractStatus = async (contractId: string, status: "ACTIVE" | "DRAFT" | "SENT_TO_CLIENT" | "SIGNED" | "CLOSED") => {
+    if (status === "CLOSED") {
+      // Use the dedicated end-of-day close flow with reason + audit + notifications.
+      setCloseContractId(contractId);
+      return;
+    }
     const { error } = await supabase.from("contracts").update({ status }).eq("id", contractId);
     if (error) { toast.error(error.message); return; }
     toast.success(`Contract ${status.toLowerCase()}`);
@@ -353,7 +360,7 @@ export default function CustomerDetail() {
                             </Button>
                           )}
                           {c.status === "ACTIVE" && (
-                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "CLOSED")}>
+                            <Button size="sm" variant="destructive" className="h-7 text-xs" onClick={() => setCloseContractId(c.id)}>
                               <XCircle className="h-3 w-3 mr-1" /> Close
                             </Button>
                           )}
@@ -461,6 +468,14 @@ export default function CustomerDetail() {
         onCreated={load}
         defaultCustomerId={customerId}
         defaultPropertyId={properties.length === 1 ? properties[0].id : undefined}
+      />
+
+      <CloseContractDialog
+        contractId={closeContractId}
+        tenantId={tenantId ?? null}
+        open={!!closeContractId}
+        onOpenChange={(o) => { if (!o) setCloseContractId(null); }}
+        onClosed={load}
       />
     </div>
   );

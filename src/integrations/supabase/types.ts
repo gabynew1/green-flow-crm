@@ -230,6 +230,45 @@ export type Database = {
           },
         ]
       }
+      contract_closure_events: {
+        Row: {
+          canceled_visits_count: number
+          canceled_visits_snapshot: Json
+          closed_at_utc: string
+          closed_by_user_id: string
+          closed_on_local_date: string
+          contract_id: string
+          created_at: string
+          id: string
+          reason: string
+          tenant_id: string
+        }
+        Insert: {
+          canceled_visits_count?: number
+          canceled_visits_snapshot?: Json
+          closed_at_utc?: string
+          closed_by_user_id: string
+          closed_on_local_date: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          reason: string
+          tenant_id: string
+        }
+        Update: {
+          canceled_visits_count?: number
+          canceled_visits_snapshot?: Json
+          closed_at_utc?: string
+          closed_by_user_id?: string
+          closed_on_local_date?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       contract_line_items: {
         Row: {
           contract_id: string
@@ -1677,6 +1716,7 @@ export type Database = {
           name: string
           status: string
           subscription_tier: string
+          timezone: string
           trial_expires_at: string | null
           unique_tenant_id: string | null
           updated_at: string
@@ -1694,6 +1734,7 @@ export type Database = {
           name?: string
           status?: string
           subscription_tier?: string
+          timezone?: string
           trial_expires_at?: string | null
           unique_tenant_id?: string | null
           updated_at?: string
@@ -1711,6 +1752,7 @@ export type Database = {
           name?: string
           status?: string
           subscription_tier?: string
+          timezone?: string
           trial_expires_at?: string | null
           unique_tenant_id?: string | null
           updated_at?: string
@@ -1863,6 +1905,10 @@ export type Database = {
       apply_tier_limits: {
         Args: { _tenant_id: string; _tier: string }
         Returns: undefined
+      }
+      close_contract_with_cleanup: {
+        Args: { _contract_id: string; _reason: string }
+        Returns: Json
       }
       create_action_task: {
         Args: {
@@ -2041,6 +2087,7 @@ export type Database = {
         | "feedback_received"
         | "connection_approved"
         | "connection_revoked"
+        | "contract_closed"
       offer_status:
         | "DRAFT"
         | "IN_PROGRESS"
@@ -2263,6 +2310,7 @@ export const Constants = {
         "feedback_received",
         "connection_approved",
         "connection_revoked",
+        "contract_closed",
       ],
       offer_status: [
         "DRAFT",

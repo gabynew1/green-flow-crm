@@ -1,70 +1,91 @@
 ## Goal
 
-Show a live **Total price** helper next to the **Category** selector in `New Contract`, so the provider sees the running cost as they tick services and tweak amounts. Works for **all categories**, including Regular Maintenance.
+Replace the current one-click "Close" on a contract with a confirmed, end-of-day cancellation flow that requires a written reason, deletes only future visits (after today in tenant timezone), writes an immutable audit record, and notifies in-app only — no email.
 
-## Behavior
+## Schema changes (one migration)
 
-- Helper appears as a compact box on the **right side of the Category row**, aligned with the Category dropdown.
-- Updates live as the user:
-  - Checks/unchecks services in the catalog table.
-  - Edits per-service `quantity` or `unit price` (non-Maintenance categories).
-  - Edits the `Flat fee` input (Regular Maintenance).
-  - Changes the billing cycle (only affects the `/ month`, `/ year`, `/ cycle` suffix).
-- Empty state: shows `Total: 0 RON` in muted text.
-- Sub-line shows `N services selected`.
+1. **`tenants.timezone TEXT NOT NULL DEFAULT 'Europe/Bucharest'`** — sensible default given the app's RO compliance focus. Used to compute "today".
+2. **`notification_kind` enum** — add value `'contract_closed'` (lowercase, matching existing convention like `contract_signed`).
+3. **New table `contract_closure_events`** (audit log, append-only):
+   - `id uuid pk default gen_random_uuid()`
+   - `contract_id uuid not null`
+   - `tenant_id uuid not null`
+   - `closed_by_user_id uuid not null`
+   - `closed_on_local_date date not null` (the businessDate / new end_date)
+   - `closed_at_utc timestamptz not null default now()`
+   - `reason text not null check (length(btrim(reason)) > 0)`
+   - `canceled_visits_count integer not null default 0`
+   - `canceled_visits_snapshot jsonb not null default '[]'::jsonb` (array of `{id, scheduled_date, status, period_label}`)
+   - `created_at timestamptz not null default now()`
+   - **RLS**: providers SELECT/INSERT where `tenant_id = get_user_tenant_id(auth.uid())` and `is_provider(...)`; no UPDATE/DELETE policies (immutable audit).
+4. **RPC `close_contract_with_cleanup(_contract_id uuid, _reason text)`** — `security definer`, runs in one transaction:
+   - Resolve actor `auth.uid()`, tenant via `get_user_tenant_id`.
+   - Authorize: contract belongs to caller's tenant and caller `is_provider`.
+   - Load contract; if `status = 'CLOSED'` → return `{ already_closed: true, canceled_count: 0, closed_on: end_date }` (idempotent no-op).
+   - Compute `_business_date := (now() AT TIME ZONE tenant.timezone)::date`.
+   - Select future visits: `service_orders WHERE contract_id = _contract_id AND scheduled_date > _business_date`. Build snapshot JSON.
+   - Insert `contract_closure_events` row (logging happens before deletion).
+   - Delete those `service_orders` (cascades to `service_order_items` via existing FK or explicit delete in same TX).
+   - Update contract: `status = 'CLOSED'`, `end_date = LEAST(coalesce(end_date, _business_date), _business_date)` (only moves earlier or sets if null — never extends beyond `_business_date`; simpler: `end_date = _business_date` if `end_date IS NULL OR end_date > _business_date`).
+   - Insert `user_notifications` rows for: (a) the resolved client profile user (via `properties.customer_id → profiles.user_id`), and (b) every other provider profile in the tenant (`tenant_id = X AND user_id != actor`). Deduplicate `user_id`s. Idempotency guard: skip insert if a row with same `(user_id, kind='contract_closed', entity_id=_contract_id)` already exists.
+   - Return `jsonb { canceled_count, closed_on, reason, already_closed: false }`.
 
-### Non-Maintenance categories
-Total = sum over selected services of `quantity × unit_price`.
-- Uses the value in each per-service config card.
-- For services that were just ticked but haven't been opened yet, falls back to `default_price × 1` (matches what `defaultCfg(svc.default_price)` already seeds).
-- Skips lines with empty/`NaN` unit prices.
-- Result wrapped in `Math.ceil` to match the project's CEIL rounding rule.
-- Suffix: no `/period` suffix on the main amount (per-line frequencies vary); just `Total: X RON`.
+Doing the mutation server-side in one RPC guarantees atomicity and authoritative timezone math.
 
-### Regular Maintenance (flat-fee mode)
-Total = the `flatFee` value, displayed as `Flat: 1,200 RON / month` (or `/ year`, `/ cycle`).
-- If `flatFee` empty or 0: shows `Flat: 0 RON / month` muted.
+## Client code changes
 
-## Layout
+### `src/lib/contracts.ts` (new)
+Thin wrapper:
+```ts
+export async function closeContractWithCleanup(contractId: string, reason: string) {
+  const { data, error } = await supabase.rpc('close_contract_with_cleanup', {
+    _contract_id: contractId, _reason: reason.trim(),
+  });
+  if (error) throw error;
+  return data as { canceled_count: number; closed_on: string; already_closed: boolean };
+}
 
-```text
-[ Category ▼  Garden Landscaping ]                 [ Total: 1,250 RON ]
-                                                     3 services selected
+export async function countFutureVisits(contractId: string, tenantTimezone: string) {
+  const today = /* compute today in tenantTimezone using Intl */;
+  const { count } = await supabase
+    .from('service_orders')
+    .select('id', { count: 'exact', head: true })
+    .eq('contract_id', contractId)
+    .gt('scheduled_date', today);
+  return { count: count ?? 0, today };
+}
 ```
 
-The Category field stops being `max-w-xs` standalone and becomes the left half of a flex row; the helper box sits on the right, right-aligned. On small screens it wraps under the dropdown.
+### `src/components/provider/CloseContractDialog.tsx` (new, shared)
+Controlled `AlertDialog` containing:
+- Title: **Contract closed**
+- Body: `Closing will end this contract on {today}. {N} future visit(s) scheduled after today will be cancelled. A cancellation reason is required. Continue?`
+- `Textarea` with label **Cancellation reason** (required, trimmed, min length 1).
+- Confirm button disabled until reason is non-empty; calls `closeContractWithCleanup`, shows toast `Contract closed. {N} future visit(s) cancelled. Contract ends on {today}.`, then calls `onClosed()` for parent reload.
+Props: `{ contractId, open, onOpenChange, onClosed }`. Internally fetches tenant timezone + future-visit count when opened.
 
-## Technical notes
+### `src/pages/provider/ContractDetail.tsx`
+- In `updateStatus`, when `status === 'CLOSED'`: do NOT directly update — open the new dialog instead (track `closeOpen` state). All other transitions unchanged.
+- The existing Close button at line 441 toggles `closeOpen=true`.
+- After successful close, call existing `load()`.
 
-- File touched: `src/pages/provider/ContractNew.tsx` only.
-- Add a `useMemo` `servicesTotal`:
-  ```ts
-  const servicesTotal = useMemo(() => {
-    if (isFlatFeeMode) return Number(flatFee) || 0;
-    let sum = 0;
-    for (const id of selectedServiceIds) {
-      const cfg = serviceConfig[id];
-      const svc = services.find((s) => s.id === id);
-      const qty = Number(cfg?.quantity ?? 1) || 0;
-      const price = cfg?.unit_price !== undefined && cfg?.unit_price !== ""
-        ? Number(cfg.unit_price)
-        : Number(svc?.default_price ?? 0);
-      if (!Number.isNaN(price)) sum += qty * price;
-    }
-    return Math.ceil(sum);
-  }, [isFlatFeeMode, flatFee, selectedServiceIds, serviceConfig, services]);
-  ```
-- Restructure the Category block (around line 423) from a single `max-w-xs` div into a `flex items-end justify-between gap-4 flex-wrap` row containing:
-  - Left: existing `Label` + `Select` (kept in a `max-w-xs` wrapper).
-  - Right: a small bordered box (`rounded-md border bg-muted/30 px-3 py-2 text-right`) showing:
-    - Top line: `Total: {servicesTotal.toLocaleString()} {currency}` for non-Maintenance, or `Flat: {…} / {billingCyclePeriod}` for Maintenance.
-    - Bottom line (muted, `text-xs`): `{selectedServiceIds.length} service(s) selected`.
-- Reuse `useTenantCurrency()` (already imported) and existing `billingCyclePeriod`.
-- Keep the existing right-column Summary card untouched — it still shows the same numbers in the rollup.
-- No save/validation logic changes.
+### `src/pages/provider/CustomerDetail.tsx`
+- In the inline Close button (line ~356), instead of calling `updateContractStatus(c.id, 'CLOSED')`, open the shared dialog with that contract id; on success call `load()`. Other status transitions in `updateContractStatus` are untouched.
+
+## Acceptance mapping
+
+1. Reason required → dialog disables confirm + RPC `CHECK length > 0`.
+2. End-of-day → `end_date = businessDate`.
+3. `end_date` set to businessDate.
+4. Today's visits untouched → filter is `scheduled_date > businessDate`.
+5. After-today visits deleted regardless of status → no status filter.
+6. Deleted visits gone from UI → hard delete from `service_orders`.
+7. Audit captured → `contract_closure_events` row inserted before delete with snapshot + reason + actor.
+8. Internal notification with simplified copy → kind `contract_closed`, body `The contract "{name}" and all related future visits have been cancelled.`
+9. No email → no `sendAppEmail` call anywhere in this flow.
+10. Idempotent → early return when status already `CLOSED`; notification dedupe by `(user_id, kind, entity_id)`.
+11. Both pages share the dialog + helper.
+12. Other status transitions untouched.
 
 ## Out of scope
-
-- Discounts, taxes, VAT.
-- Per-period normalization across mixed frequencies (a `PER_VISIT` line stays multiplied by quantity only — same model as the rest of the app).
-- Persisting the helper anywhere; it's pure UI.
+Invoices, credit notes, email templates, reopen-restoration, tenant-timezone admin UI (default value is sufficient; can be exposed later).
