@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -66,6 +67,8 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   useEffect(() => { load(); }, []);
+
+  useRealtimeRefresh(["contracts"], () => { load(); }, profile?.tenant_id);
 
   const load = async () => {
     if (!profile?.tenant_id) return;

@@ -11,6 +11,7 @@ import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog
 import { startOfWeek, addDays, addWeeks, format, isSameDay, isToday, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 
 const statusColor: Record<string, string> = {
   SCHEDULED: "bg-muted text-muted-foreground",
@@ -51,6 +52,8 @@ export default function ServiceVisits() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => { load(); loadTeams(); }, []);
+
+  useRealtimeRefresh(["service_orders"], () => { load(); }, tenantId);
 
   const load = async () => {
     if (!tenantId) return;

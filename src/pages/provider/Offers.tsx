@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,8 @@ export default function Offers({ embedded }: { embedded?: boolean } = {}) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => { load(); }, []);
+
+  useRealtimeRefresh(["offers"], () => { load(); }, profile?.tenant_id);
 
   const load = async () => {
     const [offRes, propRes] = await Promise.all([
