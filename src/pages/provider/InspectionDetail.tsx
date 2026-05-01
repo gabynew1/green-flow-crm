@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, CalendarDays, CheckCircle, FileOutput, Save } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle, FileOutput, Save, Trees, ExternalLink, AlertTriangle, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { WorkflowEngine } from "@/lib/workflow-engine";
@@ -43,12 +43,17 @@ export default function InspectionDetail() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
+  // Inventory summary for the property of this inspection
+  const [invCount, setInvCount] = useState<number>(0);
+  const [invLastUpdate, setInvLastUpdate] = useState<string | null>(null);
+  const [invMarkedByName, setInvMarkedByName] = useState<string | null>(null);
+
   useEffect(() => { load(); }, [inspectionId]);
 
   const load = async () => {
     const { data } = await supabase
       .from("inspections")
-      .select("*, properties(name, address, city, customers(name, email, phone, company_name, contact_person_name))")
+      .select("*, properties(id, name, address, city, customers(name, email, phone, company_name, contact_person_name))")
       .eq("id", inspectionId!)
       .single();
     if (data) {
@@ -65,6 +70,40 @@ export default function InspectionDetail() {
         .eq("user_id", data.created_by)
         .single();
       setLastSavedBy(profile?.full_name || null);
+
+      // Inventory summary for the linked property
+      const propertyId = (data.properties as any)?.id;
+      if (propertyId) {
+        const { data: invRow } = await supabase
+          .from("inventory")
+          .select("id")
+          .eq("property_id", propertyId)
+          .maybeSingle();
+        if (invRow) {
+          const { data: items } = await supabase
+            .from("inventory_items")
+            .select("updated_at")
+            .eq("inventory_id", invRow.id)
+            .order("updated_at", { ascending: false });
+          setInvCount(items?.length ?? 0);
+          setInvLastUpdate(items && items[0] ? items[0].updated_at : null);
+        } else {
+          setInvCount(0);
+          setInvLastUpdate(null);
+        }
+      }
+
+      // Who marked inventory complete (if anyone)
+      if ((data as any).inventory_marked_complete_by) {
+        const { data: markedProfile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", (data as any).inventory_marked_complete_by)
+          .maybeSingle();
+        setInvMarkedByName(markedProfile?.full_name || null);
+      } else {
+        setInvMarkedByName(null);
+      }
     }
   };
 
@@ -147,11 +186,46 @@ export default function InspectionDetail() {
     }
   };
 
+  const markInventoryComplete = async () => {
+    const { error } = await supabase
+      .from("inspections")
+      .update({
+        inventory_marked_complete_at: new Date().toISOString(),
+        inventory_marked_complete_by: user!.id,
+      } as any)
+      .eq("id", inspectionId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Inventory marked complete");
+    load();
+  };
+
+  const undoMarkInventoryComplete = async () => {
+    const { error } = await supabase
+      .from("inspections")
+      .update({
+        inventory_marked_complete_at: null,
+        inventory_marked_complete_by: null,
+      } as any)
+      .eq("id", inspectionId!);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Inventory mark cleared");
+    load();
+  };
+
   if (!inspection) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
   const isDraft = inspection.status === "DRAFT";
   const isScheduled = inspection.status === "SCHEDULED";
   const property = inspection.properties as any;
+
+  // Inventory state derivation
+  const inspectedDateRef = inspection.inspected_date || inspection.created_at;
+  const inspectedDateObj = inspectedDateRef ? new Date(inspectedDateRef) : null;
+  const lastUpdateObj = invLastUpdate ? new Date(invLastUpdate) : null;
+  const updatedAfterInspection =
+    !!(lastUpdateObj && inspectedDateObj && lastUpdateObj > inspectedDateObj);
+  const explicitlyMarked = !!(inspection as any).inventory_marked_complete_at;
+  const inventoryReady = explicitlyMarked || (invCount > 0 && updatedAfterInspection);
 
   return (
     <div className="space-y-6">
@@ -250,6 +324,68 @@ export default function InspectionDetail() {
         </CardContent>
       </Card>
 
+      {/* Property Inventory */}
+      {!isDraft && property?.id && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Trees className="h-4 w-4" /> Property Inventory
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <span>
+                <span className="text-muted-foreground">Items:</span>{" "}
+                <span className="font-medium">{invCount}</span>
+              </span>
+              {invLastUpdate && (
+                <span>
+                  <span className="text-muted-foreground">Last item update:</span>{" "}
+                  <span className="font-medium">{format(new Date(invLastUpdate), "PP")}</span>
+                </span>
+              )}
+              {inventoryReady ? (
+                <Badge className="bg-green-500/10 text-green-700 border-green-500/30" variant="outline">
+                  <CheckCircle className="h-3 w-3 mr-1" /> Inventory updated
+                </Badge>
+              ) : (
+                <Badge variant="secondary">Inventory pending</Badge>
+              )}
+            </div>
+
+            {explicitlyMarked && (
+              <p className="text-xs text-muted-foreground">
+                Marked complete{invMarkedByName ? ` by ${invMarkedByName}` : ""} on{" "}
+                {format(new Date((inspection as any).inventory_marked_complete_at), "PPp")}
+                {" · "}
+                <button
+                  type="button"
+                  className="underline hover:text-foreground"
+                  onClick={undoMarkInventoryComplete}
+                >
+                  <Undo2 className="h-3 w-3 inline mr-0.5" /> Undo
+                </button>
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/provider/properties/${property.id}`)}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" /> Open Property Inventory
+              </Button>
+              {isScheduled && !explicitlyMarked && (
+                <Button size="sm" onClick={markInventoryComplete}>
+                  <CheckCircle className="h-4 w-4 mr-2" /> Mark Inventory Complete
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Actions */}
       <div className="flex gap-3 flex-wrap">
         <Button variant="secondary" onClick={save}><Save className="h-4 w-4 mr-2" /> Save</Button>
@@ -266,7 +402,31 @@ export default function InspectionDetail() {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Generate offer from this inspection?</AlertDialogTitle>
-                <AlertDialogDescription>An offer will be created from this inspection. You can add line items and pricing before sending to the client.</AlertDialogDescription>
+                <AlertDialogDescription>
+                  {invCount > 0 && inventoryReady ? (
+                    <>
+                      <span className="font-medium text-foreground">{invCount}</span> item
+                      {invCount === 1 ? "" : "s"} from the property inventory will be added as line items.
+                      You can edit prices and details afterwards.
+                    </>
+                  ) : invCount === 0 ? (
+                    <span className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span>
+                        No inventory items exist for this property yet. The offer will be created empty —
+                        consider updating the inventory first.
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span>
+                        Inventory has not been updated since this inspection was scheduled.
+                        {invCount} item{invCount === 1 ? "" : "s"} will still be imported as line items.
+                      </span>
+                    </span>
+                  )}
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
