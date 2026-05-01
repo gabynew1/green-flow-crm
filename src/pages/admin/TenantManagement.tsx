@@ -52,6 +52,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { trialDayNumber, getTierConfig, isTrial } from "@/lib/tiers";
+import { Plus } from "lucide-react";
 
 type TenantRow = {
     id: string;
@@ -61,8 +63,11 @@ type TenantRow = {
     created_at: string;
     max_provider_seats: number;
     max_client_seats: number;
+    max_teams: number;
+    trial_expires_at: string | null;
     providerCount: number;
     clientCount: number;
+    teamCount: number;
 };
 
 export default function TenantManagement() {
@@ -80,7 +85,7 @@ export default function TenantManagement() {
         queryFn: async () => {
             const { data: tenantsData, error } = await supabase
                 .from("tenants")
-                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, trial_expires_at`);
+                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, max_teams, trial_expires_at`);
 
             if (error) throw error;
 
@@ -89,11 +94,16 @@ export default function TenantManagement() {
                     .from("profiles")
                     .select("*", { count: "exact", head: true })
                     .eq("tenant_id", t.id);
+                const { count: teamsCount } = await supabase
+                    .from("teams")
+                    .select("*", { count: "exact", head: true })
+                    .eq("tenant_id", t.id);
 
                 return {
                     ...t,
                     providerCount: providers || 0,
-                    clientCount: 0
+                    clientCount: 0,
+                    teamCount: teamsCount || 0,
                 };
             }));
 
@@ -117,10 +127,10 @@ export default function TenantManagement() {
     const handleChangeTier = async () => {
         if (!changeTierTenant || !selectedTier) return;
         setIsProcessing(true);
-        const { error } = await supabase
-            .from("tenants")
-            .update({ subscription_tier: selectedTier } as any)
-            .eq("id", changeTierTenant.id);
+        const { error } = await supabase.rpc("apply_tier_limits" as never, {
+            _tenant_id: changeTierTenant.id,
+            _tier: selectedTier,
+        } as never);
 
         if (error) {
             toast.error(error.message);
@@ -133,30 +143,18 @@ export default function TenantManagement() {
         setSelectedTier("");
     };
 
-    const handleExtendTrial = async () => {
-        if (!extendTrialTenant || !trialDays) return;
+    const handleExtendTrial15 = async (tenant: TenantRow) => {
         setIsProcessing(true);
-        const days = parseInt(trialDays, 10);
-        if (isNaN(days) || days < 1) {
-            toast.error("Enter a valid number of days");
-            setIsProcessing(false);
-            return;
-        }
-        const newExpiry = addDays(new Date(), days).toISOString();
-        const { error } = await supabase
-            .from("tenants")
-            .update({ trial_expires_at: newExpiry, status: "trial" } as any)
-            .eq("id", extendTrialTenant.id);
-
+        const { data, error } = await supabase.rpc("extend_trial_15" as never, {
+            _tenant_id: tenant.id,
+        } as never);
         if (error) {
             toast.error(error.message);
         } else {
-            toast.success(`Trial extended by ${days} days (expires ${format(new Date(newExpiry), "MMM d, yyyy")})`);
+            toast.success(`Trial extended by 15 days (now expires ${format(new Date(data as unknown as string), "MMM d, yyyy")})`);
             refetch();
         }
         setIsProcessing(false);
-        setExtendTrialTenant(null);
-        setTrialDays("14");
     };
 
     const handleDecommission = async () => {
@@ -183,12 +181,17 @@ export default function TenantManagement() {
     };
 
     const getTierBadge = (tier: string) => {
-        switch (tier) {
-            case "enterprise": return <Badge className="bg-purple-600 hover:bg-purple-700">Enterprise</Badge>;
-            case "professional": return <Badge className="bg-blue-600 hover:bg-blue-700">Professional</Badge>;
-            case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
-            default: return <Badge variant="secondary">Free</Badge>;
+        const cfg = getTierConfig(tier);
+        if (tier === "territory_trial") {
+            return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Territory Trial</Badge>;
         }
+        const colorMap: Record<string, string> = {
+            patio: "bg-stone-500 hover:bg-stone-600",
+            backyard: "bg-emerald-500 hover:bg-emerald-600",
+            estate: "bg-emerald-700 hover:bg-emerald-800",
+            territory: "bg-stone-900 hover:bg-stone-800",
+        };
+        return <Badge className={colorMap[tier] || "bg-stone-400"}>{cfg.name}</Badge>;
     };
 
     const getStatusBadge = (status: string) => {
