@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight, Archive, ClipboardCheck, FileOutput, FileText, Lightbulb, Send, Undo2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { WorkflowEngine } from "@/lib/workflow-engine";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -83,6 +84,16 @@ export default function PipelineKanban() {
     await supabase.from("inspections").update({ status: "COMPLETED" }).eq("id", inspection.id);
     toast.success("Offer generated from inspection");
     load();
+  };
+
+  const handleGenerateContract = async (offer: any) => {
+    try {
+      await WorkflowEngine.acceptOfferAndGenerateContract(offer.id, user!.id);
+      toast.success("Contract generated from offer");
+      load();
+    } catch {
+      // toast handled inside engine
+    }
   };
 
   const handleArchive = async (table: "inspections" | "offers" | "contracts", id: string) => {
@@ -204,9 +215,25 @@ export default function PipelineKanban() {
                           </Button>
                         )}
                         {col.type === "offer" && status === "ACCEPTED" && (
-                          <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2" onClick={() => navigate(`/provider/offers/${item.id}`)}>
-                            Gen. Contract <ArrowRight className="h-3 w-3" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1 px-2">
+                                Gen. Contract <ArrowRight className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Generate contract from this offer?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  A draft contract will be created with the offer's line items. The card will move to the Contracts column.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleGenerateContract(item)}>Generate</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
 
                         {/* Contract quick actions */}
