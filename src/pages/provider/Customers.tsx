@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,8 @@ export default function Customers() {
   const [connectLoading, setConnectLoading] = useState(false);
 
   useEffect(() => { loadData(); }, []);
+
+  useRealtimeRefresh(["customers", "properties"], () => { loadData(); }, profile?.tenant_id);
 
   // Auto-open the connect dialog when arriving via a shared link e.g. /customers?connect=GC-XXXXXX
   useEffect(() => {

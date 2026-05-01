@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,8 @@ export default function Inspections({ embedded, statusFilter: statusFilterProp }
   const isStatusLocked = !!statusFilterProp;
 
   useEffect(() => { load(); }, []);
+
+  useRealtimeRefresh(["inspections"], () => { load(); }, profile?.tenant_id);
 
   const load = async () => {
     let query = supabase
