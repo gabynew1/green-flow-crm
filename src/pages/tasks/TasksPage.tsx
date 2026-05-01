@@ -525,9 +525,33 @@ export default function TasksPage() {
                     const props = propIds
                       .map((id) => enrichment.properties[id])
                       .filter(Boolean) as { name: string; address?: string | null }[];
+                    const isLinkReq = selected.task_type === "link_request";
+                    const linkApproved = isLinkReq && selected.status === "approved";
+                    const clientCustomerId = initiator?.customerId ?? null;
+                    const canLinkToCustomer = isProvider && linkApproved && !!clientCustomerId;
                     return (
                       <>
-                        {initiator && (
+                        {isLinkReq && initiator && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">Client</dt>
+                            <dd className="text-right font-medium">
+                              {canLinkToCustomer ? (
+                                <Link
+                                  to={`/provider/customers/${clientCustomerId}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {initiator.name}
+                                </Link>
+                              ) : (
+                                initiator.name
+                              )}
+                              {initiator.email && (
+                                <span className="block text-xs text-muted-foreground">{initiator.email}</span>
+                              )}
+                            </dd>
+                          </div>
+                        )}
+                        {!isLinkReq && initiator && (
                           <div className="flex justify-between gap-2">
                             <dt className="text-muted-foreground">From</dt>
                             <dd className="text-right font-medium">
@@ -538,7 +562,7 @@ export default function TasksPage() {
                             </dd>
                           </div>
                         )}
-                        {target && (
+                        {!isLinkReq && target && (
                           <div className="flex justify-between gap-2">
                             <dt className="text-muted-foreground">To</dt>
                             <dd className="text-right font-medium">{target.name}</dd>
@@ -552,11 +576,20 @@ export default function TasksPage() {
                         )}
                         {props.length > 0 && (
                           <div className="border-t border-border/60 pt-2">
-                            <dt className="text-muted-foreground mb-1">Properties</dt>
+                            <dt className="text-muted-foreground mb-1">{props.length === 1 ? "Property" : "Properties"}</dt>
                             <dd className="space-y-1">
                               {props.map((p, i) => (
                                 <div key={i} className="text-sm">
-                                  <p className="font-medium">{p.name}</p>
+                                  {canLinkToCustomer ? (
+                                    <Link
+                                      to={`/provider/customers/${clientCustomerId}`}
+                                      className="font-medium text-primary hover:underline"
+                                    >
+                                      {p.name}
+                                    </Link>
+                                  ) : (
+                                    <p className="font-medium">{p.name}</p>
+                                  )}
                                   {p.address && <p className="text-xs text-muted-foreground">{p.address}</p>}
                                 </div>
                               ))}
