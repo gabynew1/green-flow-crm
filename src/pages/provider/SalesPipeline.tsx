@@ -6,6 +6,7 @@ import PipelineCreateMenu from "@/components/provider/PipelineCreateMenu";
 import Inspections from "./Inspections";
 import Offers from "./Offers";
 import Contracts from "./Contracts";
+import NewConnectionsBoard from "./NewConnectionsBoard";
 
 type Tab = "kanban" | "opportunities" | "inspections" | "offers" | "contracts";
 
@@ -46,7 +47,12 @@ export default function SalesPipeline() {
       </div>
 
       {tab === "kanban" && <PipelineKanban />}
-      {tab === "opportunities" && <Inspections embedded statusFilter="DRAFT" />}
+      {tab === "opportunities" && (
+        <div>
+          <NewConnectionsBoard />
+          <Inspections embedded statusFilter="DRAFT" />
+        </div>
+      )}
       {tab === "inspections" && <Inspections embedded />}
       {tab === "offers" && <Offers embedded />}
       {tab === "contracts" && <Contracts embedded />}
