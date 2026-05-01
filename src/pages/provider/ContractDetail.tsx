@@ -322,7 +322,7 @@ export default function ContractDetail() {
     if (!contract || lineItems.length === 0) { toast.error("No line items to generate from"); return; }
     const now = new Date();
     const periodLabel = contract.billing_cycle === "YEARLY"
-      ? `${format(now, "yyyy")}-W${String(getISOWeek(now)).padStart(2, "0")}`
+      ? format(now, "yyyy")
       : format(now, "yyyy-MM");
     const periodType = contract.billing_cycle === "ONE_TIME" ? "ONE_TIME" : "MONTH";
 
