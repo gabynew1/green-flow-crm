@@ -64,6 +64,23 @@ export default function ContractNew() {
     setFlatFee("");
   }, [selectedCategory]);
 
+  // Live total preview (right of category selector)
+  const servicesTotal = useMemo(() => {
+    if (isFlatFeeMode) return Number(flatFee) || 0;
+    let sum = 0;
+    for (const id of selectedServiceIds) {
+      const cfg = serviceConfig[id];
+      const svc = services.find((s) => s.id === id);
+      const qty = Number(cfg?.quantity ?? 1) || 0;
+      const rawPrice =
+        cfg?.unit_price !== undefined && cfg?.unit_price !== ""
+          ? Number(cfg.unit_price)
+          : Number(svc?.default_price ?? 0);
+      if (!Number.isNaN(rawPrice)) sum += qty * rawPrice;
+    }
+    return Math.ceil(sum);
+  }, [isFlatFeeMode, flatFee, selectedServiceIds, serviceConfig, services]);
+
   const billingCycleLabel =
     billingCycle === "MONTHLY" ? "Monthly" : billingCycle === "YEARLY" ? "Yearly" : "Ad hoc";
   const billingCyclePeriod =
@@ -420,16 +437,38 @@ export default function ContractNew() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-base">Services</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2 max-w-xs">
-                <Label>Category</Label>
-                <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setServiceSearch(""); }}>
-                  <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-end justify-between gap-4 flex-wrap">
+                <div className="space-y-2 w-full max-w-xs">
+                  <Label>Category</Label>
+                  <Select value={selectedCategory} onValueChange={(v) => { setSelectedCategory(v); setServiceSearch(""); }}>
+                    <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedCategory && (
+                  <div className="rounded-md border bg-muted/30 px-3 py-2 text-right min-w-[180px]">
+                    <div
+                      className={`text-sm font-semibold tabular-nums ${
+                        servicesTotal > 0 ? "text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {isFlatFeeMode ? "Flat: " : "Total: "}
+                      {servicesTotal.toLocaleString()} {currency}
+                      {isFlatFeeMode && (
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {" "}/ {billingCyclePeriod}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {selectedServiceIds.length} service{selectedServiceIds.length === 1 ? "" : "s"} selected
+                    </div>
+                  </div>
+                )}
               </div>
 
               {selectedCategory && (

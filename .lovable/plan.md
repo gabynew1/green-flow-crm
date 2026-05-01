@@ -1,39 +1,70 @@
 ## Goal
 
-When the selected category in **New Contract** is **Regular Maintenance**, switch the contract from per-line-item pricing to a single **flat fee per billing cycle**. Other categories (Garden Landscaping, Irrigation, Special & Seasonal, Design & Consulting) keep the existing per-service pricing UI.
+Show a live **Total price** helper next to the **Category** selector in `New Contract`, so the provider sees the running cost as they tick services and tweak amounts. Works for **all categories**, including Regular Maintenance.
 
-## Behavior changes (Regular Maintenance only)
+## Behavior
 
-1. **Catalog table** — keep search, select-all, and the full details (code, name, description, unit). Hide the "Default price" column since pricing is no longer per-service.
-2. **Per-service configuration cards** — hidden entirely. No frequency, quantity, unit price, or max/period inputs.
-3. **New "Flat fee" block** — appears once at least one Regular Maintenance service is selected:
-   - One amount input (`flatFee`) labelled e.g. *"Flat fee per Monthly billing cycle"* (label updates with the chosen `billingCycle`: Monthly / Yearly / Ad hoc).
-   - Helper text: *"Covers all selected services for each billing cycle. Visits are scheduled per the cadence above."*
-4. **Summary panel (right column)** — shows `Flat fee: 1,200 RON / month` instead of a service count price.
-5. **Save logic** — for Regular Maintenance:
-   - Insert the contract row as today.
-   - Insert one `contract_line_items` row per selected service with:
-     - `quantity = 1`, `unit_price = NULL`, `frequency_type` derived from billing cycle (`MONTHLY → PER_MONTH`, `YEARLY → PER_YEAR`, `ONE_TIME → ONE_TIME`).
-   - Insert one extra "flat fee" line item:
-     - `service_catalog_id` = a sentinel (the first selected service) so the FK stays valid, `custom_name = "Flat fee — Regular Maintenance"`, `unit_price = flatFee`, `quantity = 1`, `frequency_type` matching billing cycle, `notes = "Flat fee covering: <comma-joined service names>"`.
-   - This keeps reporting consistent with the existing scope-tracking model without a schema change.
+- Helper appears as a compact box on the **right side of the Category row**, aligned with the Category dropdown.
+- Updates live as the user:
+  - Checks/unchecks services in the catalog table.
+  - Edits per-service `quantity` or `unit price` (non-Maintenance categories).
+  - Edits the `Flat fee` input (Regular Maintenance).
+  - Changes the billing cycle (only affects the `/ month`, `/ year`, `/ cycle` suffix).
+- Empty state: shows `Total: 0 RON` in muted text.
+- Sub-line shows `N services selected`.
 
-## Validation
+### Non-Maintenance categories
+Total = sum over selected services of `quantity × unit_price`.
+- Uses the value in each per-service config card.
+- For services that were just ticked but haven't been opened yet, falls back to `default_price × 1` (matches what `defaultCfg(svc.default_price)` already seeds).
+- Skips lines with empty/`NaN` unit prices.
+- Result wrapped in `Math.ceil` to match the project's CEIL rounding rule.
+- Suffix: no `/period` suffix on the main amount (per-line frequencies vary); just `Total: X RON`.
 
-- Flat fee is required and must be > 0 (toast otherwise).
-- At least one Regular Maintenance service must still be selected.
-- Per-service unit-price validation is skipped in flat-fee mode.
+### Regular Maintenance (flat-fee mode)
+Total = the `flatFee` value, displayed as `Flat: 1,200 RON / month` (or `/ year`, `/ cycle`).
+- If `flatFee` empty or 0: shows `Flat: 0 RON / month` muted.
 
-## Out of scope
+## Layout
 
-- No DB migration. Schema unchanged; flat fee is represented via a dedicated line item.
-- Other categories continue with the current per-service flow.
-- Contract detail/edit pages remain untouched in this pass (flat fee shows as a normal line item there).
+```text
+[ Category ▼  Garden Landscaping ]                 [ Total: 1,250 RON ]
+                                                     3 services selected
+```
+
+The Category field stops being `max-w-xs` standalone and becomes the left half of a flex row; the helper box sits on the right, right-aligned. On small screens it wraps under the dropdown.
 
 ## Technical notes
 
 - File touched: `src/pages/provider/ContractNew.tsx` only.
-- Add `const isFlatFeeMode = selectedCategory === "Regular Maintenance"` and branch the JSX + `handleCreate` on it.
-- Add state `const [flatFee, setFlatFee] = useState("")` reset whenever `selectedCategory` changes.
-- Hide the "Default price" `<th>`/`<td>` and adjust the empty-state `colSpan` from 6 to 5 when in flat-fee mode.
-- Reuse `<CurrencyInput>` and `useTenantCurrency()` for the flat-fee input.
+- Add a `useMemo` `servicesTotal`:
+  ```ts
+  const servicesTotal = useMemo(() => {
+    if (isFlatFeeMode) return Number(flatFee) || 0;
+    let sum = 0;
+    for (const id of selectedServiceIds) {
+      const cfg = serviceConfig[id];
+      const svc = services.find((s) => s.id === id);
+      const qty = Number(cfg?.quantity ?? 1) || 0;
+      const price = cfg?.unit_price !== undefined && cfg?.unit_price !== ""
+        ? Number(cfg.unit_price)
+        : Number(svc?.default_price ?? 0);
+      if (!Number.isNaN(price)) sum += qty * price;
+    }
+    return Math.ceil(sum);
+  }, [isFlatFeeMode, flatFee, selectedServiceIds, serviceConfig, services]);
+  ```
+- Restructure the Category block (around line 423) from a single `max-w-xs` div into a `flex items-end justify-between gap-4 flex-wrap` row containing:
+  - Left: existing `Label` + `Select` (kept in a `max-w-xs` wrapper).
+  - Right: a small bordered box (`rounded-md border bg-muted/30 px-3 py-2 text-right`) showing:
+    - Top line: `Total: {servicesTotal.toLocaleString()} {currency}` for non-Maintenance, or `Flat: {…} / {billingCyclePeriod}` for Maintenance.
+    - Bottom line (muted, `text-xs`): `{selectedServiceIds.length} service(s) selected`.
+- Reuse `useTenantCurrency()` (already imported) and existing `billingCyclePeriod`.
+- Keep the existing right-column Summary card untouched — it still shows the same numbers in the rollup.
+- No save/validation logic changes.
+
+## Out of scope
+
+- Discounts, taxes, VAT.
+- Per-period normalization across mixed frequencies (a `PER_VISIT` line stays multiplied by quantity only — same model as the rest of the app).
+- Persisting the helper anywhere; it's pure UI.
