@@ -1,0 +1,490 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Loader2, X, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+
+type FrequencyType = "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME";
+
+interface ServiceCfg {
+  frequency_type: FrequencyType;
+  quantity: number;
+  unit_price: string;
+  max_occurrences: string;
+}
+
+const defaultCfg = (defaultPrice?: number | null): ServiceCfg => ({
+  frequency_type: "PER_VISIT",
+  quantity: 1,
+  unit_price: defaultPrice != null ? String(defaultPrice) : "",
+  max_occurrences: "",
+});
+
+export default function ContractNew() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const presetCustomerId = params.get("customerId") ?? "";
+  const { profile } = useAuth();
+  const currency = useTenantCurrency();
+
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [selectedCustomerId, setSelectedCustomerId] = useState(presetCustomerId);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [visitCount, setVisitCount] = useState(1);
+  const [visitType, setVisitType] = useState("WEEK");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [serviceConfig, setServiceConfig] = useState<Record<string, ServiceCfg>>({});
+
+  // Inventory soft check — populated whenever selected properties change
+  const [missingInventory, setMissingInventory] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    if (!profile?.tenant_id) return;
+    const tid = profile.tenant_id;
+    setLoading(true);
+    Promise.all([
+      supabase.from("customers").select("id, name, company_name").eq("tenant_id", tid).order("name"),
+      supabase.from("properties").select("id, name, customer_id").eq("tenant_id", tid).order("name"),
+      supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tid).order("code").order("name"),
+    ]).then(([custRes, propRes, svcRes]) => {
+      setCustomers(custRes.data ?? []);
+      setProperties(propRes.data ?? []);
+      setServices(svcRes.data ?? []);
+      setLoading(false);
+    });
+  }, [profile?.tenant_id]);
+
+  // Inventory soft warning: re-check whenever selection changes
+  useEffect(() => {
+    if (selectedPropertyIds.length === 0) {
+      setMissingInventory([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: inventories } = await supabase
+        .from("inventory")
+        .select("property_id, inventory_items(id)")
+        .in("property_id", selectedPropertyIds);
+      const withItems = new Set(
+        (inventories ?? [])
+          .filter((inv: any) => (inv.inventory_items?.length ?? 0) > 0)
+          .map((inv: any) => inv.property_id)
+      );
+      const missing = selectedPropertyIds
+        .filter((id) => !withItems.has(id))
+        .map((id) => ({
+          id,
+          name: properties.find((p) => p.id === id)?.name || "Unknown property",
+        }));
+      if (!cancelled) setMissingInventory(missing);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPropertyIds, properties]);
+
+  const filteredProperties = useMemo(
+    () => properties.filter((p) => p.customer_id === selectedCustomerId),
+    [properties, selectedCustomerId]
+  );
+  const categories = useMemo(
+    () => [...new Set(services.map((s) => s.code as string))].sort(),
+    [services]
+  );
+  const filteredServices = useMemo(
+    () => services.filter((s) => s.code === selectedCategory),
+    [services, selectedCategory]
+  );
+
+  const toggleProperty = (id: string) =>
+    setSelectedPropertyIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+
+  const toggleService = (id: string) => {
+    setSelectedServiceIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id];
+      if (!prev.includes(id)) {
+        const svc = services.find((s) => s.id === id);
+        setServiceConfig((cfg) => ({ ...cfg, [id]: defaultCfg(svc?.default_price) }));
+      }
+      return next;
+    });
+  };
+
+  const updateServiceConfig = (id: string, field: keyof ServiceCfg, value: string | number) =>
+    setServiceConfig((cfg) => ({ ...cfg, [id]: { ...cfg[id], [field]: value } as ServiceCfg }));
+
+  const handleCreate = async () => {
+    if (!selectedCustomerId) return toast.error("Select a customer");
+    if (!name.trim()) return toast.error("Enter a contract name");
+    if (selectedPropertyIds.length === 0) return toast.error("Select at least one property");
+    if (!startDate || !endDate) return toast.error("Start and end dates are required");
+    if (selectedServiceIds.length === 0) return toast.error("Select at least one service");
+
+    for (const svcId of selectedServiceIds) {
+      const cfg = serviceConfig[svcId];
+      if (!cfg?.unit_price || Number(cfg.unit_price) < 0) {
+        const svc = services.find((s) => s.id === svcId);
+        return toast.error(`Set a unit price for ${svc?.name || "service"}`);
+      }
+    }
+
+    setSaving(true);
+    try {
+      const inserts = selectedPropertyIds.map((propertyId) => ({
+        contract_name: name.trim(),
+        property_id: propertyId,
+        start_date: startDate,
+        end_date: endDate,
+        billing_cycle: billingCycle,
+        visit_frequency_count: visitCount,
+        visit_frequency_type: visitType,
+        status: "DRAFT" as const,
+        tenant_id: profile?.tenant_id,
+      } as any));
+
+      const { data: created, error } = await supabase.from("contracts").insert(inserts).select("id");
+      if (error) throw error;
+
+      const lineItems = (created ?? []).flatMap((c: any) =>
+        selectedServiceIds.map((serviceId) => {
+          const cfg = serviceConfig[serviceId] ?? defaultCfg();
+          return {
+            contract_id: c.id,
+            service_catalog_id: serviceId,
+            quantity: cfg.quantity || 1,
+            frequency_type: cfg.frequency_type,
+            unit_price: cfg.unit_price ? Number(cfg.unit_price) : null,
+            max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+            tenant_id: profile?.tenant_id,
+          };
+        })
+      );
+      if (lineItems.length > 0) {
+        const { error: liError } = await supabase.from("contract_line_items").insert(lineItems);
+        if (liError) toast.error("Contract created but failed to add service lines: " + liError.message);
+      }
+
+      toast.success(`${inserts.length} contract(s) created`);
+      if (created && created.length === 1) {
+        navigate(`/provider/contracts/${created[0].id}`);
+      } else {
+        navigate("/provider/pipeline");
+      }
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to create contract");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5 max-w-6xl mx-auto">
+      {/* Header */}
+      <div>
+        <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2 text-muted-foreground">
+          <Link to="/provider/pipeline"><ArrowLeft className="h-4 w-4 mr-1" /> Back to pipeline</Link>
+        </Button>
+        <h1 className="text-2xl font-bold">New Contract</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Define services, billing, and visit cadence for one or more properties.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* LEFT — form */}
+        <div className="lg:col-span-2 space-y-5">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Customer & properties</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Customer *</Label>
+                <Select value={selectedCustomerId} onValueChange={(v) => { setSelectedCustomerId(v); setSelectedPropertyIds([]); }}>
+                  <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.company_name ? ` (${c.company_name})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedCustomerId && (
+                <div className="space-y-2">
+                  <Label>Properties * (select one or more)</Label>
+                  <div className="border rounded-md p-3 max-h-56 overflow-y-auto divide-y">
+                    {filteredProperties.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">No properties for this customer.</p>
+                    ) : (
+                      filteredProperties.map((p) => (
+                        <div key={p.id} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
+                          <Checkbox
+                            id={`np-${p.id}`}
+                            checked={selectedPropertyIds.includes(p.id)}
+                            onCheckedChange={() => toggleProperty(p.id)}
+                          />
+                          <label htmlFor={`np-${p.id}`} className="text-sm cursor-pointer flex-1">{p.name}</label>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {selectedPropertyIds.length > 0 && (
+                    <p className="text-xs text-muted-foreground">{selectedPropertyIds.length} selected</p>
+                  )}
+                </div>
+              )}
+
+              {missingInventory.length > 0 && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 flex gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-amber-900 dark:text-amber-200 space-y-1">
+                    <p>
+                      {missingInventory.length} of the selected {missingInventory.length === 1 ? "properties has" : "properties have"} no inventory yet. You can still create the contract — adding items later helps service planning.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {missingInventory.map((p) => (
+                        <Link
+                          key={p.id}
+                          to={`/provider/properties/${p.id}`}
+                          className="text-xs underline underline-offset-2 hover:text-amber-700"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open {p.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Contract details</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Contract name *</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Annual Maintenance 2026" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Start date *</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
+                <div className="space-y-2"><Label>End date *</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Visit frequency</Label>
+                  <div className="flex gap-2">
+                    <Select value={String(visitCount)} onValueChange={(v) => setVisitCount(Number(v))}>
+                      <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
+                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={visitType} onValueChange={setVisitType}>
+                      <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="WEEK">per Week</SelectItem>
+                        <SelectItem value="MONTH">per Month</SelectItem>
+                        <SelectItem value="YEAR">per Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Billing cycle</Label>
+                  <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Services</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {selectedCategory && (
+                  <div className="space-y-2">
+                    <Label>Pick services</Label>
+                    <div className="border rounded-md p-3 max-h-44 overflow-y-auto divide-y">
+                      {filteredServices.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-2">No services in this category.</p>
+                      ) : (
+                        filteredServices.map((svc) => (
+                          <div key={svc.id} className="flex items-center gap-2 py-2 first:pt-0 last:pb-0">
+                            <Checkbox
+                              id={`ns-${svc.id}`}
+                              checked={selectedServiceIds.includes(svc.id)}
+                              onCheckedChange={() => toggleService(svc.id)}
+                            />
+                            <label htmlFor={`ns-${svc.id}`} className="text-sm cursor-pointer flex-1">{svc.name}</label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {selectedServiceIds.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <p className="text-xs text-muted-foreground font-medium">{selectedServiceIds.length} service(s) — configure each:</p>
+                  {selectedServiceIds.map((id) => {
+                    const svc = services.find((s) => s.id === id);
+                    const cfg = serviceConfig[id] ?? defaultCfg();
+                    if (!svc) return null;
+                    return (
+                      <div key={id} className="border rounded-md p-3 space-y-3 bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{svc.name}</span>
+                          <button type="button" onClick={() => toggleService(id)} className="text-muted-foreground hover:text-destructive">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Frequency</Label>
+                            <Select value={cfg.frequency_type} onValueChange={(v) => updateServiceConfig(id, "frequency_type", v as FrequencyType)}>
+                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PER_VISIT">Per Visit</SelectItem>
+                                <SelectItem value="PER_WEEK">Per Week</SelectItem>
+                                <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                <SelectItem value="PER_YEAR">Per Year</SelectItem>
+                                <SelectItem value="ONE_TIME">One-time</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Quantity</Label>
+                            <Input type="number" min="1" value={cfg.quantity}
+                              onChange={(e) => updateServiceConfig(id, "quantity", Number(e.target.value) || 1)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Unit price *</Label>
+                            <CurrencyInput currency={currency} min="0" placeholder="0.00"
+                              value={cfg.unit_price}
+                              onChange={(e) => updateServiceConfig(id, "unit_price", e.target.value)} />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Max / period</Label>
+                            <Input type="number" placeholder="∞"
+                              value={cfg.max_occurrences}
+                              onChange={(e) => updateServiceConfig(id, "max_occurrences", e.target.value)} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* RIGHT — summary */}
+        <div className="space-y-5">
+          <Card className="lg:sticky lg:top-4">
+            <CardHeader className="pb-3"><CardTitle className="text-base">Summary</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <Row label="Customer">
+                {customers.find((c) => c.id === selectedCustomerId)?.name || <Muted>—</Muted>}
+              </Row>
+              <Row label="Properties">
+                {selectedPropertyIds.length > 0 ? (
+                  <Badge variant="secondary">{selectedPropertyIds.length}</Badge>
+                ) : (
+                  <Muted>None</Muted>
+                )}
+              </Row>
+              <Row label="Services">
+                {selectedServiceIds.length > 0 ? (
+                  <Badge variant="secondary">{selectedServiceIds.length}</Badge>
+                ) : (
+                  <Muted>None</Muted>
+                )}
+              </Row>
+              <Row label="Visits">
+                {visitCount} / {visitType.toLowerCase()}
+              </Row>
+              <Row label="Billing">{billingCycle.replace("_", " ").toLowerCase()}</Row>
+              <Row label="Inventory">
+                {selectedPropertyIds.length === 0 ? (
+                  <Muted>—</Muted>
+                ) : missingInventory.length === 0 ? (
+                  <span className="text-emerald-700 dark:text-emerald-400">All set</span>
+                ) : (
+                  <span className="text-amber-700 dark:text-amber-400">{missingInventory.length} missing</span>
+                )}
+              </Row>
+
+              <div className="pt-2 space-y-2">
+                <Button className="w-full" onClick={handleCreate} disabled={saving || loading}>
+                  {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating…</> : "Create Contract"}
+                </Button>
+                <Button variant="ghost" className="w-full" asChild>
+                  <Link to="/provider/pipeline">Cancel</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right">{children}</span>
+    </div>
+  );
+}
+
+function Muted({ children }: { children: React.ReactNode }) {
+  return <span className="text-muted-foreground">{children}</span>;
+}
