@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ interface KanbanColumn {
 }
 
 export default function PipelineKanban() {
-  const { user } = useAuth();
+  const { user, tenantId } = useAuth();
   const navigate = useNavigate();
   const [inspections, setInspections] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
@@ -59,6 +60,13 @@ export default function PipelineKanban() {
   const [invByProperty, setInvByProperty] = useState<Record<string, { count: number; lastUpdate: string | null }>>({});
 
   useEffect(() => { load(); }, []);
+
+  // Auto-refresh when pipeline data changes from anywhere (other dialogs, tabs, etc.)
+  useRealtimeRefresh(
+    ["inspections", "offers", "contracts", "inventory_items"],
+    () => { load(); },
+    tenantId
+  );
 
   const load = async () => {
     setLoading(true);
