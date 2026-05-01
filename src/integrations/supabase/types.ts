@@ -1993,7 +1993,7 @@ export type Database = {
         | "inspection_confirmation"
         | "contract_renewal"
       app_role: "PROVIDER_ADMIN" | "PROVIDER_STAFF" | "CLIENT_USER"
-      billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME"
+      billing_cycle: "MONTHLY" | "YEARLY" | "ONE_TIME"
       connection_status: "PENDING" | "APPROVED" | "DENIED"
       contract_status:
         | "DRAFT"
@@ -2212,7 +2212,7 @@ export const Constants = {
         "contract_renewal",
       ],
       app_role: ["PROVIDER_ADMIN", "PROVIDER_STAFF", "CLIENT_USER"],
-      billing_cycle: ["WEEKLY", "MONTHLY", "ONE_TIME"],
+      billing_cycle: ["MONTHLY", "YEARLY", "ONE_TIME"],
       connection_status: ["PENDING", "APPROVED", "DENIED"],
       contract_status: [
         "DRAFT",

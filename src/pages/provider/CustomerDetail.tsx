@@ -29,8 +29,8 @@ function getTimeRemaining(endDate: string | null): { label: string; urgent: bool
 }
 
 const billingCycleLabels: Record<string, string> = {
-  WEEKLY: "Weekly",
   MONTHLY: "Monthly",
+  YEARLY: "Yearly",
   ONE_TIME: "Ad hoc",
 };
 
@@ -64,7 +64,7 @@ export default function CustomerDetail() {
     contract_name: string;
     start_date: string;
     end_date: string;
-    billing_cycle: "WEEKLY" | "MONTHLY" | "ONE_TIME";
+    billing_cycle: "MONTHLY" | "YEARLY" | "ONE_TIME";
   }>({ contract_name: "", start_date: "", end_date: "", billing_cycle: "MONTHLY" });
   const [clientId, setClientId] = useState<string | null>(null);
 
@@ -292,7 +292,7 @@ export default function CustomerDetail() {
                               <Select value={editData.billing_cycle} onValueChange={(v) => setEditData({ ...editData, billing_cycle: v as any })}>
                                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="WEEKLY">Weekly</SelectItem>
+                                  <SelectItem value="YEARLY">Yearly</SelectItem>
                                   <SelectItem value="MONTHLY">Monthly</SelectItem>
                                   <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
                                 </SelectContent>

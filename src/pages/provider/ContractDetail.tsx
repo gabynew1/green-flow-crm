@@ -19,7 +19,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { format, getISOWeek } from "date-fns";
+import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
@@ -321,10 +321,10 @@ export default function ContractDetail() {
   const generateVisit = async () => {
     if (!contract || lineItems.length === 0) { toast.error("No line items to generate from"); return; }
     const now = new Date();
-    const periodLabel = contract.billing_cycle === "WEEKLY"
-      ? `${format(now, "yyyy")}-W${String(getISOWeek(now)).padStart(2, "0")}`
+    const periodLabel = contract.billing_cycle === "YEARLY"
+      ? format(now, "yyyy")
       : format(now, "yyyy-MM");
-    const periodType = contract.billing_cycle === "WEEKLY" ? "WEEK" : contract.billing_cycle === "ONE_TIME" ? "ONE_TIME" : "MONTH";
+    const periodType = contract.billing_cycle === "ONE_TIME" ? "ONE_TIME" : "MONTH";
 
     const { data: so, error } = await supabase.from("service_orders").insert({
       property_id: (contract.properties as any).id,

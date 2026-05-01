@@ -34,8 +34,8 @@ const statusLabels: Record<string, string> = {
 };
 
 const billingLabels: Record<string, string> = {
-  WEEKLY: "Weekly",
   MONTHLY: "Monthly",
+  YEARLY: "Yearly",
   ONE_TIME: "Ad hoc",
 };
 
@@ -57,7 +57,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [open, setOpen] = useState(false);
   const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
-  const [billingCycle, setBillingCycle] = useState<"WEEKLY" | "MONTHLY" | "ONE_TIME">("MONTHLY");
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
   const [visitType, setVisitType] = useState("WEEK");
   const [sortKey, setSortKey] = useState<SortKey>("start_date");
@@ -408,7 +408,7 @@ export default function Contracts({ embedded }: { embedded?: boolean } = {}) {
                   <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="YEARLY">Yearly</SelectItem>
                       <SelectItem value="MONTHLY">Monthly</SelectItem>
                       <SelectItem value="ONE_TIME">Ad hoc</SelectItem>
                     </SelectContent>
