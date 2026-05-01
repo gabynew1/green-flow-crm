@@ -10,7 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Trash2 } from "lucide-react";
+import { Plus, Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Trash2, Download, Sparkles } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
@@ -33,6 +44,9 @@ export default function ServiceCatalog() {
   // Manage dialogs
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [manageUnitsOpen, setManageUnitsOpen] = useState(false);
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [emptyStateDismissed, setEmptyStateDismissed] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editCategoryValue, setEditCategoryValue] = useState("");
   const [newCategory, setNewCategory] = useState("");
