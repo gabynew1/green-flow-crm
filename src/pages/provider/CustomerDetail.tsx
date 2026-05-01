@@ -58,6 +58,7 @@ export default function CustomerDetail() {
   const [visits, setVisits] = useState<any[]>([]);
   const [propOpen, setPropOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
+  const [closeContractId, setCloseContractId] = useState<string | null>(null);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
