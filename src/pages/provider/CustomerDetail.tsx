@@ -170,7 +170,7 @@ export default function CustomerDetail() {
       contract_name: editData.contract_name,
       start_date: editData.start_date,
       end_date: editData.end_date || null,
-      billing_cycle: editData.billing_cycle,
+      billing_cycle: editData.billing_cycle as "MONTHLY" | "YEARLY" | "ONE_TIME",
     }).eq("id", editingId);
     if (error) { toast.error(error.message); return; }
     toast.success("Contract updated");
