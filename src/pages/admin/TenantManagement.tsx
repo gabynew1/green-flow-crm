@@ -50,7 +50,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { trialDayNumber, getTierConfig, isTrial } from "@/lib/tiers";
 import { Plus } from "lucide-react";
