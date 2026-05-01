@@ -249,15 +249,18 @@ export default function ContractNew() {
       const lineItems: any[] = (created ?? []).flatMap((c: any): any[] => {
         if (isFlatFeeMode) {
           // One row per included service (no per-line price), plus a single flat-fee row
-          const serviceRows = selectedServiceIds.map((serviceId) => ({
-            contract_id: c.id,
-            service_catalog_id: serviceId,
-            quantity: 1,
-            frequency_type: flatFeeFrequency,
-            unit_price: null,
-            max_occurrences_per_period: null,
-            tenant_id: profile?.tenant_id,
-          }));
+          const serviceRows = selectedServiceIds.map((serviceId) => {
+            const cfg = serviceConfig[serviceId] ?? defaultCfg();
+            return {
+              contract_id: c.id,
+              service_catalog_id: serviceId,
+              quantity: 1,
+              frequency_type: cfg.frequency_type ?? flatFeeFrequency,
+              unit_price: null,
+              max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+              tenant_id: profile?.tenant_id,
+            };
+          });
           const flatRow = {
             contract_id: c.id,
             service_catalog_id: selectedServiceIds[0],
@@ -498,6 +501,12 @@ export default function ContractNew() {
                               />
                             </th>
                             <th className="px-3 py-2 text-left font-medium">Code</th>
+                            {isFlatFeeMode && (
+                              <>
+                                <th className="px-3 py-2 text-left font-medium w-[140px]">Frequency</th>
+                                <th className="px-3 py-2 text-left font-medium w-[110px]">Max / period</th>
+                              </>
+                            )}
                             <th className="px-3 py-2 text-left font-medium">Name</th>
                             <th className="px-3 py-2 text-left font-medium">Description</th>
                             <th className="px-3 py-2 text-left font-medium">Unit</th>
@@ -508,9 +517,10 @@ export default function ContractNew() {
                         </thead>
                         <tbody className="divide-y">
                           {visibleServices.length === 0 ? (
-                            <tr><td colSpan={isFlatFeeMode ? 5 : 6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
+                            <tr><td colSpan={isFlatFeeMode ? 7 : 6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
                           ) : visibleServices.map((svc) => {
                             const checked = selectedServiceIds.includes(svc.id);
+                            const rowCfg = serviceConfig[svc.id] ?? defaultCfg(svc?.default_price);
                             return (
                               <tr
                                 key={svc.id}
@@ -521,6 +531,41 @@ export default function ContractNew() {
                                   <Checkbox checked={checked} onCheckedChange={() => toggleService(svc.id)} />
                                 </td>
                                 <td className="px-3 py-2 font-mono text-xs text-muted-foreground">{svc.code}</td>
+                                {isFlatFeeMode && (
+                                  <>
+                                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                                      <Select
+                                        value={rowCfg.frequency_type}
+                                        onValueChange={(v) => {
+                                          if (!checked) toggleService(svc.id);
+                                          updateServiceConfig(svc.id, "frequency_type", v as FrequencyType);
+                                        }}
+                                      >
+                                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="PER_VISIT">Per Visit</SelectItem>
+                                          <SelectItem value="PER_WEEK">Per Week</SelectItem>
+                                          <SelectItem value="PER_MONTH">Per Month</SelectItem>
+                                          <SelectItem value="PER_YEAR">Per Year</SelectItem>
+                                          <SelectItem value="ONE_TIME">One-time</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </td>
+                                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        placeholder="∞"
+                                        className="h-8 text-xs"
+                                        value={rowCfg.max_occurrences}
+                                        onChange={(e) => {
+                                          if (!checked && e.target.value) toggleService(svc.id);
+                                          updateServiceConfig(svc.id, "max_occurrences", e.target.value);
+                                        }}
+                                      />
+                                    </td>
+                                  </>
+                                )}
                                 <td className="px-3 py-2 font-medium">{svc.name}</td>
                                 <td className="px-3 py-2 text-muted-foreground max-w-[280px] truncate" title={svc.description ?? ""}>{svc.description ?? "—"}</td>
                                 <td className="px-3 py-2 text-muted-foreground">{svc.default_unit ?? "—"}</td>
