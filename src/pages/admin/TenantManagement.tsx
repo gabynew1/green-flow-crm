@@ -74,8 +74,6 @@ export default function TenantManagement() {
     const navigate = useNavigate();
     const [changeTierTenant, setChangeTierTenant] = useState<TenantRow | null>(null);
     const [selectedTier, setSelectedTier] = useState("");
-    const [extendTrialTenant, setExtendTrialTenant] = useState<TenantRow | null>(null);
-    const [trialDays, setTrialDays] = useState("14");
     const [decommissionTenant, setDecommissionTenant] = useState<TenantRow | null>(null);
     const [decommissionConfirm, setDecommissionConfirm] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
