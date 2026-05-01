@@ -10,7 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Trash2 } from "lucide-react";
+import { Plus, Pencil, Search, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Trash2, Download, Sparkles } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
@@ -33,6 +44,9 @@ export default function ServiceCatalog() {
   // Manage dialogs
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
   const [manageUnitsOpen, setManageUnitsOpen] = useState(false);
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [emptyStateDismissed, setEmptyStateDismissed] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editCategoryValue, setEditCategoryValue] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -224,6 +238,28 @@ export default function ServiceCatalog() {
     setNewUnit("");
   };
 
+  const handleImportDefaults = async () => {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.rpc("import_default_service_catalog");
+      if (error) throw error;
+      const imported = (data as any)?.imported ?? 0;
+      const skipped = (data as any)?.skipped ?? 0;
+      if (imported === 0) {
+        toast.success(`No new services to add — all ${skipped} default services are already in your catalog.`);
+      } else {
+        toast.success(`Imported ${imported} service${imported === 1 ? "" : "s"}${skipped > 0 ? ` (${skipped} skipped as duplicates)` : ""}.`);
+      }
+      setImportConfirmOpen(false);
+      setEmptyStateDismissed(true);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to import default catalog");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -288,6 +324,10 @@ export default function ServiceCatalog() {
               <Button variant="outline" size="icon"><MoreVertical className="h-4 w-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setImportConfirmOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Import default catalog…
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setManageCategoriesOpen(true)}>
                 Manage Categories
               </DropdownMenuItem>
@@ -298,6 +338,34 @@ export default function ServiceCatalog() {
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Empty-state helper for new tenants */}
+      {services.length === 0 && !emptyStateDismissed && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-primary/15 p-2 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Start with the GreenGrass default catalog</p>
+                <p className="text-sm text-muted-foreground">
+                  Add 54 ready-to-use landscaping services across 5 categories. You can edit prices, deactivate, or delete any of them afterwards.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setEmptyStateDismissed(true)}>
+                Start from scratch
+              </Button>
+              <Button size="sm" onClick={() => setImportConfirmOpen(true)} disabled={importing}>
+                <Download className="mr-2 h-4 w-4" />
+                Use default catalog
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -487,6 +555,33 @@ export default function ServiceCatalog() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import default catalog confirmation */}
+      <AlertDialog open={importConfirmOpen} onOpenChange={setImportConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" />
+              Import default service catalog
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  This adds the 54 standard GreenGrass services (5 categories) to your catalog.
+                  Any service you already have with the same name is skipped — nothing is overwritten.
+                </p>
+                <p>You can edit prices, rename, deactivate, or delete each service afterwards.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportDefaults} disabled={importing}>
+              {importing ? "Importing…" : "Import services"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
