@@ -132,7 +132,40 @@ export const WorkflowEngine = {
             throw offerError;
         }
 
-        // 2. Update inspection status
+        // 2. Auto-import the property's inventory items as offer line items
+        //    so the offer reflects what was found on site. Prices are left
+        //    blank for the provider to fill in.
+        const { data: inv } = await supabase
+            .from("inventory")
+            .select("id")
+            .eq("property_id", inspection.property_id)
+            .maybeSingle();
+        if (inv) {
+            const { data: invItems } = await supabase
+                .from("inventory_items")
+                .select("name, category, quantity, unit, notes")
+                .eq("inventory_id", inv.id);
+            if (invItems && invItems.length > 0) {
+                const lines = invItems.map((it: any) => ({
+                    offer_id: offer.id,
+                    tenant_id: inspection.tenant_id,
+                    custom_name: `${String(it.category).replace(/_/g, " ")} — ${it.name}`,
+                    quantity: it.quantity ?? 1,
+                    unit: it.unit ?? "count",
+                    notes: it.notes ?? null,
+                    unit_price: null,
+                }));
+                const { error: linesError } = await supabase
+                    .from("offer_line_items")
+                    .insert(lines as any);
+                if (linesError) {
+                    // Non-fatal: offer is created, inventory import failed.
+                    toast.error(`Inventory import warning: ${linesError.message}`);
+                }
+            }
+        }
+
+        // 3. Update inspection status
         await this.transitionInspection(inspectionId, "COMPLETED");
 
         return { offerId: offer.id };

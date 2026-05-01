@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Archive, ClipboardCheck, FileOutput, FileText, Lightbulb, Send, Undo2 } from "lucide-react";
+import { ArrowRight, Archive, ClipboardCheck, FileOutput, FileText, Lightbulb, Send, Undo2, CheckCircle2, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { WorkflowEngine } from "@/lib/workflow-engine";
@@ -55,19 +55,63 @@ export default function PipelineKanban() {
   const [offers, setOffers] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // property_id -> { count, lastUpdate (ISO|null) }
+  const [invByProperty, setInvByProperty] = useState<Record<string, { count: number; lastUpdate: string | null }>>({});
 
   useEffect(() => { load(); }, []);
 
   const load = async () => {
     setLoading(true);
     const [insRes, offRes, conRes] = await Promise.all([
-      supabase.from("inspections").select("*, properties(name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
+      supabase.from("inspections").select("*, properties(id, name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
       supabase.from("offers").select("*, properties(name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
       supabase.from("contracts").select("*, properties(name, customers(name))").eq("archived", false).order("created_at", { ascending: false }),
     ]);
-    setInspections(insRes.data ?? []);
+    const ins = insRes.data ?? [];
+    setInspections(ins);
     setOffers(offRes.data ?? []);
     setContracts(conRes.data ?? []);
+
+    // Inventory summary for SCHEDULED inspection properties
+    const propertyIds = Array.from(
+      new Set(
+        ins
+          .filter((i: any) => i.status === "SCHEDULED")
+          .map((i: any) => (i.properties as any)?.id)
+          .filter(Boolean)
+      )
+    ) as string[];
+    if (propertyIds.length > 0) {
+      const { data: invRows } = await supabase
+        .from("inventory")
+        .select("id, property_id")
+        .in("property_id", propertyIds);
+      const invIds = (invRows ?? []).map((r: any) => r.id);
+      const invIdToProp: Record<string, string> = {};
+      (invRows ?? []).forEach((r: any) => { invIdToProp[r.id] = r.property_id; });
+      const summary: Record<string, { count: number; lastUpdate: string | null }> = {};
+      propertyIds.forEach(pid => { summary[pid] = { count: 0, lastUpdate: null }; });
+      if (invIds.length > 0) {
+        const { data: items } = await supabase
+          .from("inventory_items")
+          .select("inventory_id, updated_at")
+          .in("inventory_id", invIds);
+        (items ?? []).forEach((it: any) => {
+          const pid = invIdToProp[it.inventory_id];
+          if (!pid) return;
+          const cur = summary[pid] || { count: 0, lastUpdate: null };
+          cur.count += 1;
+          if (!cur.lastUpdate || new Date(it.updated_at) > new Date(cur.lastUpdate)) {
+            cur.lastUpdate = it.updated_at;
+          }
+          summary[pid] = cur;
+        });
+      }
+      setInvByProperty(summary);
+    } else {
+      setInvByProperty({});
+    }
+
     setLoading(false);
   };
 
@@ -197,6 +241,28 @@ export default function PipelineKanban() {
                       <p className="text-sm font-medium truncate">{title}</p>
                       <p className="text-xs text-muted-foreground truncate">{customerName} · {propertyName}</p>
                     </Link>
+                    {col.type === "inspection" && (() => {
+                      const propId = (item.properties as any)?.id;
+                      const inv = propId ? invByProperty[propId] : undefined;
+                      const inspectedRef = item.inspected_date || item.created_at;
+                      const ready =
+                        !!item.inventory_marked_complete_at ||
+                        (!!inv && inv.count > 0 && !!inv.lastUpdate &&
+                          new Date(inv.lastUpdate) > new Date(inspectedRef));
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={
+                            ready
+                              ? "bg-green-500/10 text-green-700 border-green-500/30 text-[10px] gap-1"
+                              : "bg-muted text-muted-foreground text-[10px] gap-1"
+                          }
+                        >
+                          {ready ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                          {ready ? "Inventory updated" : "Inventory pending"}
+                        </Badge>
+                      );
+                    })()}
                     <div className="flex items-center justify-between gap-1">
                       <Badge variant={statusBadgeVariant} className="text-[10px]">
                         {status.replace(/_/g, " ")}
