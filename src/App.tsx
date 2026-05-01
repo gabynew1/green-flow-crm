@@ -53,6 +53,7 @@ import SecurityMonitor from "./pages/admin/SecurityMonitor";
 import ResetPassword from "./pages/ResetPassword";
 import Unsubscribe from "./pages/Unsubscribe";
 import Pricing from "./pages/Pricing";
+import TasksPage from "./pages/tasks/TasksPage";
 
 const queryClient = new QueryClient();
 
@@ -148,6 +149,7 @@ function AppRoutes(): JSX.Element {
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="settings" element={<ProviderSettings />} />
         <Route path="ai" element={<AIAssistant />} />
+        <Route path="tasks" element={<TasksPage />} />
       </Route>
 
       {/* Client routes — block providers */}
@@ -165,6 +167,7 @@ function AppRoutes(): JSX.Element {
         <Route path="feedback" element={<ClientFeedback />} />
         <Route path="profile" element={<ClientProfile />} />
         <Route path="connect" element={<ClientConnect />} />
+        <Route path="tasks" element={<TasksPage />} />
       </Route>
 
       {/* Default redirect based on role */}
