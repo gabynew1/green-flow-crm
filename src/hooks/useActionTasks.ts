@@ -74,11 +74,17 @@ export function useActionTasks() {
   return { pendingForMe, mineInitiated, loading, reload: load };
 }
 
-export async function actOnTask(taskId: string, action: "approve" | "reject" | "cancel", comment?: string) {
+export async function actOnTask(
+  taskId: string,
+  action: "approve" | "reject" | "cancel",
+  comment?: string,
+  payloadPatch?: Record<string, any>
+) {
   const { data, error } = await supabase.rpc("act_on_task" as any, {
     _task_id: taskId,
     _action: action,
     _comment: comment ?? null,
+    _payload_patch: payloadPatch ?? {},
   });
   if (error) throw error;
   return data;
