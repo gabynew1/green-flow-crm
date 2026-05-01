@@ -50,8 +50,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { trialDayNumber, getTierConfig, isTrial } from "@/lib/tiers";
+import { Plus } from "lucide-react";
 
 type TenantRow = {
     id: string;
@@ -61,16 +63,17 @@ type TenantRow = {
     created_at: string;
     max_provider_seats: number;
     max_client_seats: number;
+    max_teams: number;
+    trial_expires_at: string | null;
     providerCount: number;
     clientCount: number;
+    teamCount: number;
 };
 
 export default function TenantManagement() {
     const navigate = useNavigate();
     const [changeTierTenant, setChangeTierTenant] = useState<TenantRow | null>(null);
     const [selectedTier, setSelectedTier] = useState("");
-    const [extendTrialTenant, setExtendTrialTenant] = useState<TenantRow | null>(null);
-    const [trialDays, setTrialDays] = useState("14");
     const [decommissionTenant, setDecommissionTenant] = useState<TenantRow | null>(null);
     const [decommissionConfirm, setDecommissionConfirm] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
@@ -80,7 +83,7 @@ export default function TenantManagement() {
         queryFn: async () => {
             const { data: tenantsData, error } = await supabase
                 .from("tenants")
-                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, trial_expires_at`);
+                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, max_teams, trial_expires_at`);
 
             if (error) throw error;
 
@@ -89,11 +92,16 @@ export default function TenantManagement() {
                     .from("profiles")
                     .select("*", { count: "exact", head: true })
                     .eq("tenant_id", t.id);
+                const { count: teamsCount } = await supabase
+                    .from("teams")
+                    .select("*", { count: "exact", head: true })
+                    .eq("tenant_id", t.id);
 
                 return {
                     ...t,
                     providerCount: providers || 0,
-                    clientCount: 0
+                    clientCount: 0,
+                    teamCount: teamsCount || 0,
                 };
             }));
 
@@ -117,10 +125,10 @@ export default function TenantManagement() {
     const handleChangeTier = async () => {
         if (!changeTierTenant || !selectedTier) return;
         setIsProcessing(true);
-        const { error } = await supabase
-            .from("tenants")
-            .update({ subscription_tier: selectedTier } as any)
-            .eq("id", changeTierTenant.id);
+        const { error } = await supabase.rpc("apply_tier_limits" as never, {
+            _tenant_id: changeTierTenant.id,
+            _tier: selectedTier,
+        } as never);
 
         if (error) {
             toast.error(error.message);
@@ -133,30 +141,18 @@ export default function TenantManagement() {
         setSelectedTier("");
     };
 
-    const handleExtendTrial = async () => {
-        if (!extendTrialTenant || !trialDays) return;
+    const handleExtendTrial15 = async (tenant: TenantRow) => {
         setIsProcessing(true);
-        const days = parseInt(trialDays, 10);
-        if (isNaN(days) || days < 1) {
-            toast.error("Enter a valid number of days");
-            setIsProcessing(false);
-            return;
-        }
-        const newExpiry = addDays(new Date(), days).toISOString();
-        const { error } = await supabase
-            .from("tenants")
-            .update({ trial_expires_at: newExpiry, status: "trial" } as any)
-            .eq("id", extendTrialTenant.id);
-
+        const { data, error } = await supabase.rpc("extend_trial_15" as never, {
+            _tenant_id: tenant.id,
+        } as never);
         if (error) {
             toast.error(error.message);
         } else {
-            toast.success(`Trial extended by ${days} days (expires ${format(new Date(newExpiry), "MMM d, yyyy")})`);
+            toast.success(`Trial extended by 15 days (now expires ${format(new Date(data as unknown as string), "MMM d, yyyy")})`);
             refetch();
         }
         setIsProcessing(false);
-        setExtendTrialTenant(null);
-        setTrialDays("14");
     };
 
     const handleDecommission = async () => {
@@ -183,12 +179,17 @@ export default function TenantManagement() {
     };
 
     const getTierBadge = (tier: string) => {
-        switch (tier) {
-            case "enterprise": return <Badge className="bg-purple-600 hover:bg-purple-700">Enterprise</Badge>;
-            case "professional": return <Badge className="bg-blue-600 hover:bg-blue-700">Professional</Badge>;
-            case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
-            default: return <Badge variant="secondary">Free</Badge>;
+        const cfg = getTierConfig(tier);
+        if (tier === "territory_trial") {
+            return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Territory Trial</Badge>;
         }
+        const colorMap: Record<string, string> = {
+            patio: "bg-stone-500 hover:bg-stone-600",
+            backyard: "bg-emerald-500 hover:bg-emerald-600",
+            estate: "bg-emerald-700 hover:bg-emerald-800",
+            territory: "bg-stone-900 hover:bg-stone-800",
+        };
+        return <Badge className={colorMap[tier] || "bg-stone-400"}>{cfg.name}</Badge>;
     };
 
     const getStatusBadge = (status: string) => {
@@ -255,6 +256,8 @@ export default function TenantManagement() {
                             <TableHead className="font-bold">Organization</TableHead>
                             <TableHead className="font-bold">Tier</TableHead>
                             <TableHead className="font-bold">Status</TableHead>
+                            <TableHead className="font-bold">Trial Day</TableHead>
+                            <TableHead className="font-bold">Teams</TableHead>
                             <TableHead className="font-bold">Providers</TableHead>
                             <TableHead className="font-bold">Created</TableHead>
                             <TableHead className="w-[100px]"></TableHead>
@@ -274,6 +277,26 @@ export default function TenantManagement() {
                                 <TableCell>{getTierBadge(tenant.subscription_tier)}</TableCell>
                                 <TableCell>{getStatusBadge(tenant.status)}</TableCell>
                                 <TableCell>
+                                    {isTrial(tenant.subscription_tier) ? (
+                                        (() => {
+                                            const t = trialDayNumber(tenant.created_at, tenant.trial_expires_at);
+                                            if (!t) return <span className="text-muted-foreground">—</span>;
+                                            const expired = t.day >= t.total && new Date(tenant.trial_expires_at!).getTime() < Date.now();
+                                            return (
+                                                <span className={cn("text-sm font-semibold", expired ? "text-destructive" : "text-foreground")}>
+                                                    Day {t.day} / {t.total}
+                                                </span>
+                                            );
+                                        })()
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <span className="text-sm font-semibold">{tenant.teamCount}</span>
+                                    <span className="text-muted-foreground text-xs"> / {tenant.max_teams === 999 ? "∞" : tenant.max_teams}</span>
+                                </TableCell>
+                                <TableCell>
                                     <div className="flex items-center gap-2">
                                         <span className={cn(
                                             "font-bold",
@@ -291,6 +314,19 @@ export default function TenantManagement() {
                                     {format(new Date(tenant.created_at), "MMM d, yyyy")}
                                 </TableCell>
                                 <TableCell>
+                                    <div className="flex items-center gap-1">
+                                        {isTrial(tenant.subscription_tier) && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                                                onClick={() => handleExtendTrial15(tenant)}
+                                                disabled={isProcessing}
+                                                title="Extend trial by exactly 15 days"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />15 days
+                                            </Button>
+                                        )}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -313,9 +349,9 @@ export default function TenantManagement() {
                                                 <CreditCard className="h-4 w-4 mr-2" />
                                                 Change Billing Tier
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => setExtendTrialTenant(tenant)}>
+                                            <DropdownMenuItem onClick={() => handleExtendTrial15(tenant)} disabled={isProcessing}>
                                                 <Calendar className="h-4 w-4 mr-2" />
-                                                Extend Trial
+                                                Extend Trial +15 days
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
@@ -328,6 +364,7 @@ export default function TenantManagement() {
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -351,10 +388,11 @@ export default function TenantManagement() {
                                 <SelectValue placeholder="Select tier" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="trial">Trial</SelectItem>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="professional">Professional</SelectItem>
-                                <SelectItem value="enterprise">Enterprise</SelectItem>
+                                <SelectItem value="territory_trial">Territory Trial (90d)</SelectItem>
+                                <SelectItem value="patio">Patio (Free)</SelectItem>
+                                <SelectItem value="backyard">Backyard (€5)</SelectItem>
+                                <SelectItem value="estate">Estate (€30)</SelectItem>
+                                <SelectItem value="territory">Territory (€100)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -368,38 +406,7 @@ export default function TenantManagement() {
             </Dialog>
 
             {/* Extend Trial Dialog */}
-            <Dialog open={!!extendTrialTenant} onOpenChange={(open) => { if (!open) setExtendTrialTenant(null); }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Extend Trial</DialogTitle>
-                        <DialogDescription>
-                            Set a new trial period for <strong>{extendTrialTenant?.name}</strong>. This will set the status to "trial" and update the expiration date.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 py-2">
-                        <Label>Number of days from today</Label>
-                        <Input
-                            type="number"
-                            min="1"
-                            max="365"
-                            value={trialDays}
-                            onChange={(e) => setTrialDays(e.target.value)}
-                            placeholder="14"
-                        />
-                        {trialDays && !isNaN(parseInt(trialDays)) && parseInt(trialDays) > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                Trial will expire on {format(addDays(new Date(), parseInt(trialDays)), "MMM d, yyyy")}
-                            </p>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setExtendTrialTenant(null)}>Cancel</Button>
-                        <Button onClick={handleExtendTrial} disabled={isProcessing}>
-                            {isProcessing ? "Extending…" : "Extend Trial"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Trial extension is now a single +15 days click — see table actions */}
 
             {/* Decommission Dialog */}
             <Dialog open={!!decommissionTenant} onOpenChange={(open) => { if (!open) { setDecommissionTenant(null); setDecommissionConfirm(""); } }}>

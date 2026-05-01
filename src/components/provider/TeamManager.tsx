@@ -15,7 +15,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Users2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Users2, Lock, AlertTriangle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useTenantSubscription } from "@/hooks/useTenantSubscription";
+import { getTierConfig } from "@/lib/tiers";
 
 interface Team {
   id: string;
@@ -38,6 +41,7 @@ const TEAM_COLORS = [
 
 export default function TeamManager({ tenantId }: { tenantId: string | null }) {
   const { user } = useAuth();
+  const { data: tenant } = useTenantSubscription();
   const [teams, setTeams] = useState<Team[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,44 +172,91 @@ export default function TeamManager({ tenantId }: { tenantId: string | null }) {
 
   if (loading) return null;
 
+  const maxTeams = tenant?.max_teams ?? 999;
+  const tierName = getTierConfig(tenant?.subscription_tier).name;
+  const overLimit = teams.length > maxTeams;
+  const atLimit = teams.length >= maxTeams;
+  // Lock the newest excess teams when over limit (keep oldest active)
+  const lockedTeamIds = new Set(
+    overLimit ? teams.slice(maxTeams).map((t) => t.id) : []
+  );
+
   return (
     <>
+      {overLimit && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+          <AlertTriangle className="h-4 w-4 text-amber-700 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-amber-900">
+              {teams.length - maxTeams} team{teams.length - maxTeams === 1 ? "" : "s"} over your {tierName} limit
+            </p>
+            <p className="text-amber-800 mt-0.5">
+              Excess teams are read-only. <Link to="/pricing" className="font-semibold underline">Upgrade</Link> or remove teams to unlock them.
+            </p>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users2 className="h-5 w-5 text-primary" />
               <CardTitle>Teams</CardTitle>
+              <span className="text-xs text-muted-foreground font-normal">
+                ({teams.length}/{maxTeams === 999 ? "∞" : maxTeams})
+              </span>
             </div>
-            <Button size="sm" onClick={openCreate}>
+            <Button
+              size="sm"
+              onClick={openCreate}
+              disabled={atLimit}
+              title={atLimit ? `Upgrade to add more teams (${tierName} allows ${maxTeams})` : ""}
+            >
               <Plus className="mr-1 h-4 w-4" /> Add Team
             </Button>
           </div>
-          <CardDescription>Organize your staff into teams. Each team has its own calendar and capacity.</CardDescription>
+          <CardDescription>
+            Organize your staff into teams. Each team has its own calendar and capacity.
+            {atLimit && !overLimit && (
+              <span className="block mt-1 text-amber-700 font-medium">
+                You've reached the {tierName} limit. <Link to="/pricing" className="underline">Upgrade</Link> for more.
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {teams.map(team => (
-              <div key={team.id} className="flex items-center justify-between rounded-lg border p-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full border-2" style={{ backgroundColor: team.color, borderColor: team.color }} />
-                  <div>
-                    <p className="text-sm font-medium">{team.name}</p>
-                    <p className="text-xs text-muted-foreground">{team.memberCount} member{team.memberCount !== 1 ? "s" : ""}</p>
+            {teams.map(team => {
+              const locked = lockedTeamIds.has(team.id);
+              return (
+                <div key={team.id} className={`flex items-center justify-between rounded-lg border p-3 ${locked ? "bg-stone-50 border-amber-200" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full border-2" style={{ backgroundColor: team.color, borderColor: team.color }} />
+                    <div>
+                      <p className="text-sm font-medium flex items-center gap-1.5">
+                        {team.name}
+                        {locked && (
+                          <Badge variant="outline" className="text-amber-800 border-amber-300 bg-amber-50 text-[10px] py-0">
+                            <Lock className="h-2.5 w-2.5 mr-0.5" /> Locked
+                          </Badge>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{team.memberCount} member{team.memberCount !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" onClick={() => openEdit(team)} disabled={locked}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    {teams.length > 1 && (
+                      <Button size="icon" variant="ghost" onClick={() => setDeleteTeam(team)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" onClick={() => openEdit(team)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  {teams.length > 1 && (
-                    <Button size="icon" variant="ghost" onClick={() => setDeleteTeam(team)}>
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

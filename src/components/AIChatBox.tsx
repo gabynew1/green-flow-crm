@@ -8,8 +8,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
+import { useTenantSubscription } from "@/hooks/useTenantSubscription";
 
 type Message = { role: "user" | "assistant"; content: string };
+
+function AILockedCard() {
+  return (
+    <div className="flex h-full min-h-[300px] flex-col items-center justify-center rounded-2xl border bg-card p-8 text-center shadow-sm">
+      <div className="relative mb-4">
+        <Sparkles className="h-10 w-10 text-primary/40 blur-[1px]" />
+        <Lock className="absolute -bottom-1 -right-1 h-5 w-5 text-stone-700 bg-background rounded-full p-0.5" />
+      </div>
+      <h3 className="text-lg font-bold text-foreground">AI Assistant is locked</h3>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        Upgrade to <strong>Backyard</strong> or higher to unlock the AI assistant for task management, scheduling, and business insights.
+      </p>
+      <Button asChild className="mt-5 bg-emerald-800 hover:bg-emerald-900 text-white">
+        <Link to="/pricing">Upgrade to unlock AI assistant</Link>
+      </Button>
+    </div>
+  );
+}
 
 function extractContext(pathname: string) {
   const ctx: Record<string, string | undefined> = {};
@@ -35,6 +56,8 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [userProperties, setUserProperties] = useState<{ id: string; name: string; address: string | null; city: string | null }[]>([]);
+  const { data: tenant } = useTenantSubscription();
+  const aiLocked = isProvider && tenant && tenant.ai_tier === "none";
 
   // Fetch user properties for context
   useEffect(() => {
@@ -117,6 +140,9 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
   };
 
   if (inline) {
+    if (aiLocked) {
+      return <AILockedCard />;
+    }
     return (
       <div className="flex flex-col rounded-2xl border bg-card shadow-sm" style={{ height: "calc(100vh - 12rem)" }}>
         {/* Header */}
@@ -178,7 +204,7 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
   return (
     <>
       {/* Floating button */}
-      {!open && !mobileTriggerOnly && (
+      {!open && !mobileTriggerOnly && !aiLocked && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"

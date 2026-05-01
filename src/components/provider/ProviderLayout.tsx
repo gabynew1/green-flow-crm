@@ -6,6 +6,7 @@ import { ProviderSidebar } from "./ProviderSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, ClipboardCheck, FileOutput, LayoutDashboard, Sparkles } from "lucide-react";
 import CreateAdHocVisitDialog from "./CreateAdHocVisitDialog";
+import { TrialBanner } from "@/components/TrialBanner";
 
 export function ProviderLayout() {
   const { profile } = useAuth();
@@ -17,6 +18,7 @@ export function ProviderLayout() {
       <div className="min-h-screen flex w-full flex-col md:flex-row">
         <ProviderSidebar />
         <div className="flex-1 flex flex-col pb-20 md:pb-0">
+          <TrialBanner />
           <header className="h-14 flex items-center border-b px-4 bg-card sticky top-0 z-10">
             <SidebarTrigger className="mr-4" />
             <span className="text-sm font-medium text-muted-foreground">{workspaceLabel}</span>
