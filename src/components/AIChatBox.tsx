@@ -122,6 +122,9 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
   };
 
   if (inline) {
+    if (aiLocked) {
+      return <AILockedCard />;
+    }
     return (
       <div className="flex flex-col rounded-2xl border bg-card shadow-sm" style={{ height: "calc(100vh - 12rem)" }}>
         {/* Header */}
@@ -183,7 +186,7 @@ export function AIChatBox({ mobileTriggerOnly, inline }: AIChatBoxProps) {
   return (
     <>
       {/* Floating button */}
-      {!open && !mobileTriggerOnly && (
+      {!open && !mobileTriggerOnly && !aiLocked && (
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-opacity"
