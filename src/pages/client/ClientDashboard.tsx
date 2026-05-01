@@ -24,6 +24,8 @@ import {
   Plus,
   AlertCircle,
   FileText,
+  Link2,
+  Unlink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,7 +111,7 @@ export default function ClientDashboard() {
     const today = new Date().toISOString().split("T")[0];
 
     const [propsRes, upcomingRes, totalRes, doneRes, pendingRes] = await Promise.all([
-      supabase.from("properties").select("*").order("name"),
+      supabase.from("properties").select("*, tenants(name)").order("name"),
       supabase
         .from("service_orders")
         .select("id, scheduled_date, period_label, status, property_id, properties(name)")
@@ -337,7 +339,18 @@ export default function ClientDashboard() {
                       <div>
                         <p className="font-medium">{p.name}</p>
                         <p className="text-sm text-muted-foreground">{[p.address, p.city].filter(Boolean).join(", ")}</p>
-                        <Badge variant={p.status === "active" ? "default" : "secondary"} className="mt-2">{p.status}</Badge>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                          {p.tenant_id ? (
+                            <Badge variant="secondary" className="gap-1">
+                              <Link2 className="h-3 w-3" /> {p.tenants?.name ?? "Linked"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1 text-muted-foreground">
+                              <Unlink className="h-3 w-3" /> Not linked
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

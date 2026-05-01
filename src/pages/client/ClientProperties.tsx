@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Copy } from "lucide-react";
+import { MapPin, Copy, Link2, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -16,7 +16,7 @@ export default function ClientProperties() {
   const load = async () => {
     const { data } = await supabase
       .from("properties")
-      .select("*, customers(name)")
+      .select("*, customers(name), tenants(name)")
       .order("name");
     setProperties(data ?? []);
   };
@@ -48,7 +48,18 @@ export default function ClientProperties() {
                         <Copy className="h-3 w-3" />
                       </button>
                     )}
-                    <Badge variant={p.status === "active" ? "default" : "secondary"} className="mt-2">{p.status}</Badge>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Badge variant={p.status === "active" ? "default" : "secondary"}>{p.status}</Badge>
+                      {p.tenant_id ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <Link2 className="h-3 w-3" /> {p.tenants?.name ?? "Linked"}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="gap-1 text-muted-foreground">
+                          <Unlink className="h-3 w-3" /> Not linked
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
