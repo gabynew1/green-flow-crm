@@ -1883,6 +1883,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_default_service_catalog: { Args: never; Returns: Json }
       is_provider: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_workday: {
