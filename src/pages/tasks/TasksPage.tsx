@@ -475,22 +475,91 @@ export default function TasksPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Payload preview */}
-              {selected.payload && Object.keys(selected.payload).length > 0 && (
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Details</p>
-                  <dl className="space-y-1 text-sm">
-                    {Object.entries(selected.payload).map(([k, v]) => (
-                      <div key={k} className="flex justify-between gap-2">
-                        <dt className="text-muted-foreground">{k.replace(/_/g, " ")}</dt>
-                        <dd className="text-right font-medium">
-                          {typeof v === "object" ? JSON.stringify(v) : String(v)}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-              )}
+              {/* Friendly summary */}
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Details</p>
+                <dl className="space-y-1.5 text-sm">
+                  {(() => {
+                    const initiator = enrichment.profiles[selected.initiator_user_id];
+                    const target = selected.target_user_id ? enrichment.profiles[selected.target_user_id] : null;
+                    const tenant = selected.tenant_id ? enrichment.tenants[selected.tenant_id] : null;
+                    const propIds: string[] = Array.isArray(selected.payload?.property_ids)
+                      ? selected.payload.property_ids
+                      : selected.payload?.property_id
+                      ? [selected.payload.property_id]
+                      : selected.subject_entity_type === "property" && selected.subject_entity_id
+                      ? [selected.subject_entity_id]
+                      : [];
+                    const props = propIds
+                      .map((id) => enrichment.properties[id])
+                      .filter(Boolean) as { name: string; address?: string | null }[];
+                    return (
+                      <>
+                        {initiator && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">From</dt>
+                            <dd className="text-right font-medium">
+                              {initiator.name}
+                              {initiator.email && (
+                                <span className="block text-xs text-muted-foreground">{initiator.email}</span>
+                              )}
+                            </dd>
+                          </div>
+                        )}
+                        {target && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">To</dt>
+                            <dd className="text-right font-medium">{target.name}</dd>
+                          </div>
+                        )}
+                        {tenant && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">Workspace</dt>
+                            <dd className="text-right font-medium">{tenant.name}</dd>
+                          </div>
+                        )}
+                        {props.length > 0 && (
+                          <div className="border-t border-border/60 pt-2">
+                            <dt className="text-muted-foreground mb-1">Properties</dt>
+                            <dd className="space-y-1">
+                              {props.map((p, i) => (
+                                <div key={i} className="text-sm">
+                                  <p className="font-medium">{p.name}</p>
+                                  {p.address && <p className="text-xs text-muted-foreground">{p.address}</p>}
+                                </div>
+                              ))}
+                            </dd>
+                          </div>
+                        )}
+                        {selected.payload?.offer_id && enrichment.offers[selected.payload.offer_id] && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">Offer</dt>
+                            <dd className="text-right font-medium">{enrichment.offers[selected.payload.offer_id].name}</dd>
+                          </div>
+                        )}
+                        {selected.payload?.contract_id && enrichment.contracts[selected.payload.contract_id] && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">Contract</dt>
+                            <dd className="text-right font-medium">{enrichment.contracts[selected.payload.contract_id].name}</dd>
+                          </div>
+                        )}
+                        {selected.payload?.inspection_id && enrichment.inspections[selected.payload.inspection_id] && (
+                          <div className="flex justify-between gap-2">
+                            <dt className="text-muted-foreground">Inspection</dt>
+                            <dd className="text-right font-medium">{enrichment.inspections[selected.payload.inspection_id].name}</dd>
+                          </div>
+                        )}
+                        {selected.payload?.note && (
+                          <div className="border-t border-border/60 pt-2">
+                            <dt className="text-muted-foreground mb-1">Note</dt>
+                            <dd className="text-sm">{selected.payload.note}</dd>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </dl>
+              </div>
 
               {/* Actions */}
               {selected.status === "pending" && isMyTask(selected) && (
