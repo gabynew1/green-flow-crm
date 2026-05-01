@@ -462,12 +462,14 @@ export default function ContractNew() {
                             <th className="px-3 py-2 text-left font-medium">Name</th>
                             <th className="px-3 py-2 text-left font-medium">Description</th>
                             <th className="px-3 py-2 text-left font-medium">Unit</th>
-                            <th className="px-3 py-2 text-right font-medium">Default price</th>
+                            {!isFlatFeeMode && (
+                              <th className="px-3 py-2 text-right font-medium">Default price</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {visibleServices.length === 0 ? (
-                            <tr><td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
+                            <tr><td colSpan={isFlatFeeMode ? 5 : 6} className="px-3 py-6 text-center text-muted-foreground">No services match.</td></tr>
                           ) : visibleServices.map((svc) => {
                             const checked = selectedServiceIds.includes(svc.id);
                             return (
@@ -483,7 +485,9 @@ export default function ContractNew() {
                                 <td className="px-3 py-2 font-medium">{svc.name}</td>
                                 <td className="px-3 py-2 text-muted-foreground max-w-[280px] truncate" title={svc.description ?? ""}>{svc.description ?? "—"}</td>
                                 <td className="px-3 py-2 text-muted-foreground">{svc.default_unit ?? "—"}</td>
-                                <td className="px-3 py-2 text-right tabular-nums">{svc.default_price != null ? `${svc.default_price} ${currency}` : "—"}</td>
+                                {!isFlatFeeMode && (
+                                  <td className="px-3 py-2 text-right tabular-nums">{svc.default_price != null ? `${svc.default_price} ${currency}` : "—"}</td>
+                                )}
                               </tr>
                             );
                           })}
@@ -497,7 +501,27 @@ export default function ContractNew() {
                 </div>
               )}
 
-              {selectedServiceIds.length > 0 && (
+              {isFlatFeeMode && selectedServiceIds.length > 0 && (
+                <div className="border rounded-md p-4 bg-primary/5 space-y-3">
+                  <div>
+                    <Label className="text-sm font-medium">Flat fee per {billingCycleLabel} billing cycle *</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Covers all {selectedServiceIds.length} selected service(s) for each billing cycle. Visits are scheduled per the cadence above.
+                    </p>
+                  </div>
+                  <div className="max-w-xs">
+                    <CurrencyInput
+                      currency={currency}
+                      min="0"
+                      placeholder="0.00"
+                      value={flatFee}
+                      onChange={(e) => setFlatFee(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {!isFlatFeeMode && selectedServiceIds.length > 0 && (
                 <div className="space-y-3 pt-2">
                   <p className="text-xs text-muted-foreground font-medium">{selectedServiceIds.length} service(s) — configure each:</p>
                   {selectedServiceIds.map((id) => {
