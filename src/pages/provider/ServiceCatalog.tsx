@@ -238,6 +238,28 @@ export default function ServiceCatalog() {
     setNewUnit("");
   };
 
+  const handleImportDefaults = async () => {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.rpc("import_default_service_catalog");
+      if (error) throw error;
+      const imported = (data as any)?.imported ?? 0;
+      const skipped = (data as any)?.skipped ?? 0;
+      if (imported === 0) {
+        toast.success(`No new services to add — all ${skipped} default services are already in your catalog.`);
+      } else {
+        toast.success(`Imported ${imported} service${imported === 1 ? "" : "s"}${skipped > 0 ? ` (${skipped} skipped as duplicates)` : ""}.`);
+      }
+      setImportConfirmOpen(false);
+      setEmptyStateDismissed(true);
+      load();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to import default catalog");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
