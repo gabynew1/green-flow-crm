@@ -1898,6 +1898,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      lookup_client_by_code: {
+        Args: { _code: string }
+        Returns: {
+          customer_id: string
+          full_name: string
+          unique_client_id: string
+          user_id: string
+        }[]
+      }
       lookup_invite_by_token: {
         Args: { _token: string }
         Returns: {
