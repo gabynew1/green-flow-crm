@@ -49,6 +49,154 @@ const CATEGORY_STATUSES: Record<string, string[]> = {
   done: ["approved", "rejected", "cancelled", "expired"],
 };
 
+type Enrichment = {
+  profiles: Record<string, { name: string; email?: string | null }>;
+  tenants: Record<string, { name: string }>;
+  properties: Record<string, { name: string; address?: string | null }>;
+  offers: Record<string, { name: string }>;
+  contracts: Record<string, { name: string }>;
+  inspections: Record<string, { name: string }>;
+};
+
+const emptyEnrichment: Enrichment = {
+  profiles: {}, tenants: {}, properties: {}, offers: {}, contracts: {}, inspections: {},
+};
+
+function collectIds(tasks: ActionTaskRow[]) {
+  const userIds = new Set<string>();
+  const tenantIds = new Set<string>();
+  const propertyIds = new Set<string>();
+  const offerIds = new Set<string>();
+  const contractIds = new Set<string>();
+  const inspectionIds = new Set<string>();
+  for (const t of tasks) {
+    if (t.initiator_user_id) userIds.add(t.initiator_user_id);
+    if (t.target_user_id) userIds.add(t.target_user_id);
+    if (t.tenant_id) tenantIds.add(t.tenant_id);
+    const p = t.payload || {};
+    const pushFromPayload = (val: any, set: Set<string>) => {
+      if (typeof val === "string" && /^[0-9a-f-]{36}$/i.test(val)) set.add(val);
+      if (Array.isArray(val)) val.forEach((v) => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v) && set.add(v));
+    };
+    pushFromPayload(p.property_id, propertyIds);
+    pushFromPayload(p.property_ids, propertyIds);
+    pushFromPayload(p.offer_id, offerIds);
+    pushFromPayload(p.contract_id, contractIds);
+    pushFromPayload(p.inspection_id, inspectionIds);
+    if (t.subject_entity_type === "property" && t.subject_entity_id) propertyIds.add(t.subject_entity_id);
+    if (t.subject_entity_type === "offer" && t.subject_entity_id) offerIds.add(t.subject_entity_id);
+    if (t.subject_entity_type === "contract" && t.subject_entity_id) contractIds.add(t.subject_entity_id);
+    if (t.subject_entity_type === "inspection" && t.subject_entity_id) inspectionIds.add(t.subject_entity_id);
+  }
+  return { userIds, tenantIds, propertyIds, offerIds, contractIds, inspectionIds };
+}
+
+function useTaskEnrichment(tasks: ActionTaskRow[]): Enrichment {
+  const [data, setData] = useState<Enrichment>(emptyEnrichment);
+  const key = useMemo(() => tasks.map((t) => t.id).join(","), [tasks]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (tasks.length === 0) {
+        setData(emptyEnrichment);
+        return;
+      }
+      const { userIds, tenantIds, propertyIds, offerIds, contractIds, inspectionIds } = collectIds(tasks);
+      const arr = (s: Set<string>) => Array.from(s);
+      const [profilesRes, tenantsRes, propsRes, offersRes, contractsRes, inspRes] = await Promise.all([
+        userIds.size
+          ? supabase.from("profiles").select("user_id, full_name, email, contact_email, company_name").in("user_id", arr(userIds))
+          : Promise.resolve({ data: [] as any[] }),
+        tenantIds.size
+          ? supabase.from("tenants").select("id, name").in("id", arr(tenantIds))
+          : Promise.resolve({ data: [] as any[] }),
+        propertyIds.size
+          ? supabase.from("properties").select("id, name, address").in("id", arr(propertyIds))
+          : Promise.resolve({ data: [] as any[] }),
+        offerIds.size
+          ? supabase.from("offers").select("id, offer_name").in("id", arr(offerIds))
+          : Promise.resolve({ data: [] as any[] }),
+        contractIds.size
+          ? supabase.from("contracts").select("id, contract_name").in("id", arr(contractIds))
+          : Promise.resolve({ data: [] as any[] }),
+        inspectionIds.size
+          ? supabase.from("inspections").select("id, title").in("id", arr(inspectionIds))
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      if (cancelled) return;
+      const profiles: Enrichment["profiles"] = {};
+      (profilesRes.data ?? []).forEach((p: any) => {
+        profiles[p.user_id] = {
+          name: p.full_name || p.company_name || p.email || "Unknown",
+          email: p.contact_email || p.email,
+        };
+      });
+      const tenants: Enrichment["tenants"] = {};
+      (tenantsRes.data ?? []).forEach((t: any) => { tenants[t.id] = { name: t.name }; });
+      const properties: Enrichment["properties"] = {};
+      (propsRes.data ?? []).forEach((p: any) => { properties[p.id] = { name: p.name, address: p.address }; });
+      const offers: Enrichment["offers"] = {};
+      (offersRes.data ?? []).forEach((o: any) => { offers[o.id] = { name: o.offer_name }; });
+      const contracts: Enrichment["contracts"] = {};
+      (contractsRes.data ?? []).forEach((c: any) => { contracts[c.id] = { name: c.contract_name }; });
+      const inspections: Enrichment["inspections"] = {};
+      (inspRes.data ?? []).forEach((i: any) => { inspections[i.id] = { name: i.title }; });
+      setData({ profiles, tenants, properties, offers, contracts, inspections });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return data;
+}
+
+function describeSubject(t: ActionTaskRow, e: Enrichment): string {
+  const p = t.payload || {};
+  const propIds: string[] = Array.isArray(p.property_ids)
+    ? p.property_ids
+    : p.property_id
+    ? [p.property_id]
+    : t.subject_entity_type === "property" && t.subject_entity_id
+    ? [t.subject_entity_id]
+    : [];
+  const propNames = propIds.map((id) => e.properties[id]?.name).filter(Boolean) as string[];
+
+  if (t.task_type === "link_request") {
+    if (propNames.length) return `Properties: ${propNames.join(", ")}`;
+    return p.provider_name ? `From ${p.provider_name}` : "Connection request";
+  }
+  if (t.task_type === "offer_response") {
+    const off = p.offer_id ? e.offers[p.offer_id]?.name : t.subject_entity_id ? e.offers[t.subject_entity_id]?.name : null;
+    return off ? `Offer: ${off}` : "Offer";
+  }
+  if (t.task_type === "contract_response" || t.task_type === "contract_renewal") {
+    const c = p.contract_id ? e.contracts[p.contract_id]?.name : t.subject_entity_id ? e.contracts[t.subject_entity_id]?.name : null;
+    return c ? `Contract: ${c}` : "Contract";
+  }
+  if (t.task_type === "inspection_confirmation") {
+    const i = p.inspection_id ? e.inspections[p.inspection_id]?.name : t.subject_entity_id ? e.inspections[t.subject_entity_id]?.name : null;
+    return i ? `Inspection: ${i}` : "Inspection";
+  }
+  return propNames[0] ?? "—";
+}
+
+function describeCounterparty(
+  t: ActionTaskRow & { _direction: "incoming" | "outgoing" },
+  e: Enrichment,
+  currentUserId?: string
+): string {
+  // For incoming tasks → who sent it. For outgoing → who it's for.
+  const otherUserId = t._direction === "incoming" ? t.initiator_user_id : t.target_user_id;
+  const profileName = otherUserId ? e.profiles[otherUserId]?.name : null;
+  if (profileName) return profileName;
+  // fallback to tenant or payload provider name
+  if ((t.payload as any)?.provider_name) return (t.payload as any).provider_name;
+  if ((t.payload as any)?.client_name) return (t.payload as any).client_name;
+  if (t.tenant_id && e.tenants[t.tenant_id]) return e.tenants[t.tenant_id].name;
+  return t._direction === "incoming" ? "Unassigned" : "Tenant team";
+}
+
 export default function TasksPage() {
   const { user, isClient, isProvider } = useAuth();
   const { pendingForMe, mineInitiated, loading, reload } = useActionTasks();
@@ -167,6 +315,19 @@ export default function TasksPage() {
     [allTasks]
   );
 
+  const enrichment = useTaskEnrichment(allTasks);
+
+  // Re-filter using enriched search hits
+  const enrichedFiltered = useMemo(() => {
+    return filteredTasks.filter((t) => {
+      if (!search.trim()) return true;
+      const subj = describeSubject(t, enrichment);
+      const who = describeCounterparty(t, enrichment, user?.id);
+      const hay = `${TYPE_LABEL[t.task_type] ?? t.task_type} ${subj} ${who}`.toLowerCase();
+      return hay.includes(search.trim().toLowerCase());
+    });
+  }, [filteredTasks, enrichment, search, user?.id]);
+
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <div className="space-y-4">
@@ -225,6 +386,8 @@ export default function TasksPage() {
                   <TableRow>
                     <TableHead className="w-8"></TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Who</TableHead>
+                    <TableHead>Subject</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Due</TableHead>
@@ -233,18 +396,18 @@ export default function TasksPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5}>
+                      <TableCell colSpan={7}>
                         <Skeleton className="h-16" />
                       </TableCell>
                     </TableRow>
-                  ) : filteredTasks.length === 0 ? (
+                  ) : enrichedFiltered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                         No tasks match these filters
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredTasks.map((t) => (
+                    enrichedFiltered.map((t) => (
                       <TableRow
                         key={t.id}
                         onClick={() => openTask(t)}
@@ -262,6 +425,12 @@ export default function TasksPage() {
                         </TableCell>
                         <TableCell className="font-medium">
                           {TYPE_LABEL[t.task_type] ?? t.task_type}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {describeCounterparty(t, enrichment, user?.id)}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {describeSubject(t, enrichment)}
                         </TableCell>
                         <TableCell>
                           <Badge
