@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2, Check, Undo2 } from "lucide-react";
+import { ArrowLeft, Plus, Send, FileText, XCircle, Trash2, Check, Undo2, FilePlus2 } from "lucide-react";
 import { toast } from "sonner";
 import { WorkflowEngine } from "@/lib/workflow-engine";
 import { formatCurrency } from "@/lib/currency";
@@ -165,6 +165,16 @@ export default function OfferDetail() {
     }
   };
 
+  const generateContractFromAccepted = async () => {
+    try {
+      const { contractId } = await WorkflowEngine.acceptOfferAndGenerateContract(offerId!, user!.id);
+      toast.success("Contract generated from offer");
+      navigate(`/provider/contracts/${contractId}`);
+    } catch (e) {
+      // Error handled by engine
+    }
+  };
+
   // generateContract logic moved to WorkflowEngine
 
   if (!offer) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
@@ -216,6 +226,27 @@ export default function OfferDetail() {
               <Button size="sm" variant="ghost" onClick={() => updateStatus("IN_PROGRESS")}>
                 <Undo2 className="h-3 w-3 mr-1" /> Revert to Edit
               </Button>
+            )}
+            {offer.status === "ACCEPTED" && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="sm">
+                    <FilePlus2 className="h-3 w-3 mr-1" /> Generate Contract
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Generate contract from this offer?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      A draft contract will be created with the offer's line items and opened for editing.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={generateContractFromAccepted}>Generate</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             {offer.status === "SENT_TO_CLIENT" && (
               <AlertDialog>
