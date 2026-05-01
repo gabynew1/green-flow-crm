@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Lightbulb, ClipboardCheck, FileOutput, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,10 +12,10 @@ import CreateOpportunityDialog from "./CreateOpportunityDialog";
 import CreatePipelineItemDialog from "./CreatePipelineItemDialog";
 
 export default function PipelineCreateMenu() {
+  const navigate = useNavigate();
   const [opportunityOpen, setOpportunityOpen] = useState(false);
   const [inspectionOpen, setInspectionOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
-  const [contractOpen, setContractOpen] = useState(false);
 
   return (
     <>
@@ -37,7 +38,7 @@ export default function PipelineCreateMenu() {
             <FileOutput className="h-4 w-4 mr-2" />
             Offer
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setContractOpen(true)}>
+          <DropdownMenuItem onClick={() => navigate("/provider/contracts/new")}>
             <FileText className="h-4 w-4 mr-2" />
             Contract
           </DropdownMenuItem>
@@ -47,7 +48,6 @@ export default function PipelineCreateMenu() {
       <CreateOpportunityDialog open={opportunityOpen} onOpenChange={setOpportunityOpen} />
       <CreatePipelineItemDialog open={inspectionOpen} onOpenChange={setInspectionOpen} type="inspection" />
       <CreatePipelineItemDialog open={offerOpen} onOpenChange={setOfferOpen} type="offer" />
-      <CreatePipelineItemDialog open={contractOpen} onOpenChange={setContractOpen} type="contract" />
     </>
   );
 }
