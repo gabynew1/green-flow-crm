@@ -1876,6 +1876,15 @@ export type Database = {
         Returns: boolean
       }
       email_exists: { Args: { _email: string }; Returns: boolean }
+      emit_contract_response_task: {
+        Args: { _contract_id: string }
+        Returns: string
+      }
+      emit_inspection_confirmation_task: {
+        Args: { _inspection_id: string; _scheduled_date: string }
+        Returns: string
+      }
+      emit_offer_response_task: { Args: { _offer_id: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
