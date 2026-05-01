@@ -555,6 +555,33 @@ export default function ServiceCatalog() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import default catalog confirmation */}
+      <AlertDialog open={importConfirmOpen} onOpenChange={setImportConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" />
+              Import default service catalog
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  This adds the 54 standard GreenGrass services (5 categories) to your catalog.
+                  Any service you already have with the same name is skipped — nothing is overwritten.
+                </p>
+                <p>You can edit prices, rename, deactivate, or delete each service afterwards.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={importing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportDefaults} disabled={importing}>
+              {importing ? "Importing…" : "Import services"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
