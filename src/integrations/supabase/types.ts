@@ -1906,6 +1906,10 @@ export type Database = {
         Args: { _tenant_id: string; _tier: string }
         Returns: undefined
       }
+      close_contract_with_cleanup: {
+        Args: { _contract_id: string; _reason: string }
+        Returns: Json
+      }
       create_action_task: {
         Args: {
           _due_at: string
