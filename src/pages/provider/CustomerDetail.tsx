@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
-import CreatePipelineItemDialog from "@/components/provider/CreatePipelineItemDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
