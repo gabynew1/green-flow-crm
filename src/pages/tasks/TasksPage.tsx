@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,11 +8,17 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { useActionTasks, actOnTask, ActionTaskRow } from "@/hooks/useActionTasks";
-import { useNotifications } from "@/hooks/useNotifications";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Inbox, History, AlertCircle } from "lucide-react";
+import { Check, X, Search, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,10 +40,18 @@ const STATUS_VARIANT: Record<string, string> = {
   expired: "bg-muted text-muted-foreground border-border",
 };
 
+// UI category → underlying task statuses
+const CATEGORY_STATUSES: Record<string, string[]> = {
+  all: [],
+  pending: ["pending"],
+  accepted: ["approved"],
+  rejected: ["rejected"],
+  done: ["approved", "rejected", "cancelled", "expired"],
+};
+
 export default function TasksPage() {
   const { user, isClient, isProvider } = useAuth();
   const { pendingForMe, mineInitiated, loading, reload } = useActionTasks();
-  const { items: notifications, markRead } = useNotifications(50);
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedId = searchParams.get("task");
   const [selected, setSelected] = useState<ActionTaskRow | null>(null);
@@ -49,6 +62,47 @@ export default function TasksPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [linkApproveTaskId, setLinkApproveTaskId] = useState<string | null>(null);
   const [linkApproveTenant, setLinkApproveTenant] = useState<string | null>(null);
+  const [category, setCategory] = useState<string>("pending");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+
+  // Combine incoming + outgoing tasks with a direction marker
+  const allTasks = useMemo(() => {
+    const incoming = pendingForMe.map((t) => ({ ...t, _direction: "incoming" as const }));
+    const outgoing = mineInitiated.map((t) => ({ ...t, _direction: "outgoing" as const }));
+    // De-duplicate (task may appear in both lists)
+    const map = new Map<string, ActionTaskRow & { _direction: "incoming" | "outgoing" }>();
+    [...incoming, ...outgoing].forEach((t) => {
+      if (!map.has(t.id)) map.set(t.id, t);
+    });
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [pendingForMe, mineInitiated]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: allTasks.length, pending: 0, accepted: 0, rejected: 0, done: 0 };
+    allTasks.forEach((t) => {
+      if (t.status === "pending") c.pending += 1;
+      if (t.status === "approved") { c.accepted += 1; c.done += 1; }
+      if (t.status === "rejected") { c.rejected += 1; c.done += 1; }
+      if (t.status === "cancelled" || t.status === "expired") c.done += 1;
+    });
+    return c;
+  }, [allTasks]);
+
+  const filteredTasks = useMemo(() => {
+    return allTasks.filter((t) => {
+      const statuses = CATEGORY_STATUSES[category];
+      if (statuses.length > 0 && !statuses.includes(t.status)) return false;
+      if (typeFilter !== "all" && t.task_type !== typeFilter) return false;
+      if (search.trim()) {
+        const hay = `${TYPE_LABEL[t.task_type] ?? t.task_type} ${JSON.stringify(t.payload ?? {})}`.toLowerCase();
+        if (!hay.includes(search.trim().toLowerCase())) return false;
+      }
+      return true;
+    });
+  }, [allTasks, category, typeFilter, search]);
 
   // Auto-select task from URL
   useEffect(() => {
@@ -99,102 +153,138 @@ export default function TasksPage() {
   const isMyTask = (t: ActionTaskRow) =>
     t.target_user_id === user?.id || t.target_user_id === null;
 
-  const renderTaskRow = (t: ActionTaskRow, opts: { incoming: boolean }) => (
-    <button
-      key={t.id}
-      onClick={() => {
-        setSelected(t);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.set("task", t.id);
-          return next;
-        });
-      }}
-      className={cn(
-        "block w-full rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40",
-        selected?.id === t.id && "border-primary/60 bg-primary/5"
-      )}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">{TYPE_LABEL[t.task_type] ?? t.task_type}</p>
-        <Badge variant="outline" className={cn("text-[10px] uppercase", STATUS_VARIANT[t.status])}>{t.status}</Badge>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {opts.incoming ? "From" : "To"}{" "}
-        {opts.incoming ? "another user" : "another user"} · {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
-      </p>
-      {t.due_at && (
-        <p className="mt-1 text-xs text-muted-foreground">
-          Due {format(new Date(t.due_at), "PPP")}
-        </p>
-      )}
-    </button>
+  const openTask = (t: ActionTaskRow) => {
+    setSelected(t);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("task", t.id);
+      return next;
+    });
+  };
+
+  const taskTypes = useMemo(
+    () => Array.from(new Set(allTasks.map((t) => t.task_type))),
+    [allTasks]
   );
 
   return (
-    <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold">Tasks &amp; Notifications</h1>
-          <p className="text-sm text-muted-foreground">Pending actions and recent activity</p>
+          <p className="text-sm text-muted-foreground">All requests in one place</p>
         </div>
 
-        <Tabs defaultValue="pending">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pending">
-              <Inbox className="mr-1 h-4 w-4" /> Action ({pendingForMe.length})
-            </TabsTrigger>
-            <TabsTrigger value="mine">
-              <History className="mr-1 h-4 w-4" /> Sent
-            </TabsTrigger>
-            <TabsTrigger value="activity">
-              <AlertCircle className="mr-1 h-4 w-4" /> Activity
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="pending" className="space-y-2">
-            {loading ? (
-              <Skeleton className="h-20" />
-            ) : pendingForMe.length === 0 ? (
-              <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">All caught up</CardContent></Card>
-            ) : (
-              pendingForMe.map((t) => renderTaskRow(t, { incoming: true }))
-            )}
-          </TabsContent>
-
-          <TabsContent value="mine" className="space-y-2">
-            {mineInitiated.length === 0 ? (
-              <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">No requests sent yet</CardContent></Card>
-            ) : (
-              mineInitiated.map((t) => renderTaskRow(t, { incoming: false }))
-            )}
-          </TabsContent>
-
-          <TabsContent value="activity" className="space-y-2">
-            {notifications.length === 0 ? (
-              <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">No activity yet</CardContent></Card>
-            ) : (
-              notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => !n.read_at && markRead([n.id])}
-                  className={cn(
-                    "block w-full rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/40",
-                    !n.read_at && "border-primary/30 bg-primary/5"
-                  )}
+        <Card>
+          <CardContent className="space-y-4 p-4">
+            {/* Category pills */}
+            <div className="flex flex-wrap gap-2">
+              {(["all", "pending", "accepted", "rejected", "done"] as const).map((c) => (
+                <Button
+                  key={c}
+                  size="sm"
+                  variant={category === c ? "default" : "outline"}
+                  onClick={() => setCategory(c)}
+                  className="capitalize"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium">{n.title}</p>
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                    </span>
-                  </div>
-                  {n.body && <p className="mt-1 text-xs text-muted-foreground">{n.body}</p>}
-                </button>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
+                  {c} <span className="ml-1 opacity-70">({counts[c] ?? 0})</span>
+                </Button>
+              ))}
+            </div>
+
+            {/* Search + type filter */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search tasks…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="sm:w-56">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  {taskTypes.map((tp) => (
+                    <SelectItem key={tp} value={tp}>
+                      {TYPE_LABEL[tp] ?? tp}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Inline table */}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8"></TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Due</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5}>
+                        <Skeleton className="h-16" />
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTasks.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                        No tasks match these filters
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTasks.map((t) => (
+                      <TableRow
+                        key={t.id}
+                        onClick={() => openTask(t)}
+                        className={cn(
+                          "cursor-pointer",
+                          selected?.id === t.id && "bg-primary/5"
+                        )}
+                      >
+                        <TableCell className="text-muted-foreground">
+                          {t._direction === "incoming" ? (
+                            <ArrowDownLeft className="h-4 w-4" />
+                          ) : (
+                            <ArrowUpRight className="h-4 w-4" />
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {TYPE_LABEL[t.task_type] ?? t.task_type}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn("text-[10px] uppercase", STATUS_VARIANT[t.status])}
+                          >
+                            {t.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {t.due_at ? format(new Date(t.due_at), "PP") : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Detail panel */}
