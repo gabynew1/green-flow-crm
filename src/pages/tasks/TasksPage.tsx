@@ -17,6 +17,7 @@ import { Check, X, Inbox, History, AlertCircle } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ApproveLinkDialog } from "@/components/client/ApproveLinkDialog";
 
 const TYPE_LABEL: Record<string, string> = {
   link_request: "Property link request",
@@ -35,7 +36,7 @@ const STATUS_VARIANT: Record<string, string> = {
 };
 
 export default function TasksPage() {
-  const { user } = useAuth();
+  const { user, isClient, isProvider } = useAuth();
   const { pendingForMe, mineInitiated, loading, reload } = useActionTasks();
   const { items: notifications, markRead } = useNotifications(50);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,6 +47,8 @@ export default function TasksPage() {
   const [submitting, setSubmitting] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
+  const [linkApproveTaskId, setLinkApproveTaskId] = useState<string | null>(null);
+  const [linkApproveTenant, setLinkApproveTenant] = useState<string | null>(null);
 
   // Auto-select task from URL
   useEffect(() => {
@@ -233,7 +236,20 @@ export default function TasksPage() {
               {/* Actions */}
               {selected.status === "pending" && isMyTask(selected) && (
                 <div className="flex gap-2">
-                  <Button onClick={() => setActionDialog("approve")} className="flex-1">
+                  <Button
+                    onClick={() => {
+                      // For client-side property link requests, open the property selector dialog
+                      if (selected.task_type === "link_request" && isClient && !isProvider) {
+                        setLinkApproveTaskId(selected.id);
+                        setLinkApproveTenant(
+                          selected.payload?.provider_name ?? null
+                        );
+                      } else {
+                        setActionDialog("approve");
+                      }
+                    }}
+                    className="flex-1"
+                  >
                     <Check className="mr-1 h-4 w-4" /> Approve
                   </Button>
                   <Button variant="destructive" onClick={() => setActionDialog("reject")} className="flex-1">
@@ -322,6 +338,19 @@ export default function TasksPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ApproveLinkDialog
+        taskId={linkApproveTaskId}
+        tenantName={linkApproveTenant}
+        onClose={() => {
+          setLinkApproveTaskId(null);
+          setLinkApproveTenant(null);
+        }}
+        onDone={() => {
+          setSelected(null);
+          reload();
+        }}
+      />
     </div>
   );
 }

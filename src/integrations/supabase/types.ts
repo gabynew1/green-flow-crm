@@ -1836,10 +1836,20 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: string[]
       }
-      act_on_task: {
-        Args: { _action: string; _comment: string; _task_id: string }
-        Returns: Json
-      }
+      act_on_task:
+        | {
+            Args: { _action: string; _comment: string; _task_id: string }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _action: string
+              _comment?: string
+              _payload_patch?: Json
+              _task_id: string
+            }
+            Returns: Json
+          }
       add_task_comment: {
         Args: { _body: string; _task_id: string }
         Returns: string
