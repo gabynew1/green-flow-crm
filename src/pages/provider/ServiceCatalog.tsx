@@ -324,6 +324,10 @@ export default function ServiceCatalog() {
               <Button variant="outline" size="icon"><MoreVertical className="h-4 w-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setImportConfirmOpen(true)}>
+                <Download className="h-4 w-4 mr-2" />
+                Import default catalog…
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setManageCategoriesOpen(true)}>
                 Manage Categories
               </DropdownMenuItem>
