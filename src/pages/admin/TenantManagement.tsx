@@ -258,6 +258,8 @@ export default function TenantManagement() {
                             <TableHead className="font-bold">Organization</TableHead>
                             <TableHead className="font-bold">Tier</TableHead>
                             <TableHead className="font-bold">Status</TableHead>
+                            <TableHead className="font-bold">Trial Day</TableHead>
+                            <TableHead className="font-bold">Teams</TableHead>
                             <TableHead className="font-bold">Providers</TableHead>
                             <TableHead className="font-bold">Created</TableHead>
                             <TableHead className="w-[100px]"></TableHead>
@@ -277,6 +279,26 @@ export default function TenantManagement() {
                                 <TableCell>{getTierBadge(tenant.subscription_tier)}</TableCell>
                                 <TableCell>{getStatusBadge(tenant.status)}</TableCell>
                                 <TableCell>
+                                    {isTrial(tenant.subscription_tier) ? (
+                                        (() => {
+                                            const t = trialDayNumber(tenant.created_at, tenant.trial_expires_at);
+                                            if (!t) return <span className="text-muted-foreground">—</span>;
+                                            const expired = t.day >= t.total && new Date(tenant.trial_expires_at!).getTime() < Date.now();
+                                            return (
+                                                <span className={cn("text-sm font-semibold", expired ? "text-destructive" : "text-foreground")}>
+                                                    Day {t.day} / {t.total}
+                                                </span>
+                                            );
+                                        })()
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    <span className="text-sm font-semibold">{tenant.teamCount}</span>
+                                    <span className="text-muted-foreground text-xs"> / {tenant.max_teams === 999 ? "∞" : tenant.max_teams}</span>
+                                </TableCell>
+                                <TableCell>
                                     <div className="flex items-center gap-2">
                                         <span className={cn(
                                             "font-bold",
@@ -294,6 +316,19 @@ export default function TenantManagement() {
                                     {format(new Date(tenant.created_at), "MMM d, yyyy")}
                                 </TableCell>
                                 <TableCell>
+                                    <div className="flex items-center gap-1">
+                                        {isTrial(tenant.subscription_tier) && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                                                onClick={() => handleExtendTrial15(tenant)}
+                                                disabled={isProcessing}
+                                                title="Extend trial by exactly 15 days"
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />15 days
+                                            </Button>
+                                        )}
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -316,9 +351,9 @@ export default function TenantManagement() {
                                                 <CreditCard className="h-4 w-4 mr-2" />
                                                 Change Billing Tier
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => setExtendTrialTenant(tenant)}>
+                                            <DropdownMenuItem onClick={() => handleExtendTrial15(tenant)} disabled={isProcessing}>
                                                 <Calendar className="h-4 w-4 mr-2" />
-                                                Extend Trial
+                                                Extend Trial +15 days
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
@@ -331,6 +366,7 @@ export default function TenantManagement() {
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -354,10 +390,11 @@ export default function TenantManagement() {
                                 <SelectValue placeholder="Select tier" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="trial">Trial</SelectItem>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="professional">Professional</SelectItem>
-                                <SelectItem value="enterprise">Enterprise</SelectItem>
+                                <SelectItem value="territory_trial">Territory Trial (90d)</SelectItem>
+                                <SelectItem value="patio">Patio (Free)</SelectItem>
+                                <SelectItem value="backyard">Backyard (€5)</SelectItem>
+                                <SelectItem value="estate">Estate (€30)</SelectItem>
+                                <SelectItem value="territory">Territory (€100)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -371,38 +408,7 @@ export default function TenantManagement() {
             </Dialog>
 
             {/* Extend Trial Dialog */}
-            <Dialog open={!!extendTrialTenant} onOpenChange={(open) => { if (!open) setExtendTrialTenant(null); }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Extend Trial</DialogTitle>
-                        <DialogDescription>
-                            Set a new trial period for <strong>{extendTrialTenant?.name}</strong>. This will set the status to "trial" and update the expiration date.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 py-2">
-                        <Label>Number of days from today</Label>
-                        <Input
-                            type="number"
-                            min="1"
-                            max="365"
-                            value={trialDays}
-                            onChange={(e) => setTrialDays(e.target.value)}
-                            placeholder="14"
-                        />
-                        {trialDays && !isNaN(parseInt(trialDays)) && parseInt(trialDays) > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                Trial will expire on {format(addDays(new Date(), parseInt(trialDays)), "MMM d, yyyy")}
-                            </p>
-                        )}
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setExtendTrialTenant(null)}>Cancel</Button>
-                        <Button onClick={handleExtendTrial} disabled={isProcessing}>
-                            {isProcessing ? "Extending…" : "Extend Trial"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Trial extension is now a single +15 days click — see table actions */}
 
             {/* Decommission Dialog */}
             <Dialog open={!!decommissionTenant} onOpenChange={(open) => { if (!open) { setDecommissionTenant(null); setDecommissionConfirm(""); } }}>
