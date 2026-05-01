@@ -1,64 +1,67 @@
-# Auto-refresh provider lists via realtime
+# Move "New Contract" to a full page
 
 ## Problem
-After creating an opportunity, inspection, offer, contract, visit, or customer, the relevant list/board does not update until the user manually refreshes. The pages use plain `useEffect(() => { load(); }, [])` with no realtime subscription, and the affected tables are not part of the `supabase_realtime` publication (only `user_notifications` and `action_tasks` are).
+Today, creating a contract happens inside a cramped `<Dialog>` on `/provider/contracts`. With property selection, multi-service selection, frequency, billing, and dates, it overflows and is hard to work with. Also, the current flow hard-blocks creation when a property has no inventory — the user wants a soft warning instead.
 
 ## Solution
-Two parts: (1) enable realtime on the relevant tables, (2) subscribe to changes in each list view and re-run its loader when something changes in that tenant.
+Replace the dialog with a dedicated full-page route `/provider/contracts/new` that hosts the same form in a roomier two-column layout, and switch the inventory check from a hard error to a non-blocking warning.
 
-### 1. Database migration — enable realtime
-Add the following tables to `supabase_realtime` publication and set `REPLICA IDENTITY FULL` so updates carry full row payloads:
+## UX
 
-- `inspections` (covers Opportunities + Inspections columns)
-- `offers`
-- `contracts`
-- `service_visits`
-- `customers`
-- `properties`
-- `inventory_items` (so the "Inventory updated" chip on inspection cards refreshes live)
-
-Guard with `IF NOT EXISTS`-style `DO $$` blocks to stay idempotent.
-
-### 2. Reusable hook — `useRealtimeRefresh`
-Create `src/hooks/useRealtimeRefresh.ts`:
-
-```ts
-useRealtimeRefresh(tables: string[], onChange: () => void, tenantId?: string)
+```text
+/provider/contracts/new
+┌──────────────────────────────────────────────┐
+│  ← Back to contracts                          │
+│  New Contract                                 │
+├──────────────────────────────────────────────┤
+│ LEFT (2/3)                  RIGHT (1/3)       │
+│  • Contract name             • Summary card   │
+│  • Properties (search +        - # properties │
+│     scrollable list, full      - # services   │
+│     width)                     - frequency    │
+│  • Inventory warning (if       - billing      │
+│     any selected property      - inventory    │
+│     has 0 items) — amber         status       │
+│     banner with "Open          • Create       │
+│     property" links              button       │
+│  • Dates (start / end)         • Cancel link  │
+│  • Services (category +                       │
+│     items grid, full width)                   │
+│  • Visit frequency                            │
+│  • Billing cycle                              │
+└──────────────────────────────────────────────┘
 ```
 
-- Opens one Supabase channel per mount with a unique name.
-- Subscribes to `postgres_changes` (`event: '*'`) for each table, filtered by `tenant_id=eq.${tenantId}` when provided.
-- Debounces `onChange` (~250 ms) so a multi-row insert (e.g. creating customer + property + inspection together) triggers a single reload.
-- Cleans up via `supabase.removeChannel` on unmount.
+- Uses the project's emerald-on-light minimal aesthetic, rounded cards, no new colors.
+- Sticky right-side summary on desktop; stacks on mobile.
+- "Create Contract" stays disabled only for the existing hard requirements (name, ≥1 property, dates, ≥1 service). Missing inventory is a yellow warning, never a blocker.
 
-### 3. Wire into list views
-Call the hook right after the existing `load()` effect in each:
+## Changes
 
-| File | Tables to watch |
-|---|---|
-| `src/components/provider/PipelineKanban.tsx` | `inspections`, `offers`, `contracts`, `inventory_items` |
-| `src/pages/provider/Inspections.tsx` | `inspections` |
-| `src/pages/provider/Offers.tsx` | `offers` |
-| `src/pages/provider/Contracts.tsx` | `contracts` |
-| `src/pages/provider/ServiceVisits.tsx` | `service_visits` |
-| `src/pages/provider/Customers.tsx` | `customers`, `properties` |
+1. **New page `src/pages/provider/ContractNew.tsx`**
+   - Lifts the form, state, and submit logic from the dialog in `Contracts.tsx`.
+   - On success, `toast.success` and `navigate("/provider/contracts")` (or the new contract's detail page if a single one was created).
+   - Inventory check rewritten: still queries `inventory` + `inventory_items` for the selected properties, but instead of `return`-ing, it stores the missing-property names in state and renders a warning panel. Submit proceeds regardless.
 
-Each call passes the tenant's id from `useAuth()` so the subscription is scoped (no cross-tenant noise) and aligns with the project's strict tenant isolation rule.
+2. **Route in `src/App.tsx`**
+   - Add `<Route path="contracts/new" element={<ContractNew />} />` next to the existing contracts routes.
 
-### 4. Optimistic UX touch (no extra round-trip needed)
-The existing `load()` calls after create/update already refresh the originating page. The realtime layer is additive: it covers the case where a record is created from another page, dialog, or browser tab.
+3. **Update `src/pages/provider/Contracts.tsx`**
+   - Replace the `<Dialog>` + trigger with a `<Link to="/provider/contracts/new">` styled as the existing "New Contract" button.
+   - Remove the dialog's local state and `handleCreate` (moved to the new page); keep `load`, list rendering, filters, sort, CSV export untouched.
 
-## Files
+4. **Update `src/pages/provider/CustomerDetail.tsx`**
+   - The "New Contract" button currently opens a local dialog (`setContractOpen`). Point it to `/provider/contracts/new?customerId={id}` so the page can pre-filter the property list to that customer. (The dialog component can stay for now; we just stop using it from this entry point — confirm by reading the file before editing.)
 
-- create `supabase/migrations/<timestamp>_enable_realtime_pipeline.sql`
-- create `src/hooks/useRealtimeRefresh.ts`
-- edit `src/components/provider/PipelineKanban.tsx`
-- edit `src/pages/provider/Inspections.tsx`
-- edit `src/pages/provider/Offers.tsx`
-- edit `src/pages/provider/Contracts.tsx`
-- edit `src/pages/provider/ServiceVisits.tsx`
-- edit `src/pages/provider/Customers.tsx`
+5. **Inventory warning copy**
+   - "Heads up: {N} of the selected properties have no inventory yet — {names}. You can still create the contract; consider adding items so service planning has context." with an "Open property" link per name.
 
 ## Out of scope
-- Rewriting these pages to React Query (would be a larger refactor; the hook approach gives the same UX outcome with minimal change).
-- Detail pages (offer/contract/inspection/visit detail) — they are loaded on demand and already refresh on user actions; can be added later if you want.
+- Editing an existing contract on a full page (that lives in `ContractDetail`).
+- Changing the data model — no migration needed.
+
+## Files
+- create `src/pages/provider/ContractNew.tsx`
+- edit `src/App.tsx` (add route)
+- edit `src/pages/provider/Contracts.tsx` (replace dialog with link, drop now-unused state)
+- edit `src/pages/provider/CustomerDetail.tsx` (route the button to the new page)

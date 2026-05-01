@@ -22,6 +22,7 @@ import PropertyDetail from "./pages/provider/PropertyDetail";
 import ServiceCatalog from "./pages/provider/ServiceCatalog";
 
 import ContractDetail from "./pages/provider/ContractDetail";
+import ContractNew from "./pages/provider/ContractNew";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
 import FeedbackPage from "./pages/provider/Feedback";
@@ -144,6 +145,7 @@ function AppRoutes(): JSX.Element {
         <Route path="offers" element={<Navigate to="/provider/pipeline" replace />} />
         <Route path="offers/:offerId" element={<OfferDetail />} />
         <Route path="contracts" element={<Navigate to="/provider/pipeline" replace />} />
+        <Route path="contracts/new" element={<ContractNew />} />
         <Route path="contracts/:contractId" element={<ContractDetail />} />
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
