@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Building2, UserPlus, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 function getContractTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
@@ -30,6 +30,7 @@ function getContractTimeRemaining(endDate: string | null): { label: string; urge
 
 export default function Customers() {
   const { profile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [customers, setCustomers] = useState<any[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -39,6 +40,18 @@ export default function Customers() {
   const [connectLoading, setConnectLoading] = useState(false);
 
   useEffect(() => { loadData(); }, []);
+
+  // Auto-open the connect dialog when arriving via a shared link e.g. /customers?connect=GC-XXXXXX
+  useEffect(() => {
+    const code = searchParams.get("connect");
+    if (code) {
+      setClientId(code.toUpperCase());
+      setConnectOpen(true);
+      // strip the query so reopening isn't sticky
+      searchParams.delete("connect");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []);
 
   const loadData = async () => {
     if (!profile?.tenant_id) return;
