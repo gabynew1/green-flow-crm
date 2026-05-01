@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ const CATEGORY_STATUSES: Record<string, string[]> = {
 };
 
 type Enrichment = {
-  profiles: Record<string, { name: string; email?: string | null }>;
+  profiles: Record<string, { name: string; email?: string | null; customerId?: string | null }>;
   tenants: Record<string, { name: string }>;
   properties: Record<string, { name: string; address?: string | null }>;
   offers: Record<string, { name: string }>;
@@ -107,7 +107,7 @@ function useTaskEnrichment(tasks: ActionTaskRow[]): Enrichment {
       const arr = (s: Set<string>) => Array.from(s);
       const [profilesRes, tenantsRes, propsRes, offersRes, contractsRes, inspRes] = await Promise.all([
         userIds.size
-          ? supabase.from("profiles").select("user_id, full_name, email, contact_email, company_name").in("user_id", arr(userIds))
+          ? supabase.from("profiles").select("user_id, full_name, email, contact_email, company_name, customer_id").in("user_id", arr(userIds))
           : Promise.resolve({ data: [] as any[] }),
         tenantIds.size
           ? supabase.from("tenants").select("id, name").in("id", arr(tenantIds))
@@ -131,6 +131,7 @@ function useTaskEnrichment(tasks: ActionTaskRow[]): Enrichment {
         profiles[p.user_id] = {
           name: p.full_name || p.company_name || p.email || "Unknown",
           email: p.contact_email || p.email,
+          customerId: p.customer_id ?? null,
         };
       });
       const tenants: Enrichment["tenants"] = {};
