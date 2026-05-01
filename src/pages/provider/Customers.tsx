@@ -107,11 +107,10 @@ export default function Customers() {
     }
     setConnectLoading(true);
     try {
-      const { data: clientProfile, error: lookupErr } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .eq("unique_client_id", clientId.trim().toUpperCase())
-        .single();
+      const { data: lookupRows, error: lookupErr } = await supabase
+        .rpc("lookup_client_by_code", { _code: clientId.trim().toUpperCase() });
+
+      const clientProfile = Array.isArray(lookupRows) ? lookupRows[0] : null;
 
       if (lookupErr || !clientProfile) {
         toast.error("No client found with that ID");
