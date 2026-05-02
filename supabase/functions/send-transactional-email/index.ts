@@ -5,8 +5,8 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 // Configuration baked in at scaffold time
 const SITE_NAME = "green-flow-crm"
-const SENDER_DOMAIN = "notify.greengrasscrm.ro"
-const FROM_DOMAIN = "greengrasscrm.ro"
+const SENDER_DOMAIN = "send.greengrasscrm.ro"
+const FROM_DOMAIN = "send.greengrasscrm.ro"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,8 +57,6 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!supabaseUrl || !supabaseServiceKey || !anonKey) {
     console.error('Missing required environment variables')

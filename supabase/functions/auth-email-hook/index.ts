@@ -36,10 +36,10 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "green-flow-crm"
-const SENDER_DOMAIN = "notify.www.greengrass.zealot.ro"
-const ROOT_DOMAIN = "www.greengrass.zealot.ro"
-const FROM_DOMAIN = "www.greengrass.zealot.ro" // Domain shown in From address (may be root or sender subdomain)
+const SITE_NAME = "GreenGrass CRM"
+const SENDER_DOMAIN = "send.greengrasscrm.ro"
+const ROOT_DOMAIN = "greengrasscrm.ro"
+const FROM_DOMAIN = "send.greengrasscrm.ro" // Domain shown in From address (verified Resend subdomain)
 
 // Sample data for preview mode ONLY (not used in actual email sending).
 // URLs are baked in at scaffold time from the project's real data.
