@@ -9,6 +9,7 @@ export async function sendAppEmail(params: {
   recipientEmail: string;
   idempotencyKey: string;
   templateData?: Record<string, unknown>;
+  tenantId?: string | null;
 }) {
   try {
     await supabase.functions.invoke("send-transactional-email", {
@@ -17,6 +18,7 @@ export async function sendAppEmail(params: {
         recipientEmail: params.recipientEmail,
         idempotencyKey: params.idempotencyKey,
         templateData: params.templateData ?? {},
+        tenantId: params.tenantId ?? null,
       },
     });
   } catch (err) {

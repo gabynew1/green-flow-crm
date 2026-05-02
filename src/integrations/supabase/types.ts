@@ -468,8 +468,33 @@ export type Database = {
           },
         ]
       }
+      email_categories: {
+        Row: {
+          description: string | null
+          display_name: string
+          is_required: boolean
+          key: string
+          sort_order: number
+        }
+        Insert: {
+          description?: string | null
+          display_name: string
+          is_required?: boolean
+          key: string
+          sort_order?: number
+        }
+        Update: {
+          description?: string | null
+          display_name?: string
+          is_required?: boolean
+          key?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
+          category: string | null
           created_at: string
           error_message: string | null
           id: string
@@ -478,8 +503,10 @@ export type Database = {
           recipient_email: string
           status: string
           template_name: string
+          tenant_id: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -488,8 +515,10 @@ export type Database = {
           recipient_email: string
           status: string
           template_name: string
+          tenant_id?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
@@ -498,6 +527,7 @@ export type Database = {
           recipient_email?: string
           status?: string
           template_name?: string
+          tenant_id?: string | null
         }
         Relationships: []
       }
@@ -1667,6 +1697,65 @@ export type Database = {
           },
         ]
       }
+      tenant_email_settings: {
+        Row: {
+          brand_color: string | null
+          cat_account_enabled: boolean
+          cat_contracts_offers_enabled: boolean
+          cat_inspections_enabled: boolean
+          cat_visits_enabled: boolean
+          created_at: string
+          footer_html: string | null
+          from_name: string | null
+          id: string
+          locale: string
+          logo_url: string | null
+          reply_to: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string | null
+          cat_account_enabled?: boolean
+          cat_contracts_offers_enabled?: boolean
+          cat_inspections_enabled?: boolean
+          cat_visits_enabled?: boolean
+          created_at?: string
+          footer_html?: string | null
+          from_name?: string | null
+          id?: string
+          locale?: string
+          logo_url?: string | null
+          reply_to?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string | null
+          cat_account_enabled?: boolean
+          cat_contracts_offers_enabled?: boolean
+          cat_inspections_enabled?: boolean
+          cat_visits_enabled?: boolean
+          created_at?: string
+          footer_html?: string | null
+          from_name?: string | null
+          id?: string
+          locale?: string
+          logo_url?: string | null
+          reply_to?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_email_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_non_workdays: {
         Row: {
           created_at: string
@@ -1783,6 +1872,39 @@ export type Database = {
           id?: string
           new_expiry?: string
           tenant_id?: string
+        }
+        Relationships: []
+      }
+      user_email_preferences: {
+        Row: {
+          cat_account_enabled: boolean
+          cat_contracts_offers_enabled: boolean
+          cat_inspections_enabled: boolean
+          cat_visits_enabled: boolean
+          created_at: string
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          cat_account_enabled?: boolean
+          cat_contracts_offers_enabled?: boolean
+          cat_inspections_enabled?: boolean
+          cat_visits_enabled?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          cat_account_enabled?: boolean
+          cat_contracts_offers_enabled?: boolean
+          cat_inspections_enabled?: boolean
+          cat_visits_enabled?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1928,6 +2050,10 @@ export type Database = {
         Returns: boolean
       }
       email_exists: { Args: { _email: string }; Returns: boolean }
+      email_send_allowed: {
+        Args: { _category: string; _email: string; _tenant_id: string }
+        Returns: boolean
+      }
       emit_contract_response_task: {
         Args: { _contract_id: string }
         Returns: string

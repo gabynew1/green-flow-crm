@@ -11,6 +11,7 @@ import {
   User, Phone, Mail, Hash, Pencil, Save, X, Building2, HelpCircle, MapPin,
 } from "lucide-react";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
+import EmailPreferencesCard from "@/components/EmailPreferencesCard";
 
 type ClientType = "individual" | "company";
 
@@ -432,6 +433,9 @@ export default function ClientProfile() {
 
       {/* Change Password */}
       {!editing && <ChangePasswordCard />}
+
+      {/* Email Preferences */}
+      {!editing && <EmailPreferencesCard />}
     </div>
   );
 }

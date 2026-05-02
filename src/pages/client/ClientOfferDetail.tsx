@@ -93,6 +93,7 @@ export default function ClientOfferDetail() {
             templateName: "offer-response",
             recipientEmail: providerEmail,
             idempotencyKey: `offer-response-accepted-${offerId}`,
+            tenantId: offerFull.tenant_id ?? null,
             templateData: {
               offerName: offer.offer_name,
               propertyName: offer.properties?.name,
@@ -131,6 +132,7 @@ export default function ClientOfferDetail() {
             templateName: "offer-response",
             recipientEmail: providerEmail,
             idempotencyKey: `offer-response-rejected-${offerId}`,
+            tenantId: offerFull.tenant_id ?? null,
             templateData: {
               offerName: offer.offer_name,
               propertyName: offer.properties?.name,

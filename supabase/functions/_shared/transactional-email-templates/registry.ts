@@ -9,6 +9,28 @@ export interface TemplateEntry {
   previewData?: Record<string, any>
 }
 
+/** Email categories — must match public.email_categories.key */
+export type EmailCategory =
+  | 'account'
+  | 'visits'
+  | 'contracts_offers'
+  | 'inspections'
+
+/**
+ * Maps each template to a governance category. Used by send-transactional-email
+ * to apply tenant kill switches and per-recipient preferences.
+ */
+export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
+  'test-notification':     'account',
+  'connection-approved':   'account',
+  'contract-sent':         'contracts_offers',
+  'contract-response':     'contracts_offers',
+  'offer-sent':            'contracts_offers',
+  'offer-response':        'contracts_offers',
+  'visit-report':          'visits',
+  'inspection-scheduled':  'inspections',
+}
+
 import { template as testNotification } from './test-notification.tsx'
 import { template as contractSent } from './contract-sent.tsx'
 import { template as contractResponse } from './contract-response.tsx'

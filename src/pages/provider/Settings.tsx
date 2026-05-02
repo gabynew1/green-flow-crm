@@ -14,6 +14,8 @@ import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle,
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
+import TenantEmailSettingsCard from "@/components/provider/TenantEmailSettingsCard";
+import EmailPreferencesCard from "@/components/EmailPreferencesCard";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
@@ -544,6 +546,12 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Tenant-wide email branding & category toggles (full admins only) */}
+      {profile?.provider_permission === "full_admin" && <TenantEmailSettingsCard />}
+
+      {/* Personal email preferences for the current user */}
+      <EmailPreferencesCard />
     </div>
   );
 }

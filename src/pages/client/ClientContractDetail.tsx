@@ -91,6 +91,7 @@ export default function ClientContractDetail() {
           templateName: "contract-response",
           recipientEmail: providerEmail,
           idempotencyKey: `contract-response-signed-${contractId}`,
+          tenantId: contract.properties?.tenant_id ?? null,
           templateData: {
             contractName: contract.contract_name,
             propertyName: contract.properties?.name,
@@ -124,6 +125,7 @@ export default function ClientContractDetail() {
           templateName: "contract-response",
           recipientEmail: providerEmail,
           idempotencyKey: `contract-response-rejected-${contractId}`,
+          tenantId: contract.properties?.tenant_id ?? null,
           templateData: {
             contractName: contract.contract_name,
             propertyName: contract.properties?.name,
