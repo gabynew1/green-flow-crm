@@ -123,6 +123,7 @@ export default function OfferDetail() {
               templateName: "offer-sent",
               recipientEmail: clientProfile.email,
               idempotencyKey: `offer-sent-${offerId}`,
+              tenantId: offer.tenant_id ?? null,
               templateData: {
                 offerName: offer.offer_name,
                 propertyName: (offer.properties as any)?.name,

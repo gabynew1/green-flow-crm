@@ -116,6 +116,7 @@ export default function ContractDetail() {
             templateName: "contract-sent",
             recipientEmail: clientProfile.email,
             idempotencyKey: `contract-sent-${contractId}`,
+            tenantId: tenantId ?? null,
             templateData: {
               contractName: contract.contract_name,
               propertyName: (contract.properties as any)?.name,

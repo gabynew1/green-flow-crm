@@ -150,6 +150,7 @@ export default function VisitDetail() {
         templateName,
         recipientEmail: clientProfile.email,
         idempotencyKey,
+        tenantId: propertyTenantId ?? null,
         templateData: {
           propertyName: (order.properties as any)?.name,
           providerName: tenant?.name,

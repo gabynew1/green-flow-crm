@@ -158,6 +158,7 @@ export default function InspectionDetail() {
               templateName: "inspection-scheduled",
               recipientEmail: clientEmail,
               idempotencyKey: `inspection-scheduled-${inspectionId}`,
+              tenantId: inspection.tenant_id ?? null,
               templateData: {
                 inspectionTitle: title,
                 propertyName: (inspection.properties as any)?.name,
