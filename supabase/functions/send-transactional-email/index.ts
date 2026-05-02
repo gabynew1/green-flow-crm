@@ -1,7 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
+import { TEMPLATES, TEMPLATE_CATEGORY } from '../_shared/transactional-email-templates/registry.ts'
 
 // Configuration baked in at scaffold time
 const SITE_NAME = "green-flow-crm"
@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let tenantId: string | null = null
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -83,6 +84,11 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (typeof body.tenantId === 'string' && body.tenantId.length > 0) {
+      tenantId = body.tenantId
+    } else if (typeof body.tenant_id === 'string' && body.tenant_id.length > 0) {
+      tenantId = body.tenant_id
     }
   } catch {
     return new Response(
@@ -140,6 +146,9 @@ Deno.serve(async (req) => {
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+  // Resolve governance category for this template (defaults to 'account' = required)
+  const category = TEMPLATE_CATEGORY[templateName] ?? 'account'
+
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase
     .from('suppressed_emails')
@@ -168,11 +177,73 @@ Deno.serve(async (req) => {
       template_name: templateName,
       recipient_email: effectiveRecipient,
       status: 'suppressed',
+      tenant_id: tenantId,
+      category,
     })
 
     console.log('Email suppressed', { effectiveRecipient, templateName })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  // 2b. Governance gate: tenant kill switch + user preference
+  const { data: allowedData, error: allowedError } = await supabase.rpc(
+    'email_send_allowed',
+    {
+      _email: effectiveRecipient.toLowerCase(),
+      _category: category,
+      _tenant_id: tenantId,
+    }
+  )
+
+  if (allowedError) {
+    console.error('Governance check failed — refusing to send', {
+      error: allowedError,
+      effectiveRecipient,
+      category,
+      tenantId,
+    })
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'failed',
+      error_message: 'Governance check failed',
+      tenant_id: tenantId,
+      category,
+    })
+    return new Response(
+      JSON.stringify({ error: 'Failed to verify send permissions' }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (allowedData === false) {
+    await supabase.from('email_send_log').insert({
+      message_id: messageId,
+      template_name: templateName,
+      recipient_email: effectiveRecipient,
+      status: 'suppressed',
+      error_message: 'blocked_by_preferences',
+      tenant_id: tenantId,
+      category,
+    })
+    console.log('Email blocked by governance', {
+      effectiveRecipient,
+      templateName,
+      category,
+      tenantId,
+    })
+    return new Response(
+      JSON.stringify({ success: false, reason: 'blocked_by_preferences' }),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -202,6 +273,8 @@ Deno.serve(async (req) => {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: 'Failed to look up unsubscribe token',
+      tenant_id: tenantId,
+      category,
     })
     return new Response(
       JSON.stringify({ error: 'Failed to prepare email' }),
@@ -235,6 +308,8 @@ Deno.serve(async (req) => {
         recipient_email: effectiveRecipient,
         status: 'failed',
         error_message: 'Failed to create unsubscribe token',
+        tenant_id: tenantId,
+        category,
       })
       return new Response(
         JSON.stringify({ error: 'Failed to prepare email' }),
@@ -264,6 +339,8 @@ Deno.serve(async (req) => {
         recipient_email: effectiveRecipient,
         status: 'failed',
         error_message: 'Failed to confirm unsubscribe token storage',
+        tenant_id: tenantId,
+        category,
       })
       return new Response(
         JSON.stringify({ error: 'Failed to prepare email' }),
@@ -287,6 +364,8 @@ Deno.serve(async (req) => {
       status: 'suppressed',
       error_message:
         'Unsubscribe token used but email missing from suppressed list',
+      tenant_id: tenantId,
+      category,
     })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
@@ -321,6 +400,8 @@ Deno.serve(async (req) => {
     template_name: templateName,
     recipient_email: effectiveRecipient,
     status: 'pending',
+    tenant_id: tenantId,
+    category,
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
@@ -354,6 +435,8 @@ Deno.serve(async (req) => {
       recipient_email: effectiveRecipient,
       status: 'failed',
       error_message: 'Failed to enqueue email',
+      tenant_id: tenantId,
+      category,
     })
 
     return new Response(JSON.stringify({ error: 'Failed to enqueue email' }), {
