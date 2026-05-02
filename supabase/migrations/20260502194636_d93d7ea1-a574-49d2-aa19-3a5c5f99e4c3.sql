@@ -1,13 +1,3 @@
-# RLS Hardening — Tighten action_task policies
-
-Tighten 2 fragile RLS policies that depend on parent-table RLS, and document `global_holidays` as intentionally global.
-
-## Changes
-
-### 1. New migration `supabase/migrations/<ts>_harden_action_task_rls.sql`
-
-```sql
--- action_task_comments: explicit tenant + parent-task scoping
 DROP POLICY IF EXISTS "Participants can view task comments" ON public.action_task_comments;
 CREATE POLICY "Participants can view task comments"
 ON public.action_task_comments
@@ -25,7 +15,6 @@ USING (
   )
 );
 
--- action_task_events: same pattern
 DROP POLICY IF EXISTS "Participants can view task events" ON public.action_task_events;
 CREATE POLICY "Participants can view task events"
 ON public.action_task_events
@@ -42,13 +31,3 @@ USING (
       )
   )
 );
-```
-
-### 2. Update `@security-memory`
-Record that `global_holidays` SELECT-to-`authenticated` with `qual: true` is intentional (non-sensitive RO bank holiday reference data) so future scans don't re-flag it.
-
-## Impact
-- All current reads from `TasksPage.tsx` continue to work — same users have access.
-- Writes go through `SECURITY DEFINER` RPCs which bypass RLS — unaffected.
-- No frontend code changes required.
-- No edge function changes required.
