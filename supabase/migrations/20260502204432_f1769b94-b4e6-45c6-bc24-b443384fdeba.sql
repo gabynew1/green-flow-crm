@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.email_send_allowed(TEXT, TEXT, UUID) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.email_send_allowed(TEXT, TEXT, UUID) FROM anon;
