@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -436,6 +437,17 @@ export default function ClientProfile() {
 
       {/* Email Preferences */}
       {!editing && <EmailPreferencesCard />}
+
+      {!editing && (
+        <div className="mt-4">
+          <Link
+            to="/client/emails"
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+          >
+            <Mail className="h-4 w-4" /> View email history
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

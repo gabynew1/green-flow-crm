@@ -502,6 +502,7 @@ export type Database = {
           metadata: Json | null
           recipient_email: string
           status: string
+          template_data: Json | null
           template_name: string
           tenant_id: string | null
         }
@@ -514,6 +515,7 @@ export type Database = {
           metadata?: Json | null
           recipient_email: string
           status: string
+          template_data?: Json | null
           template_name: string
           tenant_id?: string | null
         }
@@ -526,6 +528,7 @@ export type Database = {
           metadata?: Json | null
           recipient_email?: string
           status?: string
+          template_data?: Json | null
           template_name?: string
           tenant_id?: string | null
         }
@@ -2070,6 +2073,49 @@ export type Database = {
       expire_stale_action_tasks: { Args: never; Returns: number }
       expire_trials_to_patio: { Args: never; Returns: undefined }
       extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
+      get_customer_email_history: {
+        Args: { _customer_id: string; _limit?: number; _offset?: number }
+        Returns: {
+          category: string
+          created_at: string
+          error_message: string
+          message_id: string
+          recipient_email: string
+          status: string
+          template_name: string
+        }[]
+      }
+      get_email_for_webview: {
+        Args: { _message_id: string }
+        Returns: {
+          category: string
+          created_at: string
+          message_id: string
+          recipient_email: string
+          status: string
+          template_data: Json
+          template_name: string
+          tenant_id: string
+        }[]
+      }
+      get_my_email_history: {
+        Args: {
+          _category?: string
+          _limit?: number
+          _offset?: number
+          _since?: string
+        }
+        Returns: {
+          category: string
+          created_at: string
+          error_message: string
+          message_id: string
+          recipient_email: string
+          status: string
+          template_name: string
+          tenant_id: string
+        }[]
+      }
       get_user_customer_id: { Args: { _user_id: string }; Returns: string }
       get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
@@ -2134,6 +2180,7 @@ export type Database = {
         Returns: number
       }
       notify_contract_renewals: { Args: never; Returns: number }
+      purge_old_email_logs: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
+import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHistoryTab";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
@@ -469,6 +470,12 @@ export default function CustomerDetail() {
         defaultCustomerId={customerId}
         defaultPropertyId={properties.length === 1 ? properties[0].id : undefined}
       />
+
+      {customerId && (
+        <div className="mt-6">
+          <CustomerEmailHistoryTab customerId={customerId} />
+        </div>
+      )}
 
       <CloseContractDialog
         contractId={closeContractId}
