@@ -56,6 +56,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Unsubscribe from "./pages/Unsubscribe";
 import Pricing from "./pages/Pricing";
 import TasksPage from "./pages/tasks/TasksPage";
+import EmailWebview from "./pages/EmailWebview";
+import ClientEmailHistory from "./pages/client/ClientEmailHistory";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +82,7 @@ function AppRoutes(): JSX.Element {
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/onboard" element={<AdminOnboard />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/emails/view/:messageId" element={<EmailWebview />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -172,6 +175,7 @@ function AppRoutes(): JSX.Element {
         <Route path="connect" element={<ClientConnect />} />
         <Route path="providers" element={<ClientProviders />} />
         <Route path="tasks" element={<TasksPage />} />
+        <Route path="emails" element={<ClientEmailHistory />} />
       </Route>
 
       {/* Default redirect based on role */}
@@ -184,6 +188,7 @@ function AppRoutes(): JSX.Element {
 
       <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/emails/view/:messageId" element={<EmailWebview />} />
       <Route path="/auth" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

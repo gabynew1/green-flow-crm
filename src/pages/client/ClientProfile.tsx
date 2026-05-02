@@ -436,6 +436,17 @@ export default function ClientProfile() {
 
       {/* Email Preferences */}
       {!editing && <EmailPreferencesCard />}
+
+      {!editing && (
+        <div className="mt-4">
+          <Link
+            to="/client/emails"
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+          >
+            <Mail className="h-4 w-4" /> View email history
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
