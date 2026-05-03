@@ -24,6 +24,7 @@ export type EmailCategory =
 export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
   'test-notification':     'account',
   'connection-approved':   'account',
+  'password-reset':        'account',
   'contract-sent':         'contracts_offers',
   'contract-response':     'contracts_offers',
   'offer-sent':            'contracts_offers',
@@ -37,6 +38,7 @@ export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
 
 import { template as testNotification } from './test-notification.tsx'
 import { template as contractSent } from './contract-sent.tsx'
+import { template as passwordReset } from './password-reset.tsx'
 import { template as contractResponse } from './contract-response.tsx'
 import { template as offerSent } from './offer-sent.tsx'
 import { template as offerResponse } from './offer-response.tsx'
@@ -49,6 +51,7 @@ import { template as onboardingDay7 } from './onboarding-day-7.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-notification': testNotification,
+  'password-reset': passwordReset,
   'contract-sent': contractSent,
   'contract-response': contractResponse,
   'offer-sent': offerSent,
