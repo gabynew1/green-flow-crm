@@ -2221,6 +2221,21 @@ export type Database = {
         Args: { _date: string; _tenant_id: string }
         Returns: boolean
       }
+      lifecycle_drip_candidates: {
+        Args: { _safety_cap?: number; _step: string }
+        Returns: {
+          cat_onboarding_enabled: boolean
+          customers_count: number
+          email: string
+          email_verified: boolean
+          first_name: string
+          offers_count: number
+          tenant_id: string
+          tenant_paused: boolean
+          user_id: string
+          visits_count: number
+        }[]
+      }
       log_super_admin_action: {
         Args: {
           _action: string
