@@ -422,10 +422,16 @@ export type Database = {
           contact_person_name: string | null
           created_at: string
           email: string | null
+          flagged_for_deletion_at: string | null
           id: string
+          last_client_login_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          locked_reason: string | null
           name: string
           notes: string | null
           phone: string | null
+          scheduled_delete_at: string | null
           status: string
           tenant_id: string | null
           updated_at: string
@@ -436,10 +442,16 @@ export type Database = {
           contact_person_name?: string | null
           created_at?: string
           email?: string | null
+          flagged_for_deletion_at?: string | null
           id?: string
+          last_client_login_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_reason?: string | null
           name: string
           notes?: string | null
           phone?: string | null
+          scheduled_delete_at?: string | null
           status?: string
           tenant_id?: string | null
           updated_at?: string
@@ -450,10 +462,16 @@ export type Database = {
           contact_person_name?: string | null
           created_at?: string
           email?: string | null
+          flagged_for_deletion_at?: string | null
           id?: string
+          last_client_login_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_reason?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
+          scheduled_delete_at?: string | null
           status?: string
           tenant_id?: string | null
           updated_at?: string
@@ -640,6 +658,7 @@ export type Database = {
           date: string
           id: string
           name: string
+          observed_in: string[] | null
         }
         Insert: {
           country_code?: string
@@ -647,6 +666,7 @@ export type Database = {
           date: string
           id?: string
           name: string
+          observed_in?: string[] | null
         }
         Update: {
           country_code?: string
@@ -654,6 +674,7 @@ export type Database = {
           date?: string
           id?: string
           name?: string
+          observed_in?: string[] | null
         }
         Relationships: []
       }
@@ -871,6 +892,39 @@ export type Database = {
           },
         ]
       }
+      lifecycle_deletion_audit: {
+        Row: {
+          deleted_at: string
+          id: string
+          reason: string
+          row_counts: Json
+          subject_id: string
+          subject_kind: string
+          subject_name: string
+          triggered_by: string
+        }
+        Insert: {
+          deleted_at?: string
+          id?: string
+          reason: string
+          row_counts?: Json
+          subject_id: string
+          subject_kind: string
+          subject_name: string
+          triggered_by: string
+        }
+        Update: {
+          deleted_at?: string
+          id?: string
+          reason?: string
+          row_counts?: Json
+          subject_id?: string
+          subject_kind?: string
+          subject_name?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       lifecycle_email_log: {
         Row: {
           created_at: string
@@ -898,6 +952,42 @@ export type Database = {
           step?: Database["public"]["Enums"]["lifecycle_step"]
           tenant_id?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      lifecycle_email_log_v2: {
+        Row: {
+          cycle_started_at: string
+          id: string
+          metadata: Json
+          recipient_email: string
+          recipient_user_id: string
+          sent_at: string
+          step: string
+          subject_id: string
+          subject_kind: string
+        }
+        Insert: {
+          cycle_started_at: string
+          id?: string
+          metadata?: Json
+          recipient_email: string
+          recipient_user_id: string
+          sent_at?: string
+          step: string
+          subject_id: string
+          subject_kind: string
+        }
+        Update: {
+          cycle_started_at?: string
+          id?: string
+          metadata?: Json
+          recipient_email?: string
+          recipient_user_id?: string
+          sent_at?: string
+          step?: string
+          subject_id?: string
+          subject_kind?: string
         }
         Relationships: []
       }
@@ -1870,11 +1960,17 @@ export type Database = {
           created_by: string | null
           currency: string
           feature_flags: Json
+          flagged_for_deletion_at: string | null
           id: string
+          last_admin_login_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          locked_reason: string | null
           max_client_seats: number
           max_provider_seats: number
           max_teams: number
           name: string
+          scheduled_delete_at: string | null
           status: string
           subscription_tier: string
           timezone: string
@@ -1888,11 +1984,17 @@ export type Database = {
           created_by?: string | null
           currency?: string
           feature_flags?: Json
+          flagged_for_deletion_at?: string | null
           id?: string
+          last_admin_login_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_reason?: string | null
           max_client_seats?: number
           max_provider_seats?: number
           max_teams?: number
           name?: string
+          scheduled_delete_at?: string | null
           status?: string
           subscription_tier?: string
           timezone?: string
@@ -1906,11 +2008,17 @@ export type Database = {
           created_by?: string | null
           currency?: string
           feature_flags?: Json
+          flagged_for_deletion_at?: string | null
           id?: string
+          last_admin_login_at?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          locked_reason?: string | null
           max_client_seats?: number
           max_provider_seats?: number
           max_teams?: number
           name?: string
+          scheduled_delete_at?: string | null
           status?: string
           subscription_tier?: string
           timezone?: string
@@ -2246,8 +2354,11 @@ export type Database = {
         Returns: boolean
       }
       import_default_service_catalog: { Args: never; Returns: Json }
+      is_business_moment: { Args: { _at: string }; Returns: boolean }
+      is_customer_active: { Args: { _customer_id: string }; Returns: boolean }
       is_provider: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
       is_workday: {
         Args: { _date: string; _tenant_id: string }
         Returns: boolean
@@ -2313,6 +2424,7 @@ export type Database = {
         }
         Returns: number
       }
+      next_business_moment: { Args: { _from: string }; Returns: string }
       notify_contract_renewals: { Args: never; Returns: number }
       purge_old_email_logs: { Args: never; Returns: number }
       read_email_batch: {
