@@ -4,6 +4,7 @@ import { Mail, Activity, AlertTriangle, HeartPulse } from "lucide-react";
 import EmailActivityTab from "@/components/admin/email-ops/EmailActivityTab";
 import EmailDLQTab from "@/components/admin/email-ops/EmailDLQTab";
 import EmailHealthTab from "@/components/admin/email-ops/EmailHealthTab";
+import EmailAlertsBanner from "@/components/admin/email-ops/EmailAlertsBanner";
 
 export default function EmailOperations() {
   const [tab, setTab] = useState("activity");
@@ -21,6 +22,8 @@ export default function EmailOperations() {
           </p>
         </div>
       </div>
+
+      <EmailAlertsBanner />
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>

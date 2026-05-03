@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import EmailAlertsBanner from "./EmailAlertsBanner";
 
 export default function EmailHealthTab() {
   const q = useQuery({
@@ -31,6 +32,8 @@ export default function EmailHealthTab() {
 
   return (
     <div className="space-y-4">
+      <EmailAlertsBanner showOkState />
+
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => q.refetch()}>
           <RefreshCw className="h-4 w-4 mr-2" /> Refresh

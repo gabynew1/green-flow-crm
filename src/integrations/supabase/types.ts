@@ -2077,6 +2077,7 @@ export type Database = {
         Args: { p_since?: string; p_until?: string }
         Returns: Json
       }
+      admin_email_alerts: { Args: never; Returns: Json }
       admin_email_health: { Args: never; Returns: Json }
       admin_list_dlq: {
         Args: { p_limit?: number; p_queue: string }
