@@ -112,81 +112,15 @@ async function loadCandidates(
   supabase: ReturnType<typeof createClient>,
   step: Step,
 ): Promise<Candidate[]> {
-  // Anchor windows on coalesce(email_verified_at, created_at) so unverified
-  // users aren't permanently skipped — they enter the window the moment they
-  // verify. Day 0 fires within the first hour after the anchor; Day 2 / Day 7
-  // fire in a 15-minute window matching the cron cadence.
-  let windowSql: string
-  switch (step) {
-    case 'day_0':
-      windowSql = `coalesce(p.email_verified_at, p.created_at) > now() - interval '1 hour'`
-      break
-    case 'day_2':
-      windowSql = `coalesce(p.email_verified_at, p.created_at) BETWEEN now() - interval '2 days 15 minutes' AND now() - interval '2 days'`
-      break
-    case 'day_7':
-      windowSql = `coalesce(p.email_verified_at, p.created_at) BETWEEN now() - interval '7 days 15 minutes' AND now() - interval '7 days'`
-      break
-  }
-
-  const sql = `
-    SELECT
-      p.user_id,
-      p.tenant_id,
-      p.email,
-      p.first_name,
-      coalesce(p.email_verified, false) AS email_verified,
-      coalesce(t.is_paused, false)      AS tenant_paused,
-      coalesce(tes.cat_onboarding_enabled, true) AS cat_onboarding_enabled,
-      coalesce((SELECT count(*) FROM public.customers c WHERE c.tenant_id = p.tenant_id), 0)::int AS customers_count,
-      coalesce((SELECT count(*) FROM public.visits   v WHERE v.tenant_id = p.tenant_id), 0)::int AS visits_count,
-      coalesce((SELECT count(*) FROM public.offers   o WHERE o.tenant_id = p.tenant_id), 0)::int AS offers_count
-    FROM public.profiles p
-    LEFT JOIN public.tenants t ON t.id = p.tenant_id
-    LEFT JOIN public.tenant_email_settings tes ON tes.tenant_id = p.tenant_id
-    WHERE p.tenant_id IS NOT NULL
-      AND p.provider_permission = 'full_admin'
-      AND ${windowSql}
-      AND NOT EXISTS (
-        SELECT 1 FROM public.lifecycle_email_log l
-        WHERE l.user_id = p.user_id AND l.step = '${step}'
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM public.suppressed_emails s WHERE lower(s.email) = lower(p.email)
-      )
-    LIMIT ${SAFETY_CAP + 1}
-    FOR UPDATE OF p SKIP LOCKED
-  `
-
-  // Use a SECURITY DEFINER RPC wrapper to run raw SQL is overkill for one query;
-  // the supabase-js client doesn't expose arbitrary SQL, so we go through PostgREST
-  // by calling a dedicated RPC. For Phase 1 we keep it simple: fetch the columns
-  // we need with PostgREST views/joins.
   const { data, error } = await supabase.rpc('lifecycle_drip_candidates', {
     _step: step,
     _safety_cap: SAFETY_CAP + 1,
   })
-
   if (error) {
     console.error('loadCandidates failed', { step, error })
     return []
   }
-
-  // Apply step-specific business filters that depend on counts
-  const rows = (data ?? []) as Candidate[]
-  if (step === 'day_2') {
-    return rows.filter((r) => {
-      if (r.customers_count > 0) {
-        // mark as already_active later in the loop
-        return true
-      }
-      return true
-    })
-  }
-  if (step === 'day_7') {
-    return rows
-  }
-  return rows
+  return (data ?? []) as Candidate[]
 }
 
 async function sendStep(
