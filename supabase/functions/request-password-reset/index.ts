@@ -73,29 +73,37 @@ Deno.serve(async (req) => {
     null
 
   try {
-    // Look up the user by email via admin API (paginated; we expect exact match).
-    // listUsers does not filter server-side, so we use an RPC-free approach:
-    // query auth.users via service-role client.
-    const { data: userRow, error: userErr } = await admin
-      .schema('auth' as any)
-      .from('users')
-      .select('id, email')
-      .eq('email', email)
-      .maybeSingle()
-
-    if (userErr) {
-      console.error('user lookup error', userErr)
+    // Look up the user by email via admin API.
+    // getUserByEmail is not available; use admin.listUsers with email filter via per_page paging.
+    // Simpler & reliable: use the GoTrue admin REST endpoint directly.
+    const lookupResp = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+        },
+      }
+    )
+    let userId: string | null = null
+    if (lookupResp.ok) {
+      const json = await lookupResp.json()
+      const users = Array.isArray(json?.users) ? json.users : []
+      const match = users.find(
+        (u: any) => typeof u?.email === 'string' && u.email.toLowerCase() === email
+      )
+      if (match?.id) userId = match.id
+    } else {
+      console.error('admin user lookup failed', lookupResp.status, await lookupResp.text())
     }
 
-    if (!userRow?.id) {
+    if (!userId) {
       // Email not registered — return generic response (no enumeration).
       return new Response(JSON.stringify(GENERIC_RESPONSE), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-
-    const userId = userRow.id as string
 
     // Rate limit: max N unused, unexpired tokens issued per user in last hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
