@@ -11,8 +11,14 @@ export function VerifyEmailBanner() {
   const { profile, user } = useAuth();
   const [sending, setSending] = useState(false);
 
-  if (!profile || (profile as any).email_verified) return null;
-  const email = (profile as any).email || user?.email;
+  // Don't render until we have both auth + profile loaded.
+  if (!user || !profile) return null;
+  // Live auth truth wins (no profile-cache lag right after verify).
+  if (user.email_confirmed_at) return null;
+  // Profile mirror column.
+  if (profile.email_verified) return null;
+
+  const email = profile.email || user.email;
   if (!email) return null;
 
   const resend = async () => {

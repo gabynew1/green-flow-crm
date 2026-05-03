@@ -25,6 +25,8 @@ interface ProfileData {
   address_number: string | null;
   fiscal_representative: string | null;
   temporary_password: string | null;
+  email_verified: boolean;
+  email_verified_at: string | null;
 }
 
 interface AuthContextType {
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, unique_client_id, tenant_id, email, customer_id, phone, company_name, cui, contact_email, contact_phone, provider_permission, client_type, cnp, vat_id, address_county, address_city, address_street, address_number, fiscal_representative, temporary_password")
+      .select("full_name, unique_client_id, tenant_id, email, customer_id, phone, company_name, cui, contact_email, contact_phone, provider_permission, client_type, cnp, vat_id, address_county, address_city, address_street, address_number, fiscal_representative, temporary_password, email_verified, email_verified_at")
       .eq("user_id", userId)
       .single();
     if (data) {
