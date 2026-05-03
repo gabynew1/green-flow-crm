@@ -15,6 +15,7 @@ export type EmailCategory =
   | 'visits'
   | 'contracts_offers'
   | 'inspections'
+  | 'lifecycle'
 
 /**
  * Maps each template to a governance category. Used by send-transactional-email
@@ -29,6 +30,9 @@ export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
   'offer-response':        'contracts_offers',
   'visit-report':          'visits',
   'inspection-scheduled':  'inspections',
+  'onboarding-day-0':      'lifecycle',
+  'onboarding-day-2':      'lifecycle',
+  'onboarding-day-7':      'lifecycle',
 }
 
 import { template as testNotification } from './test-notification.tsx'
@@ -39,6 +43,9 @@ import { template as offerResponse } from './offer-response.tsx'
 import { template as visitReport } from './visit-report.tsx'
 import { template as inspectionScheduled } from './inspection-scheduled.tsx'
 import { template as connectionApproved } from './connection-approved.tsx'
+import { template as onboardingDay0 } from './onboarding-day-0.tsx'
+import { template as onboardingDay2 } from './onboarding-day-2.tsx'
+import { template as onboardingDay7 } from './onboarding-day-7.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-notification': testNotification,
@@ -49,4 +56,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'visit-report': visitReport,
   'inspection-scheduled': inspectionScheduled,
   'connection-approved': connectionApproved,
+  'onboarding-day-0': onboardingDay0,
+  'onboarding-day-2': onboardingDay2,
+  'onboarding-day-7': onboardingDay7,
 }

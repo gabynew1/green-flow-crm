@@ -59,6 +59,7 @@ import Pricing from "./pages/Pricing";
 import TasksPage from "./pages/tasks/TasksPage";
 import EmailWebview from "./pages/EmailWebview";
 import ClientEmailHistory from "./pages/client/ClientEmailHistory";
+import Verify from "./pages/Verify";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ function AppRoutes(): JSX.Element {
         <Route path="/onboard" element={<AdminOnboard />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/emails/view/:messageId" element={<EmailWebview />} />
+        <Route path="/verify" element={<Verify />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -159,6 +161,8 @@ function AppRoutes(): JSX.Element {
         <Route path="ai" element={<AIAssistant />} />
         <Route path="tasks" element={<TasksPage />} />
       </Route>
+
+      <Route path="/verify" element={<Verify />} />
 
       {/* Client routes — block providers */}
       <Route path="/client" element={

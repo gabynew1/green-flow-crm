@@ -871,6 +871,36 @@ export type Database = {
           },
         ]
       }
+      lifecycle_email_log: {
+        Row: {
+          created_at: string
+          id: string
+          sent_at: string | null
+          skipped_reason: string | null
+          step: Database["public"]["Enums"]["lifecycle_step"]
+          tenant_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sent_at?: string | null
+          skipped_reason?: string | null
+          step: Database["public"]["Enums"]["lifecycle_step"]
+          tenant_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sent_at?: string | null
+          skipped_reason?: string | null
+          step?: Database["public"]["Enums"]["lifecycle_step"]
+          tenant_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_dedupe: {
         Row: {
           created_at: string
@@ -1049,6 +1079,8 @@ export type Database = {
           cui: string | null
           customer_id: string | null
           email: string | null
+          email_verified: boolean
+          email_verified_at: string | null
           fiscal_representative: string | null
           full_name: string | null
           id: string
@@ -1078,6 +1110,8 @@ export type Database = {
           cui?: string | null
           customer_id?: string | null
           email?: string | null
+          email_verified?: boolean
+          email_verified_at?: string | null
           fiscal_representative?: string | null
           full_name?: string | null
           id?: string
@@ -1107,6 +1141,8 @@ export type Database = {
           cui?: string | null
           customer_id?: string | null
           email?: string | null
+          email_verified?: boolean
+          email_verified_at?: string | null
           fiscal_representative?: string | null
           full_name?: string | null
           id?: string
@@ -1706,6 +1742,7 @@ export type Database = {
           cat_account_enabled: boolean
           cat_contracts_offers_enabled: boolean
           cat_inspections_enabled: boolean
+          cat_onboarding_enabled: boolean
           cat_visits_enabled: boolean
           created_at: string
           footer_html: string | null
@@ -1722,6 +1759,7 @@ export type Database = {
           cat_account_enabled?: boolean
           cat_contracts_offers_enabled?: boolean
           cat_inspections_enabled?: boolean
+          cat_onboarding_enabled?: boolean
           cat_visits_enabled?: boolean
           created_at?: string
           footer_html?: string | null
@@ -1738,6 +1776,7 @@ export type Database = {
           cat_account_enabled?: boolean
           cat_contracts_offers_enabled?: boolean
           cat_inspections_enabled?: boolean
+          cat_onboarding_enabled?: boolean
           cat_visits_enabled?: boolean
           created_at?: string
           footer_html?: string | null
@@ -1883,6 +1922,7 @@ export type Database = {
           cat_account_enabled: boolean
           cat_contracts_offers_enabled: boolean
           cat_inspections_enabled: boolean
+          cat_lifecycle_enabled: boolean
           cat_visits_enabled: boolean
           created_at: string
           email: string
@@ -1893,6 +1933,7 @@ export type Database = {
           cat_account_enabled?: boolean
           cat_contracts_offers_enabled?: boolean
           cat_inspections_enabled?: boolean
+          cat_lifecycle_enabled?: boolean
           cat_visits_enabled?: boolean
           created_at?: string
           email: string
@@ -1903,6 +1944,7 @@ export type Database = {
           cat_account_enabled?: boolean
           cat_contracts_offers_enabled?: boolean
           cat_inspections_enabled?: boolean
+          cat_lifecycle_enabled?: boolean
           cat_visits_enabled?: boolean
           created_at?: string
           email?: string
@@ -2179,6 +2221,21 @@ export type Database = {
         Args: { _date: string; _tenant_id: string }
         Returns: boolean
       }
+      lifecycle_drip_candidates: {
+        Args: { _safety_cap?: number; _step: string }
+        Returns: {
+          cat_onboarding_enabled: boolean
+          customers_count: number
+          email: string
+          email_verified: boolean
+          first_name: string
+          offers_count: number
+          tenant_id: string
+          tenant_paused: boolean
+          user_id: string
+          visits_count: number
+        }[]
+      }
       log_super_admin_action: {
         Args: {
           _action: string
@@ -2287,6 +2344,7 @@ export type Database = {
         | "LIGHTING"
         | "FENCE"
       inventory_source: "MANUAL" | "AI_ASSISTED"
+      lifecycle_step: "day_0" | "day_2" | "day_7"
       notification_kind:
         | "task_created"
         | "task_approved"
@@ -2510,6 +2568,7 @@ export const Constants = {
         "FENCE",
       ],
       inventory_source: ["MANUAL", "AI_ASSISTED"],
+      lifecycle_step: ["day_0", "day_2", "day_7"],
       notification_kind: [
         "task_created",
         "task_approved",
