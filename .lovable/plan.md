@@ -1,90 +1,63 @@
-# Phase 2 — Wire `auth-email-hook` to Supabase Auth (corrected)
+## Custom Branded Password Reset
 
-## Reality check (what changed since the original plan)
+Replace Supabase's default password reset email with our own branded flow using existing Resend infrastructure.
 
-Reading the current code + secrets + DB tells a different story than the prior plan assumed:
+### 1. Database (migration)
 
-1. `auth-email-hook` verifies signatures with **`LOVABLE_API_KEY`** using `@lovable.dev/webhooks-js` and parses payloads with `parseEmailWebhookPayload`. That is the **Lovable Email** webhook contract, not Supabase Auth's native "Send Email Hook" contract.
-2. `SEND_EMAIL_HOOK_SECRET` is **not** in project secrets.
-3. `email_send_log` shows **zero** auth-template rows ever (`signup`, `recovery`, `magiclink`, `invite`, `email_change`, `reauthentication`, `auth_emails` — all empty). Only manual `test-*` transactional sends exist. So Supabase Auth is currently sending emails through its **default** path (or not at all), not through our hook.
-4. Project policy (`mem://`, `EMAIL_POLICY.md`) forbids the Lovable Email tooling. So the fix is **not** "register this as a Lovable Email hook" — it's "make this function speak Supabase Standard Webhooks and register it in Supabase Auth."
+New table `password_reset_tokens`:
+- `id` uuid PK
+- `user_id` uuid (references auth user)
+- `token_hash` text (SHA-256 of raw token)
+- `expires_at` timestamptz (now + 1 hour)
+- `used_at` timestamptz (nullable)
+- `created_at` timestamptz
+- `requested_ip` text (nullable, for audit)
 
-That means Phase 2 is bigger than originally scoped. It's a code change, a secret, and a config switch — not just a smoke test.
+RLS: deny all to authenticated/anon. Only service role accesses it (via edge functions).
 
-## Scope of Phase 2
+Indexes: unique on `token_hash`, index on `user_id`.
 
-Make Supabase Auth's "Send Email Hook" call our `auth-email-hook`, have the function verify the request with the Standard Webhooks signature Supabase sends, then enqueue exactly as it does today.
+### 2. Edge Functions
 
-### Step 1 — Switch `auth-email-hook` to Standard Webhooks verification
+**`request-password-reset`** (public, no JWT)
+- Input: `{ email: string }`
+- Always returns 200 with generic message (prevent email enumeration)
+- If user exists in `auth.users`: generate 32-byte random token, store SHA-256 hash, enqueue branded `RecoveryEmail` via existing `process-email-queue` infrastructure with reset link `https://greengrasscrm.ro/reset-password?token=<raw>`
+- Rate limit: max 3 requests / email / hour (check token table)
 
-File: `supabase/functions/auth-email-hook/index.ts`
+**`confirm-password-reset`** (public, no JWT)
+- Input: `{ token: string, new_password: string }`
+- Validate password complexity (matches existing rules)
+- Hash token, look up by `token_hash`, verify not used and not expired
+- Use `supabase.auth.admin.updateUserById(user_id, { password })` 
+- Mark token `used_at = now()`
+- Invalidate any other unused tokens for that user
+- Return success
 
-- Drop the `@lovable.dev/webhooks-js` + `verifyWebhookRequest` + `parseEmailWebhookPayload` path for the main webhook handler.
-- **Keep** `npm:@lovable.dev/email-js` import only if still needed for the payload TypeScript shape; per `EMAIL_POLICY.md` it must not be removed blindly. Re-evaluate during implementation — if it is only used for the parser we are dropping, leave a comment explaining why we keep the import (policy), and stop calling it.
-- Add a Standard Webhooks verifier using `npm:standardwebhooks@1` (lightweight, no Lovable coupling):
-  - Read `Deno.env.get('SEND_EMAIL_HOOK_SECRET')` (a base64 secret prefixed `v1,whsec_…` as Supabase emits).
-  - Construct `new Webhook(secret)` and call `wh.verify(rawBody, headers)` where headers are `webhook-id`, `webhook-timestamp`, `webhook-signature`.
-  - On failure → 401 with no log row (matches current behavior).
-- Replace the Lovable payload shape with Supabase's:
-  ```ts
-  // Supabase Auth Send Email Hook payload
-  {
-    user: { id, email, ... },
-    email_data: {
-      token, token_hash, redirect_to, email_action_type, // signup | recovery | magiclink | invite | email_change | reauthentication
-      site_url, token_new, token_hash_new
-    }
-  }
-  ```
-  Map `email_action_type` → existing `EMAIL_TEMPLATES` keys (already aligned: `signup`, `recovery`, `magiclink`, `invite`, `email_change`, `reauthentication`).
-- Build `confirmationUrl` from `site_url + /auth/v1/verify?token=<token_hash>&type=<type>&redirect_to=<redirect_to>` per Supabase docs. For `reauthentication`, surface `token` (OTP) directly.
-- `run_id` is Lovable-specific and not in Supabase's payload — generate one locally (`crypto.randomUUID()`) for log correlation, since downstream `enqueue_email` already accepts whatever we pass.
-- Everything from line ~220 onward (template render → `email_send_log` pending insert → `enqueue_email` to `auth_emails` queue) stays unchanged.
+### 3. Frontend
 
-### Step 2 — Configure the secret + register the hook
+**`src/components/auth/AuthForgotStep.tsx`**: replace `supabase.auth.resetPasswordForEmail()` call with `supabase.functions.invoke('request-password-reset', { body: { email } })`. Keep existing UI/messaging.
 
-Two things that must happen outside code (I'll prep them and you click through):
+**`src/pages/ResetPassword.tsx`**: 
+- Detect `?token=` query param (custom flow) vs existing recovery session flow (legacy fallback)
+- If token param present: call `confirm-password-reset` edge function
+- If no token but recovery session exists: keep existing supabase.auth.updateUser path as fallback (so any in-flight legacy emails still work)
 
-a. Add runtime secret `SEND_EMAIL_HOOK_SECRET` (base64 value, format `v1,whsec_<base64>`). I'll request it via `add_secret` once you approve.
+### 4. Email Template
 
-b. In Cloud → Auth → Hooks → "Send Email Hook":
-   - Enable
-   - URL: `https://xmklfvepyiiiurokpvub.functions.supabase.co/auth-email-hook`
-   - Secret: paste the same value as `SEND_EMAIL_HOOK_SECRET`
-   - Save.
+Use the existing `RecoveryEmail` React-email template already in the codebase. No new template needed — just point our edge function at it via the existing email queue / `process-email-queue` dispatcher (Resend, sender `send.greengrasscrm.ro`).
 
-`supabase/config.toml` should also declare the hook so the setting is reproducible:
-```toml
-[auth.hook.send_email]
-enabled = true
-uri = "https://xmklfvepyiiiurokpvub.functions.supabase.co/auth-email-hook"
-secrets = "env(SEND_EMAIL_HOOK_SECRET)"
-```
+### Out of scope
 
-### Step 3 — Smoke test, end-to-end
+- No new email template
+- No changes to login, signup, or other auth flows
+- No removal of Supabase's built-in reset (it stays available but unused)
+- No UI changes beyond the two files above
 
-1. Sign up a fresh test address from the live preview.
-2. Within 30s, expect a row in `email_send_log` with `template_name='signup'`, status transitioning `pending → sent`.
-3. Resend tab in the connector dashboard shows the corresponding delivery.
-4. Click the link in the email → user lands on `/provider`, banner does not render (Phase 1 regression check).
-5. Trigger a password reset against the same user → row appears with `template_name='recovery'`.
-6. Replay the same webhook with a tampered signature via `supabase--curl_edge_functions` → expect 401, no log row.
+### Security notes
 
-### Step 4 — Fix the transient `useAuth must be used within AuthProvider` runtime error
-
-Surfaced in the current preview. Read `src/App.tsx` (`AppRoutes` mount order) and ensure `<AuthProvider>` wraps `AppRoutes` at all times — likely a hot-reload artifact, but worth a defensive assertion + a top-level `<AuthProvider>` placement audit. No behavior change for normal traffic.
-
-## Out of scope for Phase 2 (still queued for Phase 3+)
-
-- Subdomain split (`updates@…` for lifecycle).
-- DMARC promotion at the root.
-- Observability widgets on `/admin/emails`.
-- Deno tests for the hook (will land in Phase 5 alongside the new payload shape).
-
-## What I need from you
-
-- Approval to switch the hook from the Lovable Email contract to Supabase Standard Webhooks (Step 1) — this is a non-trivial change but it's the only way auth emails actually flow with our Resend-only policy.
-- The `SEND_EMAIL_HOOK_SECRET` value, OR approval to generate one and have you paste it into Supabase Auth → Hooks. I'll request it via `add_secret` once you say go.
-- 2 minutes after deploy to do the live signup smoke test together.
-
-Approve and I'll execute Steps 1, 2a (request the secret), 4, then pause for you to do 2b before we run Step 3.
+- Tokens stored only as SHA-256 hash (raw token never persisted)
+- 1-hour TTL, single-use, revoked on password change
+- Generic response on `request` prevents email enumeration
+- All token operations server-side via service role
+- Edge functions validate input with Zod
