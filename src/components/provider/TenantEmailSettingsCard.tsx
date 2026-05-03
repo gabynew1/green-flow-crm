@@ -23,6 +23,7 @@ interface EmailSettings {
   cat_visits_enabled: boolean;
   cat_contracts_offers_enabled: boolean;
   cat_inspections_enabled: boolean;
+  cat_onboarding_enabled: boolean;
 }
 
 const DEFAULTS: EmailSettings = {
@@ -36,6 +37,7 @@ const DEFAULTS: EmailSettings = {
   cat_visits_enabled: true,
   cat_contracts_offers_enabled: true,
   cat_inspections_enabled: true,
+  cat_onboarding_enabled: true,
 };
 
 export default function TenantEmailSettingsCard() {
@@ -82,6 +84,7 @@ export default function TenantEmailSettingsCard() {
           cat_visits_enabled: settings.cat_visits_enabled,
           cat_contracts_offers_enabled: settings.cat_contracts_offers_enabled,
           cat_inspections_enabled: settings.cat_inspections_enabled,
+          cat_onboarding_enabled: settings.cat_onboarding_enabled,
         } as any,
         { onConflict: "tenant_id" }
       );
@@ -233,6 +236,12 @@ export default function TenantEmailSettingsCard() {
               description="Inspection scheduling, reports, and follow-ups"
               checked={settings.cat_inspections_enabled}
               onChange={(v) => update("cat_inspections_enabled", v)}
+            />
+            <CategoryRow
+              label="Product tips &amp; onboarding"
+              description="Occasional tips during the first week to help your team get the most out of GreenGrass."
+              checked={settings.cat_onboarding_enabled}
+              onChange={(v) => update("cat_onboarding_enabled", v)}
             />
           </div>
         </div>
