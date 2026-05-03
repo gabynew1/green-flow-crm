@@ -1922,6 +1922,7 @@ export type Database = {
           cat_account_enabled: boolean
           cat_contracts_offers_enabled: boolean
           cat_inspections_enabled: boolean
+          cat_lifecycle_enabled: boolean
           cat_visits_enabled: boolean
           created_at: string
           email: string
@@ -1932,6 +1933,7 @@ export type Database = {
           cat_account_enabled?: boolean
           cat_contracts_offers_enabled?: boolean
           cat_inspections_enabled?: boolean
+          cat_lifecycle_enabled?: boolean
           cat_visits_enabled?: boolean
           created_at?: string
           email: string
@@ -1942,6 +1944,7 @@ export type Database = {
           cat_account_enabled?: boolean
           cat_contracts_offers_enabled?: boolean
           cat_inspections_enabled?: boolean
+          cat_lifecycle_enabled?: boolean
           cat_visits_enabled?: boolean
           created_at?: string
           email?: string
