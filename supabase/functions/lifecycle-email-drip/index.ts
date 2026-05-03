@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     }
 
     for (const c of candidates) {
-      const skip = evaluateSkip(c)
+      const skip = evaluateSkip(c, step)
       if (skip) {
         await logResult(supabase, c, step, null, skip)
         summary[step].skipped[skip] = (summary[step].skipped[skip] || 0) + 1
@@ -100,11 +100,15 @@ Deno.serve(async (req) => {
   })
 })
 
-function evaluateSkip(c: Candidate): SkipReason | null {
+function evaluateSkip(c: Candidate, step: Step): SkipReason | null {
   if (!c.email) return 'missing_email'
   if (!c.email_verified) return 'email_not_verified'
   if (c.tenant_paused) return 'tenant_paused'
   if (!c.cat_onboarding_enabled) return 'category_disabled'
+  // Day 2: skip if they already added a customer.
+  if (step === 'day_2' && c.customers_count > 0) return 'already_active'
+  // Day 7: skip if they're already getting value (>= 3 visits OR >= 1 offer).
+  if (step === 'day_7' && (c.visits_count >= 3 || c.offers_count >= 1)) return 'already_active'
   return null
 }
 
