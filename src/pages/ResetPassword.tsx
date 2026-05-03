@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { toast } from "sonner";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const customToken = searchParams.get("token");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -17,6 +19,12 @@ export default function ResetPassword() {
   const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
+    // Custom branded flow: presence of ?token=... is sufficient.
+    if (customToken) {
+      setIsRecovery(true);
+      return;
+    }
+
     // Check for recovery token in URL hash
     const hash = window.location.hash;
     if (hash.includes("type=recovery")) {
@@ -30,7 +38,7 @@ export default function ResetPassword() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [customToken]);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +46,29 @@ export default function ResetPassword() {
       toast.error("Passwords don't match");
       return;
     }
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
       return;
     }
     setIsLoading(true);
+
+    if (customToken) {
+      // Custom branded flow
+      const { data, error } = await supabase.functions.invoke('confirm-password-reset', {
+        body: { token: customToken, new_password: password },
+      });
+      setIsLoading(false);
+      if (error || (data && (data as any).error)) {
+        const msg = (data as any)?.error || error?.message || "Failed to update password.";
+        toast.error(msg);
+        return;
+      }
+      toast.success("Password updated successfully!");
+      navigate("/auth");
+      return;
+    }
+
+    // Legacy fallback: in-flight Supabase recovery sessions
     const { error } = await supabase.auth.updateUser({ password });
     setIsLoading(false);
     if (error) {

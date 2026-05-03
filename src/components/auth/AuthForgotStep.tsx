@@ -28,8 +28,8 @@ export default function AuthForgotStep({ initialEmail, onBack, onMessage }: Auth
 
     setIsLoading(true);
     try {
-      await supabase.auth.resetPasswordForEmail(trimmed, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      await supabase.functions.invoke('request-password-reset', {
+        body: { email: trimmed },
       });
       // SECURITY: Always show the same success message — never reveal
       // whether the email exists in the system.
