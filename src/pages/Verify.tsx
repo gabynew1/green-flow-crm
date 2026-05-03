@@ -17,9 +17,13 @@ export default function Verify() {
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
+      if (data.user?.email_confirmed_at) {
+        navigate("/provider", { replace: true });
+        return;
+      }
       if (data.user?.email) setEmail(data.user.email);
     })();
-  }, []);
+  }, [navigate]);
 
   // If Supabase magic link redirected here, the SDK auto-verifies via URL hash.
   useEffect(() => {
