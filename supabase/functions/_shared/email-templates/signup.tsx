@@ -19,6 +19,7 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const SignupEmail = ({
@@ -26,6 +27,7 @@ export const SignupEmail = ({
   siteUrl,
   recipient,
   confirmationUrl,
+  token,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -51,6 +53,15 @@ export const SignupEmail = ({
         <Button style={button} href={confirmationUrl}>
           Verify my email
         </Button>
+        {token ? (
+          <>
+            <Text style={altIntro}>Or enter this code in the app:</Text>
+            <Container style={codeBox}>
+              <Text style={codeText}>{token}</Text>
+            </Container>
+            <Text style={codeHint}>This code expires in 1 hour and can only be used once.</Text>
+          </>
+        ) : null}
         <Text style={footer}>
           If you didn&apos;t create an account, you can safely ignore this message.
         </Text>
@@ -127,3 +138,36 @@ const button = {
 }
 
 const footer = { fontSize: '12px', color: 'hsl(160, 10%, 45%)', margin: '28px 0 0' }
+
+const altIntro = {
+  fontSize: '13px',
+  color: 'hsl(160, 10%, 45%)',
+  margin: '24px 0 8px',
+  textAlign: 'center' as const,
+}
+
+const codeBox = {
+  margin: '0 auto 8px',
+  padding: '14px 16px',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px',
+  border: '1px solid hsl(140, 15%, 89%)',
+  textAlign: 'center' as const,
+  maxWidth: '260px',
+}
+
+const codeText = {
+  margin: '0',
+  color: 'hsl(160, 30%, 15%)',
+  fontSize: '28px',
+  fontWeight: '700' as const,
+  letterSpacing: '0.4em',
+  fontFamily: "'SFMono-Regular', Menlo, Consolas, monospace",
+}
+
+const codeHint = {
+  fontSize: '12px',
+  color: 'hsl(160, 10%, 45%)',
+  margin: '0 0 12px',
+  textAlign: 'center' as const,
+}
