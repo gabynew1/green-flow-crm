@@ -2027,6 +2027,52 @@ export type Database = {
         Args: { _body: string; _task_id: string }
         Returns: string
       }
+      admin_discard_dlq: {
+        Args: { p_msg_id: number; p_queue: string }
+        Returns: Json
+      }
+      admin_email_activity_stats: {
+        Args: { p_since?: string; p_until?: string }
+        Returns: Json
+      }
+      admin_email_health: { Args: never; Returns: Json }
+      admin_list_dlq: {
+        Args: { p_limit?: number; p_queue: string }
+        Returns: {
+          enqueued_at: string
+          message: Json
+          msg_id: number
+          read_ct: number
+          vt: string
+        }[]
+      }
+      admin_list_email_activity: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_recipient?: string
+          p_since?: string
+          p_status?: string
+          p_template?: string
+          p_until?: string
+        }
+        Returns: {
+          created_at: string
+          error_message: string
+          message_id: string
+          metadata: Json
+          recipient_email: string
+          status: string
+          template_data: Json
+          template_name: string
+          total_count: number
+        }[]
+      }
+      admin_replay_dlq: {
+        Args: { p_msg_id: number; p_queue: string }
+        Returns: Json
+      }
+      admin_resend_email: { Args: { p_message_id: string }; Returns: Json }
       apply_tier_limits: {
         Args: { _tenant_id: string; _tier: string }
         Returns: undefined
