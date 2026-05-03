@@ -12,7 +12,7 @@
 - ✅ **DO** edit auth email templates under `_shared/email-templates/` and redeploy `auth-email-hook`.
 - ❌ **DO NOT** call any `email_domain--*` tool. They are for Lovable Emails, which this project does NOT use.
 - ❌ **DO NOT** create new edge functions to send emails. There is exactly one transactional sender (`send-transactional-email`) and one auth hook (`auth-email-hook`).
-- ❌ **DO NOT** "clean up" the `npm:@lovable.dev/email-js` import in `auth-email-hook/index.ts`. It is used to PARSE the Supabase auth webhook payload — not to send. Removing it breaks auth emails.
+- ❌ **DO NOT** reintroduce `@lovable.dev/email-js` or `@lovable.dev/webhooks-js` into `auth-email-hook/index.ts`. The hook is wired to Supabase's native **Send Email Hook** and verifies signatures with `SEND_EMAIL_HOOK_SECRET` via `standardwebhooks` (Standard Webhooks spec). The Lovable webhook contract does not apply on this project.
 - ❌ **DO NOT** reference the stale Lovable email domain `notify.greengrasscrm.ro`. The verified Resend domain is `send.greengrasscrm.ro`.
 - ❌ **DO NOT** reintroduce the legacy DLQ string `"Emails disabled for this project"`. It is misleading — Resend 403 has nothing to do with a Lovable kill switch.
 
