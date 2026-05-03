@@ -52,6 +52,7 @@ import TenantManagement from "./pages/admin/TenantManagement";
 import GlobalUserManagement from "./pages/admin/GlobalUserManagement";
 import AuditCompliance from "./pages/admin/AuditCompliance";
 import SecurityMonitor from "./pages/admin/SecurityMonitor";
+import EmailOperations from "./pages/admin/EmailOperations";
 import ResetPassword from "./pages/ResetPassword";
 import Unsubscribe from "./pages/Unsubscribe";
 import Pricing from "./pages/Pricing";
@@ -127,6 +128,7 @@ function AppRoutes(): JSX.Element {
           <Route path="users" element={<GlobalUserManagement />} />
           <Route path="audit" element={<AuditCompliance />} />
           <Route path="security" element={<SecurityMonitor />} />
+          <Route path="emails" element={<EmailOperations />} />
           <Route path="invites" element={<AdminInvites />} />
           <Route path="onboard" element={<AdminOnboard />} />
         </Route>
