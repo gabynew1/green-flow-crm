@@ -323,9 +323,13 @@ Deno.serve(async (req) => {
         }
 
         if (isForbidden(error)) {
-          await moveToDlq(supabase, queue, msg, 'Emails disabled for this project')
+          // 403 from Resend = API key not scoped to send.greengrasscrm.ro,
+          // OR the domain is not verified in Resend. NOT a Lovable kill switch.
+          // See supabase/functions/_shared/EMAIL_POLICY.md (Failure mode quick reference).
+          const reason = `Resend 403 (domain/API-key scope): ${errorMsg.slice(0, 800)}`
+          await moveToDlq(supabase, queue, msg, reason)
           return new Response(
-            JSON.stringify({ processed: totalProcessed, stopped: 'emails_disabled' }),
+            JSON.stringify({ processed: totalProcessed, stopped: 'resend_forbidden' }),
             { headers: { 'Content-Type': 'application/json' } }
           )
         }
