@@ -8,6 +8,7 @@ import { Plus, ClipboardCheck, FileOutput, LayoutDashboard, Sparkles } from "luc
 import CreateAdHocVisitDialog from "./CreateAdHocVisitDialog";
 import { TrialBanner } from "@/components/TrialBanner";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { VerifyEmailBanner } from "./VerifyEmailBanner";
 
 export function ProviderLayout() {
   const { profile } = useAuth();
@@ -20,6 +21,7 @@ export function ProviderLayout() {
         <ProviderSidebar />
         <div className="flex-1 flex flex-col pb-20 md:pb-0">
           <TrialBanner />
+          <VerifyEmailBanner />
           <header className="h-14 flex items-center border-b px-4 bg-card sticky top-0 z-10">
             <SidebarTrigger className="mr-4" />
             <span className="text-sm font-medium text-muted-foreground">{workspaceLabel}</span>
