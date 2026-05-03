@@ -162,6 +162,8 @@ function AppRoutes(): JSX.Element {
         <Route path="tasks" element={<TasksPage />} />
       </Route>
 
+      <Route path="/verify" element={<Verify />} />
+
       {/* Client routes — block providers */}
       <Route path="/client" element={
         isProvider && !isClient ? <Navigate to="/provider" replace /> : <ClientLayout />
