@@ -48,6 +48,15 @@ import { template as connectionApproved } from './connection-approved.tsx'
 import { template as onboardingDay0 } from './onboarding-day-0.tsx'
 import { template as onboardingDay2 } from './onboarding-day-2.tsx'
 import { template as onboardingDay7 } from './onboarding-day-7.tsx'
+import {
+  prelock as lifecyclePrelock,
+  locked as lifecycleLocked,
+  d30 as lifecycleD30,
+  d90 as lifecycleD90,
+  d150 as lifecycleD150,
+  final5bd as lifecycleFinal,
+  deleted as lifecycleDeleted,
+} from './lifecycle-notice.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-notification': testNotification,
@@ -62,4 +71,11 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'onboarding-day-0': onboardingDay0,
   'onboarding-day-2': onboardingDay2,
   'onboarding-day-7': onboardingDay7,
+  'lifecycle-prelock': lifecyclePrelock,
+  'lifecycle-locked': lifecycleLocked,
+  'lifecycle-d30': lifecycleD30,
+  'lifecycle-d90': lifecycleD90,
+  'lifecycle-d150': lifecycleD150,
+  'lifecycle-final5bd': lifecycleFinal,
+  'lifecycle-deleted': lifecycleDeleted,
 }
