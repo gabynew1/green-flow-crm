@@ -34,6 +34,13 @@ export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
   'onboarding-day-0':      'lifecycle',
   'onboarding-day-2':      'lifecycle',
   'onboarding-day-7':      'lifecycle',
+  'lifecycle-prelock':     'lifecycle',
+  'lifecycle-locked':      'lifecycle',
+  'lifecycle-d30':         'lifecycle',
+  'lifecycle-d90':         'lifecycle',
+  'lifecycle-d150':        'lifecycle',
+  'lifecycle-final5bd':    'lifecycle',
+  'lifecycle-deleted':     'lifecycle',
 }
 
 import { template as testNotification } from './test-notification.tsx'
