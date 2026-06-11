@@ -38,6 +38,8 @@ interface AuthContextType {
   isClient: boolean;
   isSuperAdmin: boolean;
   tenantId: string | null;
+  isLocked: boolean;
+  lockedSubject: { kind: 'tenant' | 'client'; status: string; scheduled_delete_at: string | null } | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [lockedSubject, setLockedSubject] = useState<{ kind: 'tenant' | 'client'; status: string; scheduled_delete_at: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchRoles = async (userId: string) => {
@@ -81,6 +84,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsSuperAdmin(!!data);
   };
 
+  const LOCKED_STATUSES = ['soft_locked', 'flagged_for_deletion'];
+
+  const touchAndCheckLock = async () => {
+    try {
+      await supabase.functions.invoke('lifecycle-touch-login', { body: {} });
+    } catch (e) {
+      console.warn('touch-login failed', e);
+    }
+    // Re-evaluate lock for current profile
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('tenant_id,customer_id')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+      .maybeSingle();
+    if (prof?.tenant_id) {
+      const { data: t } = await supabase.from('tenants')
+        .select('status,scheduled_delete_at').eq('id', prof.tenant_id).maybeSingle();
+      if (t && LOCKED_STATUSES.includes(t.status)) {
+        setLockedSubject({ kind: 'tenant', status: t.status, scheduled_delete_at: t.scheduled_delete_at });
+        return;
+      }
+    }
+    if (prof?.customer_id) {
+      const { data: c } = await supabase.from('customers')
+        .select('status,scheduled_delete_at').eq('id', prof.customer_id).maybeSingle();
+      if (c && LOCKED_STATUSES.includes(c.status)) {
+        setLockedSubject({ kind: 'client', status: c.status, scheduled_delete_at: c.scheduled_delete_at });
+        return;
+      }
+    }
+    setLockedSubject(null);
+  };
+
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
@@ -95,11 +131,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fetchRoles(session.user.id);
             fetchProfile(session.user.id);
             fetchSuperAdmin(session.user.id);
+            if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') {
+              touchAndCheckLock();
+            }
           }, 0);
         } else {
           setRoles([]);
           setProfile(null);
           setIsSuperAdmin(false);
+          setLockedSubject(null);
         }
         setIsLoading(false);
       }
@@ -112,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchRoles(session.user.id);
         fetchProfile(session.user.id);
         fetchSuperAdmin(session.user.id);
+        touchAndCheckLock();
       }
       setIsLoading(false);
     });
@@ -137,14 +178,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setRoles([]);
     setProfile(null);
+    setLockedSubject(null);
   };
 
   const isProvider = roles.some((r) => r === "PROVIDER_ADMIN" || r === "PROVIDER_STAFF");
   const isClient = roles.includes("CLIENT_USER");
   const tenantId = profile?.tenant_id ?? null;
+  const isLocked = !!lockedSubject;
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLoading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLocked, lockedSubject, isLoading, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -162,20 +162,34 @@ export default function TenantManagement() {
             return;
         }
         setIsProcessing(true);
-        const { error } = await supabase
-            .from("tenants")
-            .update({ status: "decommissioned" } as any)
-            .eq("id", decommissionTenant.id);
+        const { data, error } = await supabase.functions.invoke('tenant-decommission', {
+            body: { tenant_id: decommissionTenant.id, reason: 'manually_decommissioned' },
+        });
 
         if (error) {
             toast.error(error.message);
         } else {
-            toast.success(`${decommissionTenant.name} has been decommissioned`);
+            const sched = (data as any)?.scheduled_delete_at;
+            toast.success(
+                sched
+                  ? `${decommissionTenant.name} locked. Scheduled deletion: ${format(new Date(sched), "MMM d, yyyy")}`
+                  : `${decommissionTenant.name} has been locked`
+            );
             refetch();
         }
         setIsProcessing(false);
         setDecommissionTenant(null);
         setDecommissionConfirm("");
+    };
+
+    const handleReactivate = async (tenant: TenantRow) => {
+        setIsProcessing(true);
+        const { error } = await supabase.functions.invoke('tenant-reactivate', {
+            body: { tenant_id: tenant.id },
+        });
+        if (error) toast.error(error.message);
+        else { toast.success(`${tenant.name} reactivated`); refetch(); }
+        setIsProcessing(false);
     };
 
     const getTierBadge = (tier: string) => {
@@ -198,6 +212,9 @@ export default function TenantManagement() {
             case "suspended": return <Badge variant="destructive">Suspended</Badge>;
             case "trial": return <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">Trial</Badge>;
             case "decommissioned": return <Badge variant="outline" className="text-gray-500 border-gray-200 bg-gray-50">Decommissioned</Badge>;
+            case "inactivity_warned": return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Inactivity warned</Badge>;
+            case "soft_locked": return <Badge variant="outline" className="text-orange-700 border-orange-300 bg-orange-50">Soft-locked</Badge>;
+            case "flagged_for_deletion": return <Badge variant="destructive">Flagged for deletion</Badge>;
             default: return <Badge variant="outline">{status}</Badge>;
         }
     };
@@ -356,12 +373,18 @@ export default function TenantManagement() {
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="text-destructive font-semibold"
-                                                disabled={tenant.status === 'decommissioned'}
+                                                disabled={['soft_locked','flagged_for_deletion','decommissioned'].includes(tenant.status)}
                                                 onClick={() => setDecommissionTenant(tenant)}
                                             >
                                                 <Shield className="h-4 w-4 mr-2" />
                                                 Decommission Organization
                                             </DropdownMenuItem>
+                                            {['inactivity_warned','soft_locked','flagged_for_deletion'].includes(tenant.status) && (
+                                                <DropdownMenuItem onClick={() => handleReactivate(tenant)}>
+                                                    <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                                                    Reactivate
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                     </div>

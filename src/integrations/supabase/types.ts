@@ -2346,6 +2346,14 @@ export type Database = {
       get_user_customer_id: { Args: { _user_id: string }; Returns: string }
       get_user_email: { Args: { _user_id: string }; Returns: string }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
+      hard_delete_customer: {
+        Args: { _customer_id: string; _reason?: string; _triggered_by?: string }
+        Returns: Json
+      }
+      hard_delete_tenant: {
+        Args: { _reason?: string; _tenant_id: string; _triggered_by?: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2435,6 +2443,8 @@ export type Database = {
           read_ct: number
         }[]
       }
+      touch_customer_client_login: { Args: { _user_id: string }; Returns: Json }
+      touch_tenant_admin_login: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
       action_task_event_type:

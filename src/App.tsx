@@ -60,12 +60,13 @@ import TasksPage from "./pages/tasks/TasksPage";
 import EmailWebview from "./pages/EmailWebview";
 import ClientEmailHistory from "./pages/client/ClientEmailHistory";
 import Verify from "./pages/Verify";
+import AccountLocked from "./pages/AccountLocked";
 
 const queryClient = new QueryClient();
 
 
 function AppRoutes(): JSX.Element {
-  const { user, isProvider, isClient, isSuperAdmin, isLoading, signOut, profile } = useAuth();
+  const { user, isProvider, isClient, isSuperAdmin, isLoading, signOut, profile, isLocked } = useAuth();
 
   if (isLoading) {
     return (
@@ -97,6 +98,16 @@ function AppRoutes(): JSX.Element {
       <Routes>
         <Route path="/change-password" element={<ChangePassword />} />
         <Route path="*" element={<Navigate to="/change-password" replace />} />
+      </Routes>
+    );
+  }
+
+  // Account locked (tenant or client) → block access, super admins bypass
+  if (isLocked && !isSuperAdmin) {
+    return (
+      <Routes>
+        <Route path="/account-locked" element={<AccountLocked />} />
+        <Route path="*" element={<Navigate to="/account-locked" replace />} />
       </Routes>
     );
   }

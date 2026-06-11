@@ -1,5 +1,9 @@
 # Tenant + Client Lifecycle: Decommission, Inactivity, Auto-Reactivation, Deletion
 
+## Status
+- ✅ Phase 1 — DB foundation (status whitelist, lock metadata, business calendar, EU holidays).
+- ✅ Phase 2 — Hard-delete RPCs, touch-login RPCs, edge functions (`lifecycle-cron`, `lifecycle-touch-login`, `tenant-decommission`, `tenant-reactivate`), 7 lifecycle email templates, hourly cron scheduled, `useAuth` integration, `/account-locked` page, fixed Super Admin "Decommission Organization" action.
+- ⏳ Phase 3 — Client decommission UI (`/admin/clients`), combined `/admin/lifecycle` aging view, deletion audit screen, in-app `lifecycle_notifications` queue.
 ## Goal
 
 Cut storage cost by purging unused **tenants AND client accounts**, while giving owners fair warning, an easy way to come back, and only contacting them on business days.
