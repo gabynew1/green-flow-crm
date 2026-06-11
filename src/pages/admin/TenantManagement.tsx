@@ -373,12 +373,18 @@ export default function TenantManagement() {
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="text-destructive font-semibold"
-                                                disabled={tenant.status === 'decommissioned'}
+                                                disabled={['soft_locked','flagged_for_deletion','decommissioned'].includes(tenant.status)}
                                                 onClick={() => setDecommissionTenant(tenant)}
                                             >
                                                 <Shield className="h-4 w-4 mr-2" />
                                                 Decommission Organization
                                             </DropdownMenuItem>
+                                            {['inactivity_warned','soft_locked','flagged_for_deletion'].includes(tenant.status) && (
+                                                <DropdownMenuItem onClick={() => handleReactivate(tenant)}>
+                                                    <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                                                    Reactivate
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                     </div>
