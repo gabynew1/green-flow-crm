@@ -15,8 +15,13 @@ const WARN_TO_LOCK_BUSINESS_DAYS = 5
 const LOCK_TO_FLAG_DAYS = 150
 const LOCK_TO_DELETE_DAYS = 180
 const FINAL_WARN_BUSINESS_DAYS = 5
+const MAX_EMAILS_PER_RUN = 50
 
 type Step = 'prelock' | 'locked' | 'd30' | 'd90' | 'd150' | 'final5bd' | 'deleted'
+
+// Mutable per-run send budget so a holiday backlog can't blast Resend.
+const runState = { emailsSent: 0 }
+const canSendMore = () => runState.emailsSent < MAX_EMAILS_PER_RUN
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -26,6 +31,12 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
+  // Safety net: sync auth.users.last_sign_in_at into tenants/customers
+  // so non-web sign-ins still count as activity.
+  const { data: syncRes } = await svc.rpc('sync_lifecycle_login_timestamps')
+
+  runState.emailsSent = 0
+
   const { data: nowBiz } = await svc.rpc('is_business_moment', { _at: new Date().toISOString() })
   const businessNow = !!nowBiz
 
@@ -33,6 +44,9 @@ Deno.serve(async (req) => {
     tenants: await processTenants(svc, businessNow),
     customers: await processCustomers(svc, businessNow),
     business_moment: businessNow,
+    login_sync: syncRes ?? null,
+    emails_sent: runState.emailsSent,
+    email_cap: MAX_EMAILS_PER_RUN,
   }
 
   return new Response(JSON.stringify({ ok: true, summary }), {
@@ -65,6 +79,7 @@ async function processTenants(svc: SupabaseClient, businessNow: boolean) {
   }
 
   // 2. inactivity_warned → soft_locked after 5 business days
+  //    Also retry prelock email if first transition happened outside business hours.
   const { data: warned } = await svc
     .from('tenants')
     .select('id,name,updated_at,last_admin_login_at')
@@ -73,10 +88,16 @@ async function processTenants(svc: SupabaseClient, businessNow: boolean) {
 
   for (const t of warned ?? []) {
     const since = t.updated_at ?? new Date(Date.now() - 6 * DAY_MS).toISOString()
+    // Idempotent: only fires if no prelock row exists for this cycle (warned_at = updated_at).
+    if (businessNow) {
+      const sent = await sendStep(svc, 'tenant', t.id, t.name, 'prelock', since)
+      if (sent) out.emails++
+    }
     const businessDays = await businessDaysBetween(svc, since, new Date().toISOString())
     if (businessDays < WARN_TO_LOCK_BUSINESS_DAYS) continue
     const lockedAt = new Date()
-    const scheduled = new Date(lockedAt.getTime() + LOCK_TO_DELETE_DAYS * DAY_MS)
+    const rawScheduled = new Date(lockedAt.getTime() + LOCK_TO_DELETE_DAYS * DAY_MS)
+    const scheduled = await snapToBusinessMoment(svc, rawScheduled)
     await svc.from('tenants').update({
       status: 'soft_locked',
       locked_at: lockedAt.toISOString(),
@@ -190,10 +211,15 @@ async function processCustomers(svc: SupabaseClient, businessNow: boolean) {
 
   for (const c of warned ?? []) {
     const since = c.updated_at ?? new Date(Date.now() - 6 * DAY_MS).toISOString()
+    if (businessNow) {
+      const sent = await sendStep(svc, 'client', c.id, c.name, 'prelock', since)
+      if (sent) out.emails++
+    }
     const bd = await businessDaysBetween(svc, since, new Date().toISOString())
     if (bd < WARN_TO_LOCK_BUSINESS_DAYS) continue
     const lockedAt = new Date()
-    const scheduled = new Date(lockedAt.getTime() + LOCK_TO_DELETE_DAYS * DAY_MS)
+    const rawScheduled = new Date(lockedAt.getTime() + LOCK_TO_DELETE_DAYS * DAY_MS)
+    const scheduled = await snapToBusinessMoment(svc, rawScheduled)
     await svc.from('customers').update({
       status: 'soft_locked',
       locked_at: lockedAt.toISOString(),
@@ -321,6 +347,7 @@ async function sendDirect(
   email: string,
   fullName: string | null,
 ): Promise<boolean> {
+  if (!canSendMore()) return false
   // Idempotency check
   const { data: existing } = await svc
     .from('lifecycle_email_log_v2')
@@ -376,5 +403,17 @@ async function sendDirect(
     recipient_user_id: userId,
     recipient_email: email,
   })
+  runState.emailsSent++
   return true
+}
+
+/**
+ * Ensures `scheduled_delete_at` lands on a Mon–Fri business moment so the
+ * lifecycle-cron actually runs at that time. Avoids Sundays, holidays, and
+ * the Aug/Dec shutdown windows.
+ */
+async function snapToBusinessMoment(svc: SupabaseClient, at: Date): Promise<Date> {
+  const { data, error } = await svc.rpc('next_business_moment', { _from: at.toISOString() })
+  if (error || !data) return at
+  return new Date(data as string)
 }
