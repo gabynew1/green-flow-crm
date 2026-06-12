@@ -61,6 +61,7 @@ import EmailWebview from "./pages/EmailWebview";
 import ClientEmailHistory from "./pages/client/ClientEmailHistory";
 import Verify from "./pages/Verify";
 import AccountLocked from "./pages/AccountLocked";
+import LifecycleDashboard from "./pages/admin/LifecycleDashboard";
 
 const queryClient = new QueryClient();
 
@@ -144,6 +145,7 @@ function AppRoutes(): JSX.Element {
           <Route path="emails" element={<EmailOperations />} />
           <Route path="invites" element={<AdminInvites />} />
           <Route path="onboard" element={<AdminOnboard />} />
+          <Route path="lifecycle" element={<LifecycleDashboard />} />
         </Route>
       )}
 
