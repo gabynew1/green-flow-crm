@@ -11,12 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins, KeyRound } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
 import TenantEmailSettingsCard from "@/components/provider/TenantEmailSettingsCard";
 import EmailPreferencesCard from "@/components/EmailPreferencesCard";
 import LanguageRegionCard from "@/components/LanguageRegionCard";
+import ZonesSettings from "@/components/provider/ZonesSettings";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
