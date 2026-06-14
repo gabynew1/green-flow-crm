@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
 import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, format, isSameDay, isToday, parseISO } from "date-fns";
@@ -42,6 +42,7 @@ interface Team {
 
 export default function ServiceVisits() {
   const { tenantId } = useAuth();
+  const navigate = useNavigate();
   const { isWorkday, getNonWorkdayLabel } = useWorkdays(tenantId);
   const [orders, setOrders] = useState<any[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -331,10 +332,12 @@ export default function ServiceVisits() {
               const teamColor = o.team_id ? teamColorMap[o.team_id] : undefined;
               const timeSlot = formatTimeSlot(o.scheduled_start_time, o.scheduled_end_time);
               return (
-                <Link key={o.id} to={`/provider/visits/${o.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer" style={teamFilter === "ALL" && teamColor ? { borderLeftColor: teamColor, borderLeftWidth: 4 } : {}}>
-                    <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                <Card key={o.id} className="hover:border-primary/50 transition-colors" style={teamFilter === "ALL" && teamColor ? { borderLeftColor: teamColor, borderLeftWidth: 4 } : {}}>
+                  <CardContent className="pt-4 pb-4 flex items-center justify-between">
+                    <div
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                      onClick={() => navigate(`/provider/visits/${o.id}`)}
+                    >
                         {teamFilter === "ALL" && teamColor && (
                           <div className="h-6 w-6 rounded-full shrink-0" style={{ backgroundColor: teamColor }} title={(o.teams as any)?.name} />
                         )}
@@ -353,18 +356,17 @@ export default function ServiceVisits() {
                             {` · ${o.period_label || o.scheduled_date}`}
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
                         <Badge className={statusColor[o.status]} variant="secondary">
                           {statusLabels[o.status] || o.status.replace(/_/g, " ")}
                         </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             }) : (
               <p className="text-muted-foreground text-center py-4 text-sm">No visits for this day</p>
@@ -500,10 +502,12 @@ export default function ServiceVisits() {
               const teamColor = o.team_id ? teamColorMap[o.team_id] : undefined;
               const timeSlot = formatTimeSlot(o.scheduled_start_time, o.scheduled_end_time);
               return (
-                <Link key={o.id} to={`/provider/visits/${o.id}`}>
-                  <Card className="hover:border-primary/50 transition-colors cursor-pointer" style={teamFilter === "ALL" && teamColor ? { borderLeftColor: teamColor, borderLeftWidth: 4 } : {}}>
-                    <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                <Card key={o.id} className="hover:border-primary/50 transition-colors" style={teamFilter === "ALL" && teamColor ? { borderLeftColor: teamColor, borderLeftWidth: 4 } : {}}>
+                  <CardContent className="pt-4 pb-4 flex items-center justify-between">
+                    <div
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                      onClick={() => navigate(`/provider/visits/${o.id}`)}
+                    >
                         {teamFilter === "ALL" && teamColor && (
                           <div className="h-5 w-5 rounded-full shrink-0" style={{ backgroundColor: teamColor }} />
                         )}
@@ -522,16 +526,15 @@ export default function ServiceVisits() {
                             {` · ${o.period_label || o.scheduled_date}`}
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
                         <Badge className={statusColor[o.status]} variant="secondary">{statusLabels[o.status] || o.status.replace(/_/g, " ")}</Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
             {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No service visits found</p>}
