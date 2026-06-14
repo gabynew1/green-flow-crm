@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Leaf, Info, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 import AuthEmailStep from "@/components/auth/AuthEmailStep";
 import AuthPasswordStep from "@/components/auth/AuthPasswordStep";
@@ -20,6 +21,7 @@ type AuthStep = "email" | "login" | "forgot";
 /* ---------- Main Component ---------- */
 export default function Auth() {
   const { signIn } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { checkEmail, isChecking, error: emailError, reset: resetEmailCheck } = useEmailCheck();
@@ -175,7 +177,7 @@ export default function Auth() {
             <Leaf className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl">GreenCRM</CardTitle>
-          <CardDescription>Landscaping & Garden Services</CardDescription>
+          <CardDescription>{t("auth:tagline")}</CardDescription>
           {inviteInfo && (
             <Badge variant="secondary" className="mt-2">
               Provider Invite: {inviteInfo.tenant_name || "New Tenant"} ({inviteInfo.role})
