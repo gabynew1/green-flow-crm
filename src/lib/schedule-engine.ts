@@ -46,6 +46,15 @@ export interface ExistingVisitMap {
   [key: string]: number;
 }
 
+/**
+ * Maps "YYYY-MM-DD_teamId" → Set of zoneIds already booked that day.
+ * IN-MEMORY ONLY. Never serialize, never store in React Query cache,
+ * never send to Supabase. Sets are not JSON-serializable.
+ */
+export interface ZoneDateMap {
+  [key: string]: Set<string>;
+}
+
 function getSlotEndTime(startTime: string): string {
   const [h, m] = startTime.split(":").map(Number);
   return `${String(h + 2).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
