@@ -455,6 +455,7 @@ export default function ContractDetail() {
             )}
             {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("SENT_TO_CLIENT")}><Send className="h-3 w-3 mr-1" /> Send to Client</Button>}
             {contract.status === "SENT_TO_CLIENT" && <Button size="sm" onClick={() => updateStatus("SIGNED")}><Check className="h-3 w-3 mr-1" /> Mark Signed</Button>}
+            {contract.status === "SENT_TO_CLIENT" && <Button size="sm" variant="outline" onClick={resendContractEmail}><Send className="h-3 w-3 mr-1" /> Resend Notification</Button>}
             {contract.status === "SIGNED" && (
               <Button size="sm" onClick={handleActivate} disabled={activating}>
                 {activating ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Scheduling…</> : <><Play className="h-3 w-3 mr-1" /> Activate</>}
