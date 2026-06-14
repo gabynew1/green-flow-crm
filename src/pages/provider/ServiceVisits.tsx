@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, format, isSameDay, isToday, parseISO } from "date-fns";
@@ -49,7 +49,8 @@ export default function ServiceVisits() {
   const [teamFilter, setTeamFilter] = useState("ALL");
   const [createOpen, setCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
-  const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
+  const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("month");
+  const [cameFromMonth, setCameFromMonth] = useState(false);
   const [propertyFilter, setPropertyFilter] = useState<string>("ALL");
   const [selectedDate, setSelectedDate] = useState(new Date());
 
@@ -144,6 +145,35 @@ export default function ServiceVisits() {
     return `${start.slice(0, 5)}–${end?.slice(0, 5) || ""}`;
   };
 
+  // Unified nav strip helpers
+  const setView = (v: "day" | "week" | "month") => {
+    setCameFromMonth(false);
+    setCalendarView(v);
+  };
+  const stepBack = () => {
+    if (calendarView === "day") setSelectedDate(d => addDays(d, -1));
+    else if (calendarView === "week") setSelectedDate(d => addWeeks(d, -1));
+    else setSelectedDate(d => addMonths(d, -1));
+  };
+  const stepForward = () => {
+    if (calendarView === "day") setSelectedDate(d => addDays(d, 1));
+    else if (calendarView === "week") setSelectedDate(d => addWeeks(d, 1));
+    else setSelectedDate(d => addMonths(d, 1));
+  };
+  const zoomOut = () => {
+    if (calendarView === "day") setView("week");
+    else if (calendarView === "week") setView("month");
+  };
+  const zoomIn = () => {
+    if (calendarView === "month") setView("week");
+    else if (calendarView === "week") setView("day");
+  };
+  const periodLabel = calendarView === "day"
+    ? format(selectedDate, "EEEE, MMMM d, yyyy")
+    : calendarView === "week"
+      ? `${format(weekStart, "MMM d")} – ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
+      : format(selectedDate, "MMMM yyyy");
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -181,6 +211,7 @@ export default function ServiceVisits() {
           </Select>
           {viewMode === "calendar" && (
             <Select value={calendarView} onValueChange={(v) => setCalendarView(v as any)}>
+            <Select value={calendarView} onValueChange={(v) => setView(v as any)}>
               <SelectTrigger className="w-[110px]">
                 <SelectValue />
               </SelectTrigger>
