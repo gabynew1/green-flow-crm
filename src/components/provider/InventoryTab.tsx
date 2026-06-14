@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trees, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { useInventoryCategoryTranslator } from "@/hooks/useCatalogTranslation";
 
 const CATEGORIES = ["TREE", "LAWN", "SHRUB", "FLOWER_BED", "HEDGE", "IRRIGATION", "PAVING", "PLANTER", "LIGHTING", "FENCE", "OTHER"] as const;
 
@@ -24,6 +26,8 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
   const [inventory, setInventory] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const { t } = useTranslation("provider");
+  const tCategory = useInventoryCategoryTranslator();
 
   useEffect(() => { load(); }, [propertyId]);
 
@@ -55,7 +59,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
       source: "MANUAL" as const,
     }]);
     if (error) { toast.error(error.message); return; }
-    toast.success("Item added!");
+    toast.success(t("inventory.added"));
     setAddOpen(false);
     load();
   };
@@ -84,34 +88,34 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
 
   const getHealthBadge = (updatedAt: string) => {
     const daysSinceUpdate = differenceInDays(new Date(), new Date(updatedAt));
-    if (daysSinceUpdate < 30) return <Badge className="bg-green-500/10 text-green-600 border-green-500/20" variant="outline">Healthy</Badge>;
-    if (daysSinceUpdate < 90) return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20" variant="outline">Stable</Badge>;
-    return <Badge className="bg-rose-500/10 text-rose-600 border-rose-500/20" variant="outline">Attention</Badge>;
+    if (daysSinceUpdate < 30) return <Badge className="bg-green-500/10 text-green-600 border-green-500/20" variant="outline">{t("inventory.healthLabels.healthy")}</Badge>;
+    if (daysSinceUpdate < 90) return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20" variant="outline">{t("inventory.healthLabels.stable")}</Badge>;
+    return <Badge className="bg-rose-500/10 text-rose-600 border-rose-500/20" variant="outline">{t("inventory.healthLabels.attention")}</Badge>;
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2"><Trees className="h-4 w-4" /> Green Inventory</h3>
+        <h3 className="font-semibold flex items-center gap-2"><Trees className="h-4 w-4" /> {t("inventory.title")}</h3>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Item</Button>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> {t("inventory.addItem")}</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Add Inventory Item</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{t("inventory.addItem")}</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="space-y-2">
-                <Label>Category</Label>
+                <Label>{t("inventory.category")}</Label>
                 <Select name="category" defaultValue="OTHER">
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c.replace("_", " ")}</SelectItem>)}
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{tCategory(c)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Name *</Label><Input name="name" required placeholder="e.g. Oak tree, Front lawn" /></div>
+              <div className="space-y-2"><Label>{t("inventory.name")} *</Label><Input name="name" required placeholder="e.g. Oak tree, Front lawn" /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" defaultValue="1" /></div>
+                <div className="space-y-2"><Label>{t("inventory.quantity")}</Label><Input name="quantity" type="number" defaultValue="1" /></div>
                 <div className="space-y-2">
                   <Label>Unit</Label>
                   <Select name="unit" defaultValue="count">
@@ -123,7 +127,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
                 </div>
               </div>
               <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
-              <Button type="submit" className="w-full">Add Item</Button>
+              <Button type="submit" className="w-full">{t("inventory.addItem")}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -132,7 +136,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
       {items.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            No inventory items yet. Add items manually or use the AI assistant.
+            {t("inventory.empty")}
           </CardContent>
         </Card>
       ) : (
@@ -140,11 +144,11 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>Health</TableHead>
-                <TableHead>Last Check</TableHead>
+                <TableHead>{t("inventory.category")}</TableHead>
+                <TableHead>{t("inventory.name")}</TableHead>
+                <TableHead>{t("inventory.quantity")}</TableHead>
+                <TableHead>{t("inventory.health")}</TableHead>
+                <TableHead>{t("inventory.lastCheck")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -153,7 +157,7 @@ export function InventoryTab({ propertyId }: InventoryTabProps) {
                 <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
                   <TableCell>
                     <Badge className={categoryColor(item.category)} variant="secondary">
-                      {item.category.replace("_", " ")}
+                      {tCategory(item.category)}
                     </Badge>
                   </TableCell>
                   <TableCell>
