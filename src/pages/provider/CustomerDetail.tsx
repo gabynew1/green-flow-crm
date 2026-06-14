@@ -537,7 +537,7 @@ function RescheduleVisitButton({
           variant="ghost"
           size="icon"
           className="h-8 w-8"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onClick={(e) => e.stopPropagation()}
           title="Reschedule"
         >
           <CalendarClock className="h-4 w-4" />
@@ -546,7 +546,7 @@ function RescheduleVisitButton({
       <PopoverContent
         className="w-auto p-0"
         align="end"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+        onClick={(e) => e.stopPropagation()}
       >
         <Calendar
           mode="single"
