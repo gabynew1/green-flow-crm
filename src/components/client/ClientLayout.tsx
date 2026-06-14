@@ -39,20 +39,22 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { title: "My Properties", url: "/client", icon: Home, matchPaths: ["/client", "/client/properties"] },
-  { title: "Offers", url: "/client/offers", icon: FileOutput },
-  { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
-  { title: "Tasks", url: "/client/tasks", icon: Bell },
-  { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
-  { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
-  { title: "Providers", url: "/client/providers", icon: Building2, matchPaths: ["/client/providers", "/client/connect"] },
-  { title: "My Profile", url: "/client/profile", icon: UserCircle },
+const buildNavItems = (t: (k: string) => string) => [
+  { title: t("client:myProperties"), url: "/client", icon: Home, matchPaths: ["/client", "/client/properties"] },
+  { title: t("client:offers"), url: "/client/offers", icon: FileOutput },
+  { title: t("client:contracts"), url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
+  { title: t("client:tasks"), url: "/client/tasks", icon: Bell },
+  { title: t("client:myVisits"), url: "/client/visits", icon: ClipboardList },
+  { title: t("client:feedback"), url: "/client/feedback", icon: MessageSquare },
+  { title: t("client:providers"), url: "/client/providers", icon: Building2, matchPaths: ["/client/providers", "/client/connect"] },
+  { title: t("client:myProfile"), url: "/client/profile", icon: UserCircle },
 ];
 
 export function ClientLayout() {
   const { signOut, profile, user } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
+  const navItems = buildNavItems(t);
   const [pendingContracts, setPendingContracts] = useState(0);
   const [showIdInfo, setShowIdInfo] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
