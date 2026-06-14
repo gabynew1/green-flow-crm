@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Leaf, Info, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 import AuthEmailStep from "@/components/auth/AuthEmailStep";
 import AuthPasswordStep from "@/components/auth/AuthPasswordStep";
@@ -165,6 +166,9 @@ export default function Auth() {
   /* ---------- Render ---------- */
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
