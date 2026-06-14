@@ -1,0 +1,32 @@
+{
+  "workspace": "Provider Workspace",
+  "dashboard": "Dashboard",
+  "customers": "Customers",
+  "properties": "Properties",
+  "pipeline": "Pipeline",
+  "offers": "Offers",
+  "contracts": "Contracts",
+  "visits": "Service Visits",
+  "inspections": "Inspections",
+  "feedback": "Feedback",
+  "serviceCatalog": "Service Catalog",
+  "settings": "Settings",
+  "aiAssistant": "AI Assistant",
+  "home": "Home",
+  "inventory": {
+    "title": "Green Inventory",
+    "addItem": "Add Item",
+    "category": "Category",
+    "name": "Name",
+    "quantity": "Qty",
+    "health": "Health",
+    "lastCheck": "Last Check",
+    "empty": "No inventory items yet. Add items manually or use the AI assistant.",
+    "added": "Item added!",
+    "healthLabels": {
+      "healthy": "Healthy",
+      "stable": "Stable",
+      "attention": "Attention"
+    }
+  }
+}

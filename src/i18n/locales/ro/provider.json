@@ -1,0 +1,32 @@
+{
+  "workspace": "Spațiu Furnizor",
+  "dashboard": "Tablou de bord",
+  "customers": "Clienți",
+  "properties": "Proprietăți",
+  "pipeline": "Pipeline",
+  "offers": "Oferte",
+  "contracts": "Contracte",
+  "visits": "Vizite de Service",
+  "inspections": "Inspecții",
+  "feedback": "Feedback",
+  "serviceCatalog": "Catalog Servicii",
+  "settings": "Setări",
+  "aiAssistant": "Asistent AI",
+  "home": "Acasă",
+  "inventory": {
+    "title": "Inventar Verde",
+    "addItem": "Adaugă Element",
+    "category": "Categorie",
+    "name": "Denumire",
+    "quantity": "Cant.",
+    "health": "Stare",
+    "lastCheck": "Ultima Verificare",
+    "empty": "Nu există elemente în inventar. Adaugă manual sau folosește asistentul AI.",
+    "added": "Element adăugat!",
+    "healthLabels": {
+      "healthy": "Sănătos",
+      "stable": "Stabil",
+      "attention": "Atenție"
+    }
+  }
+}

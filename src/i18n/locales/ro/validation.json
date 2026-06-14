@@ -1,0 +1,6 @@
+{
+  "required": "Acest câmp este obligatoriu",
+  "invalidEmail": "Introdu un email valid",
+  "passwordTooShort": "Parola trebuie să aibă cel puțin 8 caractere",
+  "passwordsDoNotMatch": "Parolele nu coincid"
+}
