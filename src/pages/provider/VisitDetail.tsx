@@ -515,10 +515,19 @@ export default function VisitDetail() {
         <CardHeader><CardTitle className="text-base">Billing Summary</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
+            {contractFlatFee.isFlat && (
+              <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
+                <p className="text-xs text-muted-foreground mb-1">Contract Flat Fee</p>
+                <p className="text-lg font-semibold">{formatCurrency(flatFeeAmount, currency)} <span className="text-xs font-normal text-muted-foreground">{flatFeeSuffix}</span></p>
+                <p className="text-xs text-muted-foreground">Covers included services</p>
+              </div>
+            )}
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Contract Services</p>
               <p className="text-lg font-semibold">{contractItems.length}</p>
-              <p className="text-xs text-success">{formatCurrency(contractTotal, currency)}</p>
+              <p className="text-xs text-success">
+                {contractFlatFee.isFlat ? "Included in flat fee" : formatCurrency(contractTotal, currency)}
+              </p>
             </div>
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Ad-hoc Services</p>
