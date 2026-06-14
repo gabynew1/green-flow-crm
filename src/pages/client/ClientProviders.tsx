@@ -6,14 +6,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, MapPin, Plus, Clock, Mail } from "lucide-react";
+import { Building2, MapPin, Plus, Clock, Mail, Unlink } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 interface ProviderCard {
   tenantId: string;
   name: string;
   uniqueTenantId: string | null;
   approvedAt: string | null;
-  properties: { id: string; name: string; address: string | null; city: string | null }[];
+  properties: {
+    id: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+    hasBlockingContract: boolean;
+  }[];
 }
 
 interface PendingRequest {
@@ -29,6 +47,7 @@ export default function ClientProviders() {
   const [loading, setLoading] = useState(true);
   const [providers, setProviders] = useState<ProviderCard[]>([]);
   const [pending, setPending] = useState<PendingRequest[]>([]);
+  const [delinkingId, setDelinkingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -58,6 +77,18 @@ export default function ClientProviders() {
         .from("properties")
         .select("id, name, address, city, tenant_id")
         .in("tenant_id", tenantIds);
+      const propertyIds = (props ?? []).map((p: any) => p.id);
+      let blockingByProp: Record<string, boolean> = {};
+      if (propertyIds.length > 0) {
+        const { data: ctrs } = await supabase
+          .from("contracts")
+          .select("property_id, status, archived")
+          .in("property_id", propertyIds)
+          .in("status", ["ACTIVE", "SENT_TO_CLIENT"]);
+        (ctrs ?? []).forEach((c: any) => {
+          if (!c.archived) blockingByProp[c.property_id] = true;
+        });
+      }
       (props ?? []).forEach((p: any) => {
         propsByTenant[p.tenant_id] = propsByTenant[p.tenant_id] ?? [];
         propsByTenant[p.tenant_id].push({
@@ -65,6 +96,7 @@ export default function ClientProviders() {
           name: p.name,
           address: p.address,
           city: p.city,
+          hasBlockingContract: !!blockingByProp[p.id],
         });
       });
     }
@@ -98,6 +130,25 @@ export default function ClientProviders() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleDelink = async (propertyId: string) => {
+    setDelinkingId(propertyId);
+    const { data, error } = await supabase.rpc("client_delink_property", {
+      _property_id: propertyId,
+    });
+    setDelinkingId(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const canceled = (data as any)?.canceled_visits ?? 0;
+    toast.success(
+      canceled > 0
+        ? `Property delinked. Canceled ${canceled} upcoming visit${canceled === 1 ? "" : "s"}.`
+        : "Property delinked."
+    );
+    load();
+  };
 
   return (
     <div className="space-y-6">
@@ -206,6 +257,39 @@ export default function ClientProviders() {
                                 "No address"}
                             </p>
                           </div>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="ml-auto h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                disabled={prop.hasBlockingContract || delinkingId === prop.id}
+                                title={
+                                  prop.hasBlockingContract
+                                    ? "Active or pending contract — close it first to delink"
+                                    : "Delink from this provider"
+                                }
+                              >
+                                <Unlink className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delink {prop.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {p.name} will lose access to this property. Any upcoming visits
+                                  they have scheduled will be canceled. You can connect it to
+                                  another provider afterwards.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelink(prop.id)}>
+                                  Confirm delink
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </li>
                       ))}
                     </ul>
