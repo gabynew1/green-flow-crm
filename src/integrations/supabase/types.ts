@@ -1345,6 +1345,7 @@ export type Database = {
           tenant_id: string | null
           unique_property_id: string | null
           updated_at: string
+          zone_id: string | null
         }
         Insert: {
           address?: string | null
@@ -1360,6 +1361,7 @@ export type Database = {
           tenant_id?: string | null
           unique_property_id?: string | null
           updated_at?: string
+          zone_id?: string | null
         }
         Update: {
           address?: string | null
@@ -1375,6 +1377,7 @@ export type Database = {
           tenant_id?: string | null
           unique_property_id?: string | null
           updated_at?: string
+          zone_id?: string | null
         }
         Relationships: [
           {
@@ -1389,6 +1392,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "properties_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "service_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -1723,6 +1733,41 @@ export type Database = {
           },
           {
             foreignKeyName: "service_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_zones: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_zones_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"

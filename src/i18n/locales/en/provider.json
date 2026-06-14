@@ -13,6 +13,20 @@
   "settings": "Settings",
   "aiAssistant": "AI Assistant",
   "home": "Home",
+  "zones": {
+    "title": "Service Zones",
+    "new_zone": "New Zone",
+    "edit_zone": "Edit Zone",
+    "zone_name": "Zone Name",
+    "zone_color": "Color",
+    "no_zone": "— No zone —",
+    "not_assigned": "Not assigned",
+    "delete_confirm": "Delete this zone?",
+    "delete_blocked": "{{count}} properties use this zone — reassign them first.",
+    "assigned_properties": "{{count}} properties",
+    "zone_label": "Service Zone",
+    "name_duplicate": "A zone with this name already exists."
+  },
   "inventory": {
     "title": "Green Inventory",
     "addItem": "Add Item",

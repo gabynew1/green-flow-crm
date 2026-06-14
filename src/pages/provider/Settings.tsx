@@ -11,12 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Users, Plus, Mail, Shield, ShieldCheck, Copy, AlertTriangle, Plug, Link2, Coins, KeyRound } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import NonWorkdayManager from "@/components/provider/NonWorkdayManager";
 import TeamManager from "@/components/provider/TeamManager";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
 import TenantEmailSettingsCard from "@/components/provider/TenantEmailSettingsCard";
 import EmailPreferencesCard from "@/components/EmailPreferencesCard";
 import LanguageRegionCard from "@/components/LanguageRegionCard";
+import ZonesSettings from "@/components/provider/ZonesSettings";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
@@ -200,6 +202,13 @@ export default function Settings() {
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">Manage your company profile, team members, and integrations.</p>
       </div>
+
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="zones">Zones</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general" className="space-y-6">
 
       {/* Company Information */}
       <Card>
@@ -556,6 +565,12 @@ export default function Settings() {
 
       {/* Personal email preferences for the current user */}
       <EmailPreferencesCard />
+
+        </TabsContent>
+        <TabsContent value="zones" className="space-y-6">
+          <ZonesSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
