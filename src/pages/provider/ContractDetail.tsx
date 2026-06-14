@@ -60,7 +60,7 @@ export default function ContractDetail() {
   const load = async () => {
     const { data: c } = await supabase
       .from("contracts")
-      .select("*, properties(id, name, customers(name))")
+      .select("*, properties(id, name, customer_id, customers(id, name))")
       .eq("id", contractId!)
       .single();
     setContract(c);
