@@ -1206,6 +1206,7 @@ export type Database = {
           id: string
           is_locked: boolean
           license_type: string
+          password_reset_pending: boolean
           phone: string | null
           provider_permission: string | null
           temporary_password: string | null
@@ -1237,6 +1238,7 @@ export type Database = {
           id?: string
           is_locked?: boolean
           license_type?: string
+          password_reset_pending?: boolean
           phone?: string | null
           provider_permission?: string | null
           temporary_password?: string | null
@@ -1268,6 +1270,7 @@ export type Database = {
           id?: string
           is_locked?: boolean
           license_type?: string
+          password_reset_pending?: boolean
           phone?: string | null
           provider_permission?: string | null
           temporary_password?: string | null

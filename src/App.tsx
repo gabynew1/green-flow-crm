@@ -93,8 +93,8 @@ function AppRoutes(): JSX.Element {
     );
   }
 
-  // Force password change if temporary_password is set
-  if (profile?.temporary_password) {
+  // Force password change if a temporary password is pending
+  if (profile?.password_reset_pending) {
     return (
       <Routes>
         <Route path="/change-password" element={<ChangePassword />} />
