@@ -39,9 +39,7 @@ export default function RescheduleVisitButton({ visitId, currentDate, onReschedu
   return (
     <div
       className="px-1"
-      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -50,7 +48,7 @@ export default function RescheduleVisitButton({ visitId, currentDate, onReschedu
           size="icon"
           className="h-8 w-8"
           disabled={disabled}
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          onClick={(e) => e.stopPropagation()}
           title="Reschedule"
         >
           <CalendarClock className="h-4 w-4" />
