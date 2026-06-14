@@ -91,6 +91,13 @@ export default function ServiceVisits() {
     ).entries(),
   ).sort((a, b) => a[1].localeCompare(b[1]));
 
+  // Calendar placement: completed visits surface on their performed date,
+  // everything else on scheduled date. scheduled_date is never overwritten.
+  const visitDisplayDate = (o: any): Date | null => {
+    if (o.status === "COMPLETED" && o.performed_date) return parseISO(o.performed_date);
+    return o.scheduled_date ? parseISO(o.scheduled_date) : null;
+  };
+
   // List view filtering
   const filtered = teamFiltered.filter(o => {
     if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
@@ -112,13 +119,19 @@ export default function ServiceVisits() {
   const monthDays = eachDayOfInterval({ start: monthGridStart, end: monthGridEnd });
 
   const getOrdersForDate = (date: Date) =>
-    teamFiltered.filter(o => o.scheduled_date && isSameDay(parseISO(o.scheduled_date), date));
+    teamFiltered.filter(o => {
+      const d = visitDisplayDate(o);
+      return d && isSameDay(d, date);
+    });
 
   const dayOrders = getOrdersForDate(selectedDate);
 
   // Slot occupancy for a day per team
   const getDaySlotInfo = (date: Date) => {
-    const dateOrders = orders.filter(o => o.scheduled_date && isSameDay(parseISO(o.scheduled_date), date));
+    const dateOrders = orders.filter(o => {
+      const d = visitDisplayDate(o);
+      return d && isSameDay(d, date);
+    });
     const teamSlots: Record<string, number> = {};
     dateOrders.forEach(o => {
       if (o.team_id) teamSlots[o.team_id] = (teamSlots[o.team_id] || 0) + 1;

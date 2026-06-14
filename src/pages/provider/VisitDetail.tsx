@@ -68,6 +68,7 @@ export default function VisitDetail() {
   const [editPeriodLabel, setEditPeriodLabel] = useState("");
   const [editPeriodType, setEditPeriodType] = useState("");
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
+  const [contractFlatFee, setContractFlatFee] = useState<{ isFlat: boolean; amount: number; frequency: string | null }>({ isFlat: false, amount: 0, frequency: null });
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -102,6 +103,20 @@ export default function VisitDetail() {
       const { data: ctr } = await supabase.from("contracts").select("start_date, end_date").eq("id", o.contract_id).single();
       const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
       setScopeMap(sm);
+
+      // Detect flat-fee contract via the dedicated "Flat fee — …" line item
+      const { data: cli } = await supabase
+        .from("contract_line_items")
+        .select("custom_name, unit_price, frequency_type")
+        .eq("contract_id", o.contract_id);
+      const flatRow = (cli ?? []).find((r: any) => typeof r.custom_name === "string" && r.custom_name.startsWith("Flat fee"));
+      if (flatRow) {
+        setContractFlatFee({ isFlat: true, amount: Number(flatRow.unit_price) || 0, frequency: (flatRow as any).frequency_type ?? null });
+      } else {
+        setContractFlatFee({ isFlat: false, amount: 0, frequency: null });
+      }
+    } else {
+      setContractFlatFee({ isFlat: false, amount: 0, frequency: null });
     }
   };
 
@@ -245,6 +260,8 @@ export default function VisitDetail() {
 
   // Cost helpers
   const getItemPrice = (item: any): number => {
+    // Flat-fee contracts: included (contract) services are covered by the flat fee.
+    if (item.source === "CONTRACT" && contractFlatFee.isFlat) return 0;
     return item.unit_price
       ?? (item.contract_line_items as any)?.unit_price
       ?? (item.service_catalog as any)?.default_price
@@ -255,7 +272,11 @@ export default function VisitDetail() {
   };
   const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
   const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
-  const visitTotal = contractTotal + adHocTotal;
+  const flatFeeAmount = contractFlatFee.isFlat ? contractFlatFee.amount : 0;
+  const visitTotal = contractTotal + adHocTotal + flatFeeAmount;
+  const flatFeeSuffix = contractFlatFee.frequency === "PER_YEAR" ? "/ year"
+    : contractFlatFee.frequency === "ONE_TIME" ? ""
+    : "/ month";
 
   return (
     <div className="space-y-6">
@@ -494,10 +515,19 @@ export default function VisitDetail() {
         <CardHeader><CardTitle className="text-base">Billing Summary</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
+            {contractFlatFee.isFlat && (
+              <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
+                <p className="text-xs text-muted-foreground mb-1">Contract Flat Fee</p>
+                <p className="text-lg font-semibold">{formatCurrency(flatFeeAmount, currency)} <span className="text-xs font-normal text-muted-foreground">{flatFeeSuffix}</span></p>
+                <p className="text-xs text-muted-foreground">Covers included services</p>
+              </div>
+            )}
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Contract Services</p>
               <p className="text-lg font-semibold">{contractItems.length}</p>
-              <p className="text-xs text-success">{formatCurrency(contractTotal, currency)}</p>
+              <p className="text-xs text-success">
+                {contractFlatFee.isFlat ? "Included in flat fee" : formatCurrency(contractTotal, currency)}
+              </p>
             </div>
             <div className="rounded-lg border p-3 flex-1 min-w-[160px]">
               <p className="text-xs text-muted-foreground mb-1">Ad-hoc Services</p>
@@ -632,20 +662,26 @@ export default function VisitDetail() {
                     </p>
                   </div>
                   {!isCompleted ? (
-                    <CurrencyInput
-                      currency={currency}
-                      className="h-7 w-28 text-xs"
-                      defaultValue={getItemPrice(item) || ""}
-                      placeholder="0.00"
-                      onBlur={async (e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
-                        toast.success("Price updated");
-                        load();
-                      }}
-                    />
+                    contractFlatFee.isFlat ? (
+                      <span className="text-xs text-muted-foreground italic">Included in flat fee</span>
+                    ) : (
+                      <CurrencyInput
+                        currency={currency}
+                        className="h-7 w-28 text-xs"
+                        defaultValue={getItemPrice(item) || ""}
+                        placeholder="0.00"
+                        onBlur={async (e) => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
+                          toast.success("Price updated");
+                          load();
+                        }}
+                      />
+                    )
                   ) : (
-                    <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {contractFlatFee.isFlat ? "Included in flat fee" : formatCurrency(getItemCost(item), currency)}
+                    </span>
                   )}
                   <div className="flex items-center gap-1.5">
                     {scope && scope.max != null && (
