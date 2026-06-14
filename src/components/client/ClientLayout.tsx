@@ -9,6 +9,7 @@ import { ConnectionRequests } from "@/components/client/ConnectionRequests";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
