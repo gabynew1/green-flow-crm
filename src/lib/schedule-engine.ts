@@ -20,6 +20,7 @@ export interface ScheduleInput {
     quantity: number;
     unit: string | null;
   }>;
+  zoneId?: string | null;
 }
 
 export interface ScheduledVisit {
@@ -98,10 +99,32 @@ function findAvailableSlot(
   teamId: string,
   workdayChecker: WorkdayChecker,
   occupancyMap: ExistingVisitMap,
-  maxLookahead: number = 30
+  maxLookahead: number = 30,
+  zoneId?: string | null,
+  zoneDateMap?: ZoneDateMap,
 ): { date: Date; slot: string } | null {
-  let candidate = targetDate;
+  // Zone clustering pass: prefer a workday within 14 days that already has the
+  // same zone booked for this team and still has capacity. Pure hint — never
+  // blocks and never drops a visit.
+  if (zoneId && zoneDateMap) {
+    let zc = targetDate;
+    for (let i = 0; i < 14; i++) {
+      if (workdayChecker.isWorkday(zc)) {
+        const key = dateKey(zc, teamId);
+        const currentCount = occupancyMap[key] || 0;
+        if (currentCount < MAX_SLOTS_PER_DAY && zoneDateMap[key]?.has(zoneId)) {
+          const slot = TIME_SLOTS[currentCount];
+          occupancyMap[key] = currentCount + 1;
+          if (!zoneDateMap[key]) zoneDateMap[key] = new Set<string>();
+          zoneDateMap[key].add(zoneId);
+          return { date: zc, slot };
+        }
+      }
+      zc = addDays(zc, 1);
+    }
+  }
 
+  let candidate = targetDate;
   for (let i = 0; i < maxLookahead; i++) {
     if (workdayChecker.isWorkday(candidate)) {
       const key = dateKey(candidate, teamId);
@@ -111,6 +134,10 @@ function findAvailableSlot(
         const slot = TIME_SLOTS[slotIdx];
         // Book it
         occupancyMap[key] = currentCount + 1;
+        if (zoneId && zoneDateMap) {
+          if (!zoneDateMap[key]) zoneDateMap[key] = new Set<string>();
+          zoneDateMap[key].add(zoneId);
+        }
         return { date: candidate, slot };
       }
     }
@@ -126,8 +153,9 @@ function findAvailableSlot(
 export function generateSchedule(
   input: ScheduleInput,
   workdayChecker: WorkdayChecker,
-  existingVisitCounts: ExistingVisitMap
-): ScheduledVisit[] {
+  existingVisitCounts: ExistingVisitMap,
+  zoneDateMap: ZoneDateMap = {},
+): { visits: ScheduledVisit[]; zoneDateMap: ZoneDateMap } {
   const visits: ScheduledVisit[] = [];
   const occupancy = { ...existingVisitCounts };
 
@@ -151,7 +179,15 @@ export function generateSchedule(
     const targets = generateTargetDatesForPeriod(periodStart, clampedEnd, input.frequencyCount);
 
     for (const target of targets) {
-      const result = findAvailableSlot(target, input.teamId, workdayChecker, occupancy);
+      const result = findAvailableSlot(
+        target,
+        input.teamId,
+        workdayChecker,
+        occupancy,
+        30,
+        input.zoneId ?? null,
+        zoneDateMap,
+      );
       if (!result) continue;
 
       const dateStr = format(result.date, "yyyy-MM-dd");
@@ -181,5 +217,5 @@ export function generateSchedule(
     if (visits.length >= 500) break;
   }
 
-  return visits;
+  return { visits, zoneDateMap };
 }
