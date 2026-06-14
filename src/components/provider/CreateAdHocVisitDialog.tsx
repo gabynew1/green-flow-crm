@@ -461,16 +461,56 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             </div>
             <div className="space-y-2">
               <Label>Time Slot *</Label>
-              <Select value={selectedSlot} onValueChange={setSelectedSlot}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_SLOTS.map(s => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex border border-border rounded-md overflow-hidden text-xs">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 py-1.5",
+                    slotMode === "preset" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
+                  )}
+                  onClick={() => setSlotMode("preset")}
+                >
+                  Preset
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 py-1.5 border-l border-border",
+                    slotMode === "custom" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
+                  )}
+                  onClick={() => setSlotMode("custom")}
+                >
+                  Custom
+                </button>
+              </div>
+              {slotMode === "preset" ? (
+                <Select value={selectedSlot} onValueChange={setSelectedSlot}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_SLOTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground">–</span>
+                  <Input
+                    type="time"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              )}
               {capacityFull && (
                 <p className="text-xs text-destructive">Team at max capacity (4/4 slots) for this day</p>
               )}
@@ -497,6 +537,15 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
             {selectedCategory && (
               <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
+                <div className="relative mb-2">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                    placeholder="Search services…"
+                    className="pl-7 h-8 text-xs"
+                  />
+                </div>
                 <div className="flex items-center justify-between px-2 pb-1 border-b mb-1">
                   <span className="text-xs font-medium text-muted-foreground">{filteredServices.length} services</span>
                   <div className="flex gap-2">
