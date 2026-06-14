@@ -662,20 +662,26 @@ export default function VisitDetail() {
                     </p>
                   </div>
                   {!isCompleted ? (
-                    <CurrencyInput
-                      currency={currency}
-                      className="h-7 w-28 text-xs"
-                      defaultValue={getItemPrice(item) || ""}
-                      placeholder="0.00"
-                      onBlur={async (e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
-                        toast.success("Price updated");
-                        load();
-                      }}
-                    />
+                    contractFlatFee.isFlat ? (
+                      <span className="text-xs text-muted-foreground italic">Included in flat fee</span>
+                    ) : (
+                      <CurrencyInput
+                        currency={currency}
+                        className="h-7 w-28 text-xs"
+                        defaultValue={getItemPrice(item) || ""}
+                        placeholder="0.00"
+                        onBlur={async (e) => {
+                          const val = e.target.value ? Number(e.target.value) : null;
+                          await supabase.from("service_order_items").update({ unit_price: val } as any).eq("id", item.id);
+                          toast.success("Price updated");
+                          load();
+                        }}
+                      />
+                    )
                   ) : (
-                    <span className="text-xs text-muted-foreground">{formatCurrency(getItemCost(item), currency)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {contractFlatFee.isFlat ? "Included in flat fee" : formatCurrency(getItemCost(item), currency)}
+                    </span>
                   )}
                   <div className="flex items-center gap-1.5">
                     {scope && scope.max != null && (
