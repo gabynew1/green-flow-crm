@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
-import { startOfWeek, addDays, addWeeks, format, isSameDay, isToday, parseISO } from "date-fns";
+import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, format, isSameDay, isToday, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
@@ -49,6 +49,8 @@ export default function ServiceVisits() {
   const [teamFilter, setTeamFilter] = useState("ALL");
   const [createOpen, setCreateOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("week");
+  const [propertyFilter, setPropertyFilter] = useState<string>("ALL");
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => { load(); loadTeams(); }, []);
@@ -73,8 +75,21 @@ export default function ServiceVisits() {
 
   const teamColorMap = Object.fromEntries(teams.map(t => [t.id, t.color]));
 
-  // Filter by team
-  const teamFiltered = teamFilter === "ALL" ? orders : orders.filter(o => o.team_id === teamFilter);
+  // Filter by team + property
+  const teamFiltered = orders.filter(o => {
+    if (teamFilter !== "ALL" && o.team_id !== teamFilter) return false;
+    if (propertyFilter !== "ALL" && o.property_id !== propertyFilter) return false;
+    return true;
+  });
+
+  // Unique properties list from loaded orders
+  const propertyOptions = Array.from(
+    new Map(
+      orders
+        .filter(o => o.property_id && (o.properties as any)?.name)
+        .map(o => [o.property_id as string, (o.properties as any).name as string]),
+    ).entries(),
+  ).sort((a, b) => a[1].localeCompare(b[1]));
 
   // List view filtering
   const filtered = teamFiltered.filter(o => {
@@ -88,6 +103,13 @@ export default function ServiceVisits() {
   // Calendar helpers
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // Month grid days (full weeks)
+  const monthStart = startOfMonth(selectedDate);
+  const monthEnd = endOfMonth(selectedDate);
+  const monthGridStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const monthGridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const monthDays = eachDayOfInterval({ start: monthGridStart, end: monthGridEnd });
 
   const getOrdersForDate = (date: Date) =>
     teamFiltered.filter(o => o.scheduled_date && isSameDay(parseISO(o.scheduled_date), date));
@@ -115,6 +137,18 @@ export default function ServiceVisits() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold">Service Visits</h1>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Property filter */}
+          <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Properties" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Properties</SelectItem>
+              {propertyOptions.map(([id, name]) => (
+                <SelectItem key={id} value={id}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {/* Team filter */}
           <Select value={teamFilter} onValueChange={setTeamFilter}>
             <SelectTrigger className="w-[150px]">
@@ -132,6 +166,18 @@ export default function ServiceVisits() {
               ))}
             </SelectContent>
           </Select>
+          {viewMode === "calendar" && (
+            <Select value={calendarView} onValueChange={(v) => setCalendarView(v as any)}>
+              <SelectTrigger className="w-[110px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Day</SelectItem>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex border border-border rounded-md overflow-hidden">
             <Button
               variant={viewMode === "calendar" ? "default" : "ghost"}
