@@ -52,6 +52,12 @@ export function useLocale() {
         } catch {
           /* ignore */
         }
+      } else if (!profileLocale && isSupportedLocale(i18n.language)) {
+        // First sign-in / new account: persist the language they were using
+        // (from the picker or browser detection) to their profile.
+        await (supabase.from("profiles") as any)
+          .update({ locale: i18n.language })
+          .eq("user_id", user.id);
       }
     })();
     return () => {
