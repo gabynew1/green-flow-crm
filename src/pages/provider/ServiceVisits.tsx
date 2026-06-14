@@ -112,13 +112,19 @@ export default function ServiceVisits() {
   const monthDays = eachDayOfInterval({ start: monthGridStart, end: monthGridEnd });
 
   const getOrdersForDate = (date: Date) =>
-    teamFiltered.filter(o => o.scheduled_date && isSameDay(parseISO(o.scheduled_date), date));
+    teamFiltered.filter(o => {
+      const d = visitDisplayDate(o);
+      return d && isSameDay(d, date);
+    });
 
   const dayOrders = getOrdersForDate(selectedDate);
 
   // Slot occupancy for a day per team
   const getDaySlotInfo = (date: Date) => {
-    const dateOrders = orders.filter(o => o.scheduled_date && isSameDay(parseISO(o.scheduled_date), date));
+    const dateOrders = orders.filter(o => {
+      const d = visitDisplayDate(o);
+      return d && isSameDay(d, date);
+    });
     const teamSlots: Record<string, number> = {};
     dateOrders.forEach(o => {
       if (o.team_id) teamSlots[o.team_id] = (teamSlots[o.team_id] || 0) + 1;
