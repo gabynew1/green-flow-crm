@@ -13,6 +13,20 @@
   "settings": "Setări",
   "aiAssistant": "Asistent AI",
   "home": "Acasă",
+  "zones": {
+    "title": "Zone de Servicii",
+    "new_zone": "Zonă Nouă",
+    "edit_zone": "Editează Zona",
+    "zone_name": "Denumire Zonă",
+    "zone_color": "Culoare",
+    "no_zone": "— Fără zonă —",
+    "not_assigned": "Neatribuit",
+    "delete_confirm": "Ștergi această zonă?",
+    "delete_blocked": "{{count}} proprietăți folosesc această zonă — reatribuiți-le mai întâi.",
+    "assigned_properties": "{{count}} proprietăți",
+    "zone_label": "Zonă de Servicii",
+    "name_duplicate": "Există deja o zonă cu acest nume."
+  },
   "inventory": {
     "title": "Inventar Verde",
     "addItem": "Adaugă Element",
