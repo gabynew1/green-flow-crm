@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
 import EmailPreferencesCard from "@/components/EmailPreferencesCard";
+import LanguageRegionCard from "@/components/LanguageRegionCard";
 
 type ClientType = "individual" | "company";
 
@@ -434,6 +435,9 @@ export default function ClientProfile() {
 
       {/* Change Password */}
       {!editing && <ChangePasswordCard />}
+
+      {/* Language & Region */}
+      {!editing && <LanguageRegionCard />}
 
       {/* Email Preferences */}
       {!editing && <EmailPreferencesCard />}
