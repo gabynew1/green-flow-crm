@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw, CalendarClock } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
@@ -394,16 +396,23 @@ export default function CustomerDetail() {
       ) : (
         <div className="space-y-3">
           {visits.map((o) => (
-            <Link key={o.id} to={`/provider/visits/${o.id}`}>
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{o.period_label || o.scheduled_date || "Unscheduled"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
-                      {o.period_type} · {o.scheduled_date}
-                    </p>
-                  </div>
+            <Card key={o.id} className="hover:border-primary/50 transition-colors">
+              <CardContent className="pt-4 pb-4 flex items-center justify-between gap-3">
+                <Link to={`/provider/visits/${o.id}`} className="flex-1 min-w-0">
+                  <p className="font-medium">{o.period_label || o.scheduled_date || "Unscheduled"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
+                    {o.period_type} · {o.scheduled_date}
+                  </p>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
+                    <RescheduleVisitButton
+                      visitId={o.id}
+                      currentDate={o.scheduled_date}
+                      onRescheduled={load}
+                    />
+                  )}
                   <Badge variant="secondary" className={
                     o.status === "COMPLETED" ? "bg-success/10 text-success" :
                     o.status === "CANCELED" ? "bg-destructive/10 text-destructive" :
@@ -412,9 +421,9 @@ export default function CustomerDetail() {
                   }>
                     {o.status.replace(/_/g, " ")}
                   </Badge>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -485,5 +494,76 @@ export default function CustomerDetail() {
         onClosed={load}
       />
     </div>
+  );
+}
+
+function RescheduleVisitButton({
+  visitId,
+  currentDate,
+  onRescheduled,
+}: {
+  visitId: string;
+  currentDate: string | null;
+  onRescheduled: () => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(currentDate ? new Date(currentDate) : undefined);
+  const [saving, setSaving] = useState(false);
+
+  const handleConfirm = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!date) return;
+    setSaving(true);
+    const iso = format(date, "yyyy-MM-dd");
+    const { error } = await supabase
+      .from("service_orders")
+      .update({ scheduled_date: iso })
+      .eq("id", visitId);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to reschedule: " + error.message);
+      return;
+    }
+    toast.success(`Visit rescheduled to ${format(date, "MMM d, yyyy")}`);
+    setOpen(false);
+    await onRescheduled();
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          title="Reschedule"
+        >
+          <CalendarClock className="h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-auto p-0"
+        align="end"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      >
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={setDate}
+          initialFocus
+          className="p-3 pointer-events-auto"
+        />
+        <div className="flex justify-end gap-2 p-2 border-t">
+          <Button variant="ghost" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleConfirm} disabled={!date || saving}>
+            OK
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
