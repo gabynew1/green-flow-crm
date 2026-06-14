@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
+import { Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -77,9 +78,13 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedSlot, setSelectedSlot] = useState("08:00");
+  const [slotMode, setSlotMode] = useState<"preset" | "custom">("preset");
+  const [customStart, setCustomStart] = useState("09:00");
+  const [customEnd, setCustomEnd] = useState("11:00");
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [serviceSearch, setServiceSearch] = useState("");
   const [notes, setNotes] = useState("");
 
   // Contract-aware state
@@ -201,7 +206,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const filteredProperties = properties.filter((p) => p.customer_id === selectedCustomerId);
   const categories = [...new Set(services.map((s) => s.code as string))].sort();
-  const filteredServices = services.filter((s) => s.code === selectedCategory);
+  const filteredServices = services.filter(
+    (s) =>
+      s.code === selectedCategory &&
+      (!serviceSearch.trim() ||
+        s.name?.toLowerCase().includes(serviceSearch.trim().toLowerCase())),
+  );
 
   const toggleService = (id: string) => {
     setSelectedServiceIds((prev) =>
@@ -214,8 +224,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setSelectedPropertyId("");
     setSelectedDate(undefined);
     setSelectedSlot("08:00");
+    setSlotMode("preset");
+    setCustomStart("09:00");
+    setCustomEnd("11:00");
     setSelectedServiceIds([]);
     setSelectedCategory("");
+    setServiceSearch("");
     setNotes("");
     setPropertyContracts([]);
     setSelectedSource("ad_hoc");
@@ -236,6 +250,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
       toast.error("Please fill in all required fields and select at least one service");
       return;
     }
+    if (slotMode === "custom") {
+      if (!customStart || !customEnd || customEnd <= customStart) {
+        toast.error("Custom time end must be after start (HH:MM)");
+        return;
+      }
+    }
     if (capacityFull) {
       toast.error("This team has reached max capacity (4 visits) for this day");
       return;
@@ -245,7 +265,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       const periodType = isContractSource ? "WEEK" as const : "ONE_TIME" as const;
-      const slotLabel = TIME_SLOTS.find(s => s.value === selectedSlot)?.label || selectedSlot;
+      const startTime = slotMode === "custom" ? customStart : selectedSlot;
+      const endTime = slotMode === "custom" ? customEnd : getSlotEnd(selectedSlot);
+      const slotLabel =
+        slotMode === "custom"
+          ? `${customStart} – ${customEnd}`
+          : TIME_SLOTS.find((s) => s.value === selectedSlot)?.label || selectedSlot;
       const periodLabel = isContractSource && activeContract
         ? `${activeContract.contract_name} – ${format(selectedDate, "MMM d, yyyy")} ${slotLabel}`
         : `Ad hoc – ${format(selectedDate, "MMM d, yyyy")} ${slotLabel}`;
@@ -255,8 +280,8 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
         .insert({
           property_id: selectedPropertyId,
           scheduled_date: dateStr,
-          scheduled_start_time: selectedSlot,
-          scheduled_end_time: getSlotEnd(selectedSlot),
+          scheduled_start_time: startTime,
+          scheduled_end_time: endTime,
           team_id: selectedTeamId || null,
           status: "SCHEDULED",
           period_type: periodType,
@@ -436,16 +461,56 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             </div>
             <div className="space-y-2">
               <Label>Time Slot *</Label>
-              <Select value={selectedSlot} onValueChange={setSelectedSlot}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIME_SLOTS.map(s => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex border border-border rounded-md overflow-hidden text-xs">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 py-1.5",
+                    slotMode === "preset" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
+                  )}
+                  onClick={() => setSlotMode("preset")}
+                >
+                  Preset
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 py-1.5 border-l border-border",
+                    slotMode === "custom" ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted",
+                  )}
+                  onClick={() => setSlotMode("custom")}
+                >
+                  Custom
+                </button>
+              </div>
+              {slotMode === "preset" ? (
+                <Select value={selectedSlot} onValueChange={setSelectedSlot}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_SLOTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="time"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground">–</span>
+                  <Input
+                    type="time"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
+              )}
               {capacityFull && (
                 <p className="text-xs text-destructive">Team at max capacity (4/4 slots) for this day</p>
               )}
@@ -472,6 +537,15 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
             {selectedCategory && (
               <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
+                <div className="relative mb-2">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    value={serviceSearch}
+                    onChange={(e) => setServiceSearch(e.target.value)}
+                    placeholder="Search services…"
+                    className="pl-7 h-8 text-xs"
+                  />
+                </div>
                 <div className="flex items-center justify-between px-2 pb-1 border-b mb-1">
                   <span className="text-xs font-medium text-muted-foreground">{filteredServices.length} services</span>
                   <div className="flex gap-2">
