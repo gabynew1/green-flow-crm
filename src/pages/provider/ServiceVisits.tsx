@@ -210,7 +210,6 @@ export default function ServiceVisits() {
             </SelectContent>
           </Select>
           {viewMode === "calendar" && (
-            <Select value={calendarView} onValueChange={(v) => setCalendarView(v as any)}>
             <Select value={calendarView} onValueChange={(v) => setView(v as any)}>
               <SelectTrigger className="w-[110px]">
                 <SelectValue />
