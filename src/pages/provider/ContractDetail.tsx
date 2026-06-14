@@ -23,6 +23,8 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
+import { useZoneDateMap } from "@/hooks/useZoneDateMap";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
@@ -33,6 +35,8 @@ export default function ContractDetail() {
   const navigate = useNavigate();
   const { isWorkday } = useWorkdays(tenantId);
   const currency = useTenantCurrency();
+  const zoneDateMap = useZoneDateMap();
+  const queryClient = useQueryClient();
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
@@ -178,7 +182,8 @@ export default function ContractDetail() {
           unit: li.unit,
         }));
 
-        const visits = generateSchedule(
+        const propertyZoneId = ((contract.properties as any)?.zone_id ?? null) as string | null;
+        const { visits } = generateSchedule(
           {
             startDate: contract.start_date,
             endDate: contract.end_date,
@@ -190,9 +195,11 @@ export default function ContractDetail() {
             userId: user.id,
             contractName: contract.contract_name,
             lineItems: itemsForSchedule,
+            zoneId: propertyZoneId,
           },
           { isWorkday },
-          occupancy
+          occupancy,
+          zoneDateMap,
         );
 
         if (visits.length > 0) {
@@ -223,6 +230,10 @@ export default function ContractDetail() {
           if (allItems.length > 0) {
             await supabase.from("service_order_items").insert(allItems);
           }
+
+          // Refresh the in-memory zone occupancy cache so subsequent activations
+          // in the same session see the new bookings.
+          queryClient.invalidateQueries({ queryKey: ["zone-date-map"] });
 
           const teamName = teams.find(t => t.id === selectedTeamId)?.name || "Team";
           toast.success(`Contract activated! ${visits.length} visits scheduled for ${teamName}`);
