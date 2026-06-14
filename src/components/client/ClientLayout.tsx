@@ -204,10 +204,13 @@ export function ClientLayout() {
               <NavItems />
             </div>
 
-            <Button variant="outline" className="justify-start gap-2 rounded-2xl" onClick={signOut}>
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="flex-1 justify-start gap-2 rounded-2xl" onClick={signOut}>
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </Button>
+              <LanguageSwitcher />
+            </div>
           </div>
         </aside>
 
