@@ -16,6 +16,7 @@ import TeamManager from "@/components/provider/TeamManager";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
 import TenantEmailSettingsCard from "@/components/provider/TenantEmailSettingsCard";
 import EmailPreferencesCard from "@/components/EmailPreferencesCard";
+import LanguageRegionCard from "@/components/LanguageRegionCard";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 interface TeamMember {
@@ -513,6 +514,9 @@ export default function Settings() {
 
       {/* Change Your Password */}
       <ChangePasswordCard />
+
+      {/* Language & Region */}
+      <LanguageRegionCard />
 
       {/* Teams */}
       <TeamManager tenantId={tenantId} />

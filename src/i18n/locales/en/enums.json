@@ -1,0 +1,23 @@
+{
+  "visitStatus": {
+    "SCHEDULED": "Scheduled",
+    "IN_PROGRESS": "In Progress",
+    "COMPLETED": "Completed",
+    "CANCELED": "Canceled",
+    "PENDING_APPROVAL": "Pending Approval"
+  },
+  "contractStatus": {
+    "DRAFT": "Draft",
+    "SENT_TO_CLIENT": "Sent to Client",
+    "ACTIVE": "Active",
+    "CLOSED": "Closed",
+    "DECLINED": "Declined"
+  },
+  "offerStatus": {
+    "DRAFT": "Draft",
+    "SENT": "Sent",
+    "ACCEPTED": "Accepted",
+    "DECLINED": "Declined",
+    "EXPIRED": "Expired"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "required": "This field is required",
+  "invalidEmail": "Please enter a valid email",
+  "passwordTooShort": "Password must be at least 8 characters",
+  "passwordsDoNotMatch": "Passwords do not match"
+}

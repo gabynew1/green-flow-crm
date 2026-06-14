@@ -1,0 +1,23 @@
+{
+  "visitStatus": {
+    "SCHEDULED": "Programat",
+    "IN_PROGRESS": "În Desfășurare",
+    "COMPLETED": "Finalizat",
+    "CANCELED": "Anulat",
+    "PENDING_APPROVAL": "În Așteptare"
+  },
+  "contractStatus": {
+    "DRAFT": "Ciornă",
+    "SENT_TO_CLIENT": "Trimis Clientului",
+    "ACTIVE": "Activ",
+    "CLOSED": "Închis",
+    "DECLINED": "Refuzat"
+  },
+  "offerStatus": {
+    "DRAFT": "Ciornă",
+    "SENT": "Trimisă",
+    "ACCEPTED": "Acceptată",
+    "DECLINED": "Refuzată",
+    "EXPIRED": "Expirată"
+  }
+}

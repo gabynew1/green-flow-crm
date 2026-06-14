@@ -1,0 +1,11 @@
+{
+  "title": "SuperHub",
+  "subtitle": "Green Flow Admin",
+  "dashboard": "Dashboard",
+  "tenants": "Tenants",
+  "globalUsers": "Global Users",
+  "lifecycle": "Lifecycle",
+  "emails": "Emails",
+  "auditLogs": "Audit Logs",
+  "security": "Security"
+}

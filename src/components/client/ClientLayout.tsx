@@ -8,6 +8,8 @@ import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { toast } from "sonner";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,20 +39,22 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { title: "My Properties", url: "/client", icon: Home, matchPaths: ["/client", "/client/properties"] },
-  { title: "Offers", url: "/client/offers", icon: FileOutput },
-  { title: "Contracts", url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
-  { title: "Tasks", url: "/client/tasks", icon: Bell },
-  { title: "My Service Visits", url: "/client/visits", icon: ClipboardList },
-  { title: "Feedback & Requests", url: "/client/feedback", icon: MessageSquare },
-  { title: "Providers", url: "/client/providers", icon: Building2, matchPaths: ["/client/providers", "/client/connect"] },
-  { title: "My Profile", url: "/client/profile", icon: UserCircle },
+const buildNavItems = (t: (k: string) => string) => [
+  { title: t("client:myProperties"), url: "/client", icon: Home, matchPaths: ["/client", "/client/properties"] },
+  { title: t("client:offers"), url: "/client/offers", icon: FileOutput },
+  { title: t("client:contracts"), url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
+  { title: t("client:tasks"), url: "/client/tasks", icon: Bell },
+  { title: t("client:myVisits"), url: "/client/visits", icon: ClipboardList },
+  { title: t("client:feedback"), url: "/client/feedback", icon: MessageSquare },
+  { title: t("client:providers"), url: "/client/providers", icon: Building2, matchPaths: ["/client/providers", "/client/connect"] },
+  { title: t("client:myProfile"), url: "/client/profile", icon: UserCircle },
 ];
 
 export function ClientLayout() {
   const { signOut, profile, user } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
+  const navItems = buildNavItems(t);
   const [pendingContracts, setPendingContracts] = useState(0);
   const [showIdInfo, setShowIdInfo] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -193,7 +197,7 @@ export function ClientLayout() {
               </span>
               <div>
                 <p className="font-semibold text-foreground">GreenCRM</p>
-                <p className="text-sm text-muted-foreground">Client dashboard</p>
+                <p className="text-sm text-muted-foreground">{t("client:portalTitle")}</p>
               </div>
             </Link>
 
@@ -203,10 +207,13 @@ export function ClientLayout() {
               <NavItems />
             </div>
 
-            <Button variant="outline" className="justify-start gap-2 rounded-2xl" onClick={signOut}>
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" className="flex-1 justify-start gap-2 rounded-2xl" onClick={signOut}>
+                <LogOut className="h-4 w-4" />
+                {t("actions.signOut")}
+              </Button>
+              <LanguageSwitcher />
+            </div>
           </div>
         </aside>
 
@@ -229,7 +236,10 @@ export function ClientLayout() {
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
-            <div className="absolute right-16 top-3"><NotificationBell /></div>
+            <div className="absolute right-16 top-3 flex items-center gap-1">
+              <LanguageSwitcher />
+              <NotificationBell />
+            </div>
           </header>
 
           {mobileMenuOpen && (
@@ -247,7 +257,7 @@ export function ClientLayout() {
                     </span>
                     <div>
                       <p className="font-semibold">GreenCRM</p>
-                      <p className="text-sm text-muted-foreground">Client dashboard</p>
+                      <p className="text-sm text-muted-foreground">{t("client:portalTitle")}</p>
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setMobileMenuOpen(false)}>
@@ -263,7 +273,7 @@ export function ClientLayout() {
 
                 <Button variant="outline" className="justify-start gap-2 rounded-2xl" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
-                  Sign out
+                  {t("actions.signOut")}
                 </Button>
               </aside>
             </div>

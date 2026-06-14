@@ -1,0 +1,28 @@
+{
+  "appName": "GreenCRM",
+  "actions": {
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "delete": "Șterge",
+    "edit": "Modifică",
+    "add": "Adaugă",
+    "close": "Închide",
+    "back": "Înapoi",
+    "next": "Înainte",
+    "continue": "Continuă",
+    "confirm": "Confirmă",
+    "copy": "Copiază",
+    "search": "Caută",
+    "loading": "Se încarcă...",
+    "signOut": "Deconectare",
+    "signIn": "Autentificare"
+  },
+  "language": {
+    "label": "Limbă",
+    "change": "Schimbă limba",
+    "saved": "Limba a fost actualizată"
+  },
+  "status": {
+    "operational": "Sistem Funcțional"
+  }
+}

@@ -835,6 +835,36 @@ export type Database = {
           },
         ]
       }
+      inventory_category_translations: {
+        Row: {
+          category_code: string
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          locale: string
+          updated_at: string
+        }
+        Insert: {
+          category_code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label: string
+          locale: string
+          updated_at?: string
+        }
+        Update: {
+          category_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          locale?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           category: Database["public"]["Enums"]["inventory_category"]
@@ -1206,6 +1236,7 @@ export type Database = {
           id: string
           is_locked: boolean
           license_type: string
+          locale: string | null
           password_reset_pending: boolean
           phone: string | null
           provider_permission: string | null
@@ -1238,6 +1269,7 @@ export type Database = {
           id?: string
           is_locked?: boolean
           license_type?: string
+          locale?: string | null
           password_reset_pending?: boolean
           phone?: string | null
           provider_permission?: string | null
@@ -1270,6 +1302,7 @@ export type Database = {
           id?: string
           is_locked?: boolean
           license_type?: string
+          locale?: string | null
           password_reset_pending?: boolean
           phone?: string | null
           provider_permission?: string | null
@@ -1486,6 +1519,44 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_catalog_translations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          locale: string
+          name: string
+          service_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          locale: string
+          name: string
+          service_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          locale?: string
+          name?: string
+          service_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_catalog_translations_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
             referencedColumns: ["id"]
           },
         ]

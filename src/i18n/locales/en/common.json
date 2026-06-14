@@ -1,0 +1,28 @@
+{
+  "appName": "GreenCRM",
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "confirm": "Confirm",
+    "copy": "Copy",
+    "search": "Search",
+    "loading": "Loading...",
+    "signOut": "Sign out",
+    "signIn": "Sign in"
+  },
+  "language": {
+    "label": "Language",
+    "change": "Change language",
+    "saved": "Language updated"
+  },
+  "status": {
+    "operational": "System Optimal"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "title": "SuperHub",
+  "subtitle": "Administrare Green Flow",
+  "dashboard": "Tablou de bord",
+  "tenants": "Furnizori",
+  "globalUsers": "Utilizatori Globali",
+  "lifecycle": "Ciclu de viață",
+  "emails": "Emailuri",
+  "auditLogs": "Jurnale Audit",
+  "security": "Securitate"
+}
