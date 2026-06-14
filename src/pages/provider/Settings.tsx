@@ -203,6 +203,13 @@ export default function Settings() {
         <p className="text-muted-foreground">Manage your company profile, team members, and integrations.</p>
       </div>
 
+      <Tabs defaultValue="general" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="zones">Zones</TabsTrigger>
+        </TabsList>
+        <TabsContent value="general" className="space-y-6">
+
       {/* Company Information */}
       <Card>
         <CardHeader>
@@ -558,6 +565,12 @@ export default function Settings() {
 
       {/* Personal email preferences for the current user */}
       <EmailPreferencesCard />
+
+        </TabsContent>
+        <TabsContent value="zones" className="space-y-6">
+          <ZonesSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
