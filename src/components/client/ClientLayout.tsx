@@ -8,6 +8,7 @@ import { AIChatBox } from "@/components/AIChatBox";
 import { ConnectionRequests } from "@/components/client/ConnectionRequests";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { toast } from "sonner";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,7 +230,10 @@ export function ClientLayout() {
                 <LogOut className="h-5 w-5" />
               </Button>
             </div>
-            <div className="absolute right-16 top-3"><NotificationBell /></div>
+            <div className="absolute right-16 top-3 flex items-center gap-1">
+              <LanguageSwitcher />
+              <NotificationBell />
+            </div>
           </header>
 
           {mobileMenuOpen && (
