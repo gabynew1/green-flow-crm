@@ -91,6 +91,13 @@ export default function ServiceVisits() {
     ).entries(),
   ).sort((a, b) => a[1].localeCompare(b[1]));
 
+  // Calendar placement: completed visits surface on their performed date,
+  // everything else on scheduled date. scheduled_date is never overwritten.
+  const visitDisplayDate = (o: any): Date | null => {
+    if (o.status === "COMPLETED" && o.performed_date) return parseISO(o.performed_date);
+    return o.scheduled_date ? parseISO(o.scheduled_date) : null;
+  };
+
   // List view filtering
   const filtered = teamFiltered.filter(o => {
     if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
