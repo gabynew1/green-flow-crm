@@ -204,7 +204,8 @@ export default function ServiceVisits() {
 
       {viewMode === "calendar" ? (
         <>
-          {/* Day navigation strip */}
+          {/* Day navigation strip — hidden in month view (month has its own nav) */}
+          {calendarView !== "month" && (
           <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" onClick={() => setSelectedDate(d => addDays(d, -1))}>
               <ChevronLeft className="h-4 w-4" />
@@ -238,8 +239,10 @@ export default function ServiceVisits() {
               </Button>
             )}
           </div>
+          )}
 
-          {/* Day's visits */}
+          {/* Day's visits — shown in day & week views */}
+          {calendarView !== "month" && (
           <div className="space-y-2">
             {dayOrders.length > 0 ? dayOrders.map(o => {
               const teamColor = o.team_id ? teamColorMap[o.team_id] : undefined;
@@ -279,8 +282,10 @@ export default function ServiceVisits() {
               <p className="text-muted-foreground text-center py-4 text-sm">No visits for this day</p>
             )}
           </div>
+          )}
 
           {/* Week grid */}
+          {calendarView === "week" && (
           <div>
             <div className="flex items-center justify-between mb-3">
               <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addWeeks(d, -1))}>
@@ -336,6 +341,68 @@ export default function ServiceVisits() {
               })}
             </div>
           </div>
+          )}
+
+          {/* Month grid */}
+          {calendarView === "month" && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addMonths(d, -1))}>
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous Month
+                </Button>
+                <p className="text-sm font-medium">{format(selectedDate, "MMMM yyyy")}</p>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addMonths(d, 1))}>
+                  Next Month <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-1">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                  <div key={d} className="text-center py-1">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {monthDays.map(day => {
+                  const dayVisits = getOrdersForDate(day);
+                  const today = isToday(day);
+                  const inMonth = isSameMonth(day, selectedDate);
+                  const workday = isWorkday(day);
+                  const nonWorkLabel = getNonWorkdayLabel(day);
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={`min-h-[88px] rounded-md border p-1.5 cursor-pointer transition-colors ${
+                        today ? "border-primary/40 bg-primary/[0.04]" : !workday ? "border-border bg-muted/40" : "border-border"
+                      } ${!inMonth ? "opacity-40" : ""}`}
+                      onClick={() => { setSelectedDate(day); setCalendarView("day"); }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-semibold ${today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>{format(day, "d")}</span>
+                        {nonWorkLabel && <span className="text-[8px] text-destructive/70 truncate ml-1">{nonWorkLabel}</span>}
+                      </div>
+                      <div className="space-y-0.5">
+                        {dayVisits.slice(0, 2).map(o => {
+                          const tc = o.team_id ? teamColorMap[o.team_id] : undefined;
+                          return (
+                            <Link key={o.id} to={`/provider/visits/${o.id}`} onClick={e => e.stopPropagation()}>
+                              <div
+                                className={`rounded px-1 py-0.5 text-[9px] leading-tight truncate ${statusColor[o.status]}`}
+                                style={teamFilter === "ALL" && tc ? { borderLeft: `2px solid ${tc}` } : {}}
+                              >
+                                {(o.properties as any)?.name}
+                              </div>
+                            </Link>
+                          );
+                        })}
+                        {dayVisits.length > 2 && (
+                          <p className="text-[9px] text-muted-foreground text-center">+{dayVisits.length - 2}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <>
