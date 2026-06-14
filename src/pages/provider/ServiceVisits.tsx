@@ -300,11 +300,17 @@ export default function ServiceVisits() {
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            {!isToday(selectedDate) && (
-              <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
-                Today
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedDate(new Date());
+                setCameFromMonth(calendarView === "month");
+                setCalendarView("day");
+              }}
+            >
+              Today
+            </Button>
             <Button
               variant="outline"
               size="icon"
