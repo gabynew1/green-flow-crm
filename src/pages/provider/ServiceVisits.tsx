@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
+import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
 import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, format, isSameDay, isToday, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
@@ -353,9 +354,14 @@ export default function ServiceVisits() {
                           </p>
                         </div>
                       </div>
-                      <Badge className={statusColor[o.status]} variant="secondary">
-                        {statusLabels[o.status] || o.status.replace(/_/g, " ")}
-                      </Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
+                          <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
+                        )}
+                        <Badge className={statusColor[o.status]} variant="secondary">
+                          {statusLabels[o.status] || o.status.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
@@ -517,7 +523,12 @@ export default function ServiceVisits() {
                           </p>
                         </div>
                       </div>
-                      <Badge className={statusColor[o.status]} variant="secondary">{statusLabels[o.status] || o.status.replace(/_/g, " ")}</Badge>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
+                          <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
+                        )}
+                        <Badge className={statusColor[o.status]} variant="secondary">{statusLabels[o.status] || o.status.replace(/_/g, " ")}</Badge>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
