@@ -1,73 +1,42 @@
-# Visit calendar date + flat-fee contract pricing
+## Calendar UX Improvements — `src/pages/provider/ServiceVisits.tsx`
 
-## 1. Calendar: completed visits appear on their performed date
+Presentation-only changes to the provider Visits calendar. No data, no business logic, no other files touched.
 
-Display-only change — `service_orders.scheduled_date` is never overwritten, so audit history is preserved.
+### 1. Month becomes the default view
+- Change initial state: `useState<"day"|"week"|"month">("month")`.
 
-**File:** `src/pages/provider/ServiceVisits.tsx`
+### 2. "Back to month" affordance on drill-down
+- When the user clicks a date cell in month view, we already jump to day view. Track this transition with a `cameFromMonth` boolean.
+- While in day view AND `cameFromMonth` is true, render a prominent secondary button above the date strip:
+  - `← Back to month` — sets view back to `month` and clears the flag.
+- The flag clears automatically when the user changes view via the dropdown or edge arrows.
 
-- Introduce a small helper:
-  ```ts
-  const visitDisplayDate = (o: any) =>
-    o.status === "COMPLETED" && o.performed_date
-      ? parseISO(o.performed_date)
-      : o.scheduled_date ? parseISO(o.scheduled_date) : null;
-  ```
-- Replace every use of `parseISO(o.scheduled_date)` that drives calendar placement with `visitDisplayDate(o)`. Affected spots:
-  - `getOrdersForDate` (day / week / month grids and the day list).
-  - `getDaySlotInfo` (team slot occupancy chips).
-- List view (`filtered` block) is unchanged — it's a list, not a calendar, and the "· {period_label || scheduled_date}" label stays as-is so users still see what was scheduled vs what was performed (performed_date is already shown on the visit detail).
-- No DB or query changes — `performed_date` is already on `service_orders` and returned by the existing select.
+### 3. Unified date-navigation strip (replaces the per-view strips)
 
-## 2. Flat-fee contract: included services priced at 0, ad-hoc still billed
+```text
+[ « ]   [ ‹ ]   Monday, June 16, 2025   [ › ]   [ » ]    [Today]
+ edge    tight          date label        tight   edge
+```
 
-**Detection rule (no schema change needed):** a contract is "flat-fee" when its `contract_line_items` contains a row whose `custom_name` starts with `"Flat fee"` (this is exactly what `ContractNew.tsx` writes today when the category is `Regular Maintenance`). The flat-fee row itself carries the recurring price (e.g. 400 RON); the per-service rows are inserted with `unit_price = null` and represent scope only.
+- **Tight inner arrows (`‹` / `›`, small icon button, `h-8 w-8`)** sit immediately next to the date label (`gap-1`). They step the period by 1 unit of the **current view**:
+  - day view → ±1 day
+  - week view → ±1 week
+  - month view → ±1 month (e.g. June → `›` → July)
 
-**File:** `src/pages/provider/VisitDetail.tsx`
+- **Large edge arrows (`«` / `»`, `h-11 w-11`, `ChevronsLeft` / `ChevronsRight` from lucide-react)** anchored to the far left/right. They cycle the **view type** along the axis `month ↔ week ↔ day`:
+  - `«` zooms out: day → week → month. Disabled on month.
+  - `»` zooms in: month → week → day. Disabled on day.
+  - No wrap.
 
-- After `load()` fetches `order`, also fetch the contract's line items when `order.contract_id` is set:
-  ```ts
-  const { data: cli } = await supabase
-    .from("contract_line_items")
-    .select("custom_name, unit_price, frequency_type")
-    .eq("contract_id", order.contract_id);
-  ```
-  Store in state: `contractFlatFee: { isFlat: boolean; amount: number; frequency: string | null }`.
-  - `isFlat = cli?.some(r => r.custom_name?.startsWith("Flat fee"))`
-  - `amount = cli?.find(r => r.custom_name?.startsWith("Flat fee"))?.unit_price ?? 0`
-  - `frequency = …frequency_type` (used only for the label, e.g. "Flat fee · per month").
-- Update `getItemPrice(item)` so contract-sourced items return `0` when `contractFlatFee.isFlat` is true:
-  ```ts
-  const getItemPrice = (item: any): number => {
-    if (item.source === "CONTRACT" && contractFlatFee.isFlat) return 0;
-    return item.unit_price
-      ?? item.contract_line_items?.unit_price
-      ?? item.service_catalog?.default_price
-      ?? 0;
-  };
-  ```
-  Contract line items keep rendering with their names, quantities, and a `0` price tag — exactly as requested ("keep the line items with 0 cost").
-- Recompute totals:
-  - `contractTotal` becomes `0` automatically (it already sums `getItemCost`).
-  - Add a new constant in the totals block:
-    ```ts
-    const flatFeeAmount = contractFlatFee.isFlat ? contractFlatFee.amount : 0;
-    const visitTotal = flatFeeAmount + adHocTotal;
-    ```
-- Cost summary card (the existing totals section) gets a new row above "Ad-hoc" when `isFlat`:
-  - Label: `Contract flat fee` with a small muted sublabel "covers included services" and the frequency suffix (`/ month`, `/ year`, etc.).
-  - Value: `formatCurrency(flatFeeAmount, currency)`.
-- Per-line rendering: each contract line keeps its name; the price column shows `formatCurrency(0, currency)` with a muted "Included in flat fee" hint (only when `isFlat`).
-- No changes to ad-hoc handling — `adHocTotal` and the existing "additional billing" warning in the Complete dialog keep working unchanged.
+- The label adapts to the view:
+  - day → `EEEE, MMMM d, yyyy`
+  - week → `MMM d – MMM d, yyyy` (current week range)
+  - month → `MMMM yyyy`
 
-## Out of scope
+- The standalone `Today` button stays on the right of the strip when `selectedDate` is not today.
+- Slot-occupancy badges under the date label remain in day view only (as today).
 
-- No schema migrations.
-- No changes to contract creation/edit UI, offers, invoices, client-side contract pages, or the visit-report email body (numbers there already derive from line-item totals — once `unit_price` for flat-fee contracts is null on per-service rows, those naturally render as 0 in the email's `hasAdditionalCost` flag, which depends only on ad-hoc count and is unaffected).
-- No changes to `ServiceVisits` list filtering or search.
+- This single strip is rendered for all three views, replacing the current "Previous Week / Next Week" and "Previous Month / Next Month" strips inside the week and month panels.
 
-## Technical notes
-
-- Files touched: `src/pages/provider/ServiceVisits.tsx`, `src/pages/provider/VisitDetail.tsx`.
-- All logic is presentational; no edge functions, RLS, or types regeneration needed.
-- Multi-property contracts: detection is per-`contract_id`, which already matches the visit's contract, so multi-property is handled correctly.
+### Out of scope
+- No changes to data fetching, filters, search, ad-hoc create dialog, visit cards, list view, slot capacity logic, or styling tokens beyond adding the two new chevron icons.
