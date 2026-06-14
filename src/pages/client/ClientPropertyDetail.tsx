@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, MapPin, Pencil, Trash2, Copy } from "lucide-react";
+import { ArrowLeft, MapPin, Pencil, Trash2, Copy, Unlink } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ClientPropertyDetail() {
@@ -40,12 +40,19 @@ export default function ClientPropertyDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", address: "", city: "", description: "" });
   const [saving, setSaving] = useState(false);
+  const [delinking, setDelinking] = useState(false);
+  const [providerName, setProviderName] = useState<string | null>(null);
 
   useEffect(() => { load(); }, [propertyId]);
 
   const load = async () => {
-    const { data: p } = await supabase.from("properties").select("*").eq("id", propertyId!).single();
+    const { data: p } = await supabase
+      .from("properties")
+      .select("*, tenants(name)")
+      .eq("id", propertyId!)
+      .single();
     setProperty(p);
+    setProviderName((p as any)?.tenants?.name ?? null);
     if (p) setEditForm({ name: p.name, address: p.address ?? "", city: p.city ?? "", description: p.description ?? "" });
 
     const { data: inv } = await supabase.from("inventory").select("id").eq("property_id", propertyId!).single();
@@ -107,6 +114,30 @@ export default function ClientPropertyDetail() {
     navigate("/client");
   };
 
+  const blockingContracts = contracts.filter(
+    (c) => !c.archived && (c.status === "ACTIVE" || c.status === "SENT_TO_CLIENT")
+  );
+  const canDelink = !!property?.tenant_id && blockingContracts.length === 0;
+
+  const handleDelink = async () => {
+    setDelinking(true);
+    const { data, error } = await supabase.rpc("client_delink_property", {
+      _property_id: propertyId!,
+    });
+    setDelinking(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const canceled = (data as any)?.canceled_visits ?? 0;
+    toast.success(
+      canceled > 0
+        ? `Property delinked. Canceled ${canceled} upcoming visit${canceled === 1 ? "" : "s"}.`
+        : "Property delinked. You can now connect it to another provider."
+    );
+    load();
+  };
+
   const contractStatusColor = (s: string) => {
     switch (s) {
       case "ACTIVE": return "default";
@@ -130,6 +161,40 @@ export default function ClientPropertyDetail() {
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4 mr-1" /> Edit
           </Button>
+          {property.tenant_id && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!canDelink || delinking}
+                  title={
+                    !canDelink
+                      ? "Active or pending contract — close it first to delink"
+                      : undefined
+                  }
+                >
+                  <Unlink className="h-4 w-4 mr-1" /> Delink from provider
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delink from {providerName ?? "this provider"}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {providerName ?? "The provider"} will lose access to "{property.name}".
+                    Any upcoming visits they have scheduled will be canceled.
+                    You can connect this property to another provider afterwards.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelink} disabled={delinking}>
+                    {delinking ? "Delinking…" : "Confirm delink"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
