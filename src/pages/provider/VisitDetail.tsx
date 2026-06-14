@@ -68,6 +68,7 @@ export default function VisitDetail() {
   const [editPeriodLabel, setEditPeriodLabel] = useState("");
   const [editPeriodType, setEditPeriodType] = useState("");
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
+  const [contractFlatFee, setContractFlatFee] = useState<{ isFlat: boolean; amount: number; frequency: string | null }>({ isFlat: false, amount: 0, frequency: null });
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -102,6 +103,20 @@ export default function VisitDetail() {
       const { data: ctr } = await supabase.from("contracts").select("start_date, end_date").eq("id", o.contract_id).single();
       const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
       setScopeMap(sm);
+
+      // Detect flat-fee contract via the dedicated "Flat fee — …" line item
+      const { data: cli } = await supabase
+        .from("contract_line_items")
+        .select("custom_name, unit_price, frequency_type")
+        .eq("contract_id", o.contract_id);
+      const flatRow = (cli ?? []).find((r: any) => typeof r.custom_name === "string" && r.custom_name.startsWith("Flat fee"));
+      if (flatRow) {
+        setContractFlatFee({ isFlat: true, amount: Number(flatRow.unit_price) || 0, frequency: (flatRow as any).frequency_type ?? null });
+      } else {
+        setContractFlatFee({ isFlat: false, amount: 0, frequency: null });
+      }
+    } else {
+      setContractFlatFee({ isFlat: false, amount: 0, frequency: null });
     }
   };
 
@@ -245,6 +260,8 @@ export default function VisitDetail() {
 
   // Cost helpers
   const getItemPrice = (item: any): number => {
+    // Flat-fee contracts: included (contract) services are covered by the flat fee.
+    if (item.source === "CONTRACT" && contractFlatFee.isFlat) return 0;
     return item.unit_price
       ?? (item.contract_line_items as any)?.unit_price
       ?? (item.service_catalog as any)?.default_price
@@ -255,7 +272,11 @@ export default function VisitDetail() {
   };
   const contractTotal = contractItems.reduce((s, i) => s + getItemCost(i), 0);
   const adHocTotal = adHocItems.reduce((s, i) => s + getItemCost(i), 0);
-  const visitTotal = contractTotal + adHocTotal;
+  const flatFeeAmount = contractFlatFee.isFlat ? contractFlatFee.amount : 0;
+  const visitTotal = contractTotal + adHocTotal + flatFeeAmount;
+  const flatFeeSuffix = contractFlatFee.frequency === "PER_YEAR" ? "/ year"
+    : contractFlatFee.frequency === "ONE_TIME" ? ""
+    : "/ month";
 
   return (
     <div className="space-y-6">
