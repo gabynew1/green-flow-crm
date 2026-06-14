@@ -36,6 +36,7 @@ export default function ChangePassword() {
     setSaving(true);
 
     // 1. Clear temporary_password FIRST so route guard won't loop
+    //    (trigger keeps password_reset_pending in sync)
     const { error: updateErr } = await supabase
       .from("profiles")
       .update({ temporary_password: null })

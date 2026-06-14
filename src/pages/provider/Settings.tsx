@@ -24,7 +24,7 @@ interface TeamMember {
   full_name: string | null;
   email: string | null;
   provider_permission: string | null;
-  temporary_password: string | null;
+  password_reset_pending: boolean | null;
 }
 
 export default function Settings() {
@@ -81,7 +81,7 @@ export default function Settings() {
     setLoadingTeam(true);
     const { data } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, email, provider_permission, temporary_password")
+      .select("id, user_id, full_name, email, provider_permission, password_reset_pending")
       .eq("tenant_id", tenantId);
     if (data) setTeamMembers(data as TeamMember[]);
     setLoadingTeam(false);

@@ -58,7 +58,7 @@ export default function GlobalUserManagement() {
           tenant_id,
           is_locked,
           license_type,
-          temporary_password,
+          password_reset_pending,
           tenants (name, subscription_tier)
         `);
 
