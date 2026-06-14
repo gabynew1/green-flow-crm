@@ -100,34 +100,49 @@ export default function ContractDetail() {
 
     // Send email when contract is sent to client
     if (status === "SENT_TO_CLIENT" && contract) {
-      const customerId = (contract.properties as any)?.customers?.id || (contract.properties as any)?.customer_id;
-      if (customerId) {
-        const { data: clientProfile } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("customer_id", customerId)
-          .maybeSingle();
-        const { data: tenant } = tenantId
-          ? await supabase.from("tenants").select("name").eq("id", tenantId).single()
-          : { data: null };
-        if (clientProfile?.email) {
-          const { sendAppEmail } = await import("@/lib/send-app-email");
-          sendAppEmail({
-            templateName: "contract-sent",
-            recipientEmail: clientProfile.email,
-            idempotencyKey: `contract-sent-${contractId}`,
-            tenantId: tenantId ?? null,
-            templateData: {
-              contractName: contract.contract_name,
-              propertyName: (contract.properties as any)?.name,
-              providerName: tenant?.name,
-            },
-          });
-        }
-      }
+      await sendContractSentEmail(`contract-sent-${contractId}`);
     }
 
     load();
+  };
+
+  const sendContractSentEmail = async (idempotencyKey: string) => {
+    if (!contract) return false;
+    const customerId = (contract.properties as any)?.customers?.id || (contract.properties as any)?.customer_id;
+    if (!customerId) {
+      toast.error("No client account linked to this property");
+      return false;
+    }
+    const { data: clientProfile } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("customer_id", customerId)
+      .maybeSingle();
+    if (!clientProfile?.email) {
+      toast.error("Linked client has no email on file");
+      return false;
+    }
+    const { data: tenant } = tenantId
+      ? await supabase.from("tenants").select("name").eq("id", tenantId).single()
+      : { data: null };
+    const { sendAppEmail } = await import("@/lib/send-app-email");
+    await sendAppEmail({
+      templateName: "contract-sent",
+      recipientEmail: clientProfile.email,
+      idempotencyKey,
+      tenantId: tenantId ?? null,
+      templateData: {
+        contractName: contract.contract_name,
+        propertyName: (contract.properties as any)?.name,
+        providerName: tenant?.name,
+      },
+    });
+    return true;
+  };
+
+  const resendContractEmail = async () => {
+    const ok = await sendContractSentEmail(`contract-sent-${contractId}-resend-${Date.now()}`);
+    if (ok) toast.success("Notification resent to client");
   };
 
   const handleActivate = async () => {
@@ -440,6 +455,7 @@ export default function ContractDetail() {
             )}
             {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("SENT_TO_CLIENT")}><Send className="h-3 w-3 mr-1" /> Send to Client</Button>}
             {contract.status === "SENT_TO_CLIENT" && <Button size="sm" onClick={() => updateStatus("SIGNED")}><Check className="h-3 w-3 mr-1" /> Mark Signed</Button>}
+            {contract.status === "SENT_TO_CLIENT" && <Button size="sm" variant="outline" onClick={resendContractEmail}><Send className="h-3 w-3 mr-1" /> Resend Notification</Button>}
             {contract.status === "SIGNED" && (
               <Button size="sm" onClick={handleActivate} disabled={activating}>
                 {activating ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Scheduling…</> : <><Play className="h-3 w-3 mr-1" /> Activate</>}

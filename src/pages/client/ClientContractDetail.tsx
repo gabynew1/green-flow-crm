@@ -55,7 +55,7 @@ export default function ClientContractDetail() {
   const load = async () => {
     setLoading(true);
     const [contractRes, itemsRes, visitsRes] = await Promise.all([
-      supabase.from("contracts").select("*, properties(name, address, city)").eq("id", contractId!).single(),
+      supabase.from("contracts").select("*, properties(name, address, city, tenant_id)").eq("id", contractId!).single(),
       supabase.from("contract_line_items").select("*, service_catalog(name, code, default_price)").eq("contract_id", contractId!),
       supabase.from("service_orders").select("id, scheduled_date, status, period_label").eq("contract_id", contractId!)
         .gte("scheduled_date", new Date().toISOString().split("T")[0]).order("scheduled_date").limit(10),
