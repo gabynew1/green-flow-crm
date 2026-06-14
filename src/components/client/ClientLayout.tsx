@@ -197,7 +197,7 @@ export function ClientLayout() {
               </span>
               <div>
                 <p className="font-semibold text-foreground">GreenCRM</p>
-                <p className="text-sm text-muted-foreground">Client dashboard</p>
+                <p className="text-sm text-muted-foreground">{t("client:portalTitle")}</p>
               </div>
             </Link>
 
@@ -210,7 +210,7 @@ export function ClientLayout() {
             <div className="flex items-center gap-2">
               <Button variant="outline" className="flex-1 justify-start gap-2 rounded-2xl" onClick={signOut}>
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t("actions.signOut")}
               </Button>
               <LanguageSwitcher />
             </div>
@@ -257,7 +257,7 @@ export function ClientLayout() {
                     </span>
                     <div>
                       <p className="font-semibold">GreenCRM</p>
-                      <p className="text-sm text-muted-foreground">Client dashboard</p>
+                      <p className="text-sm text-muted-foreground">{t("client:portalTitle")}</p>
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => setMobileMenuOpen(false)}>
@@ -273,7 +273,7 @@ export function ClientLayout() {
 
                 <Button variant="outline" className="justify-start gap-2 rounded-2xl" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
-                  Sign out
+                  {t("actions.signOut")}
                 </Button>
               </aside>
             </div>
