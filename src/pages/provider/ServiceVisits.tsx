@@ -247,42 +247,75 @@ export default function ServiceVisits() {
 
       {viewMode === "calendar" ? (
         <>
-          {/* Day navigation strip — hidden in month view (month has its own nav) */}
-          {calendarView !== "month" && (
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => setSelectedDate(d => addDays(d, -1))}>
-              <ChevronLeft className="h-4 w-4" />
+          {/* Back to month (only when drilled in from month view) */}
+          {calendarView === "day" && cameFromMonth && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { setCameFromMonth(false); setCalendarView("month"); }}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back to month
             </Button>
-            <div className="flex-1 text-center">
-              <p className="text-lg font-semibold">{format(selectedDate, "EEEE, MMMM d, yyyy")}</p>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                {isToday(selectedDate) && <Badge variant="secondary">Today</Badge>}
-                {(() => {
-                  const slots = getDaySlotInfo(selectedDate);
-                  const entries = Object.entries(slots);
-                  if (entries.length === 0) return null;
-                  return entries.map(([tid, count]) => {
-                    const team = teams.find(t => t.id === tid);
-                    return (
-                      <Badge key={tid} variant="outline" className="text-[10px]">
-                        <span className="inline-block h-2 w-2 rounded-full mr-1" style={{ backgroundColor: team?.color || "#888" }} />
-                        {team?.name}: {count}/4 slots
-                      </Badge>
-                    );
-                  });
-                })()}
+          )}
+
+          {/* Unified date-navigation strip */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              onClick={zoomOut}
+              disabled={calendarView === "month"}
+              title="Zoom out (day → week → month)"
+            >
+              <ChevronsLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex-1 flex items-center justify-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stepBack}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-center min-w-[220px]">
+                <p className="text-lg font-semibold">{periodLabel}</p>
+                {calendarView === "day" && (
+                  <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
+                    {isToday(selectedDate) && <Badge variant="secondary">Today</Badge>}
+                    {(() => {
+                      const slots = getDaySlotInfo(selectedDate);
+                      const entries = Object.entries(slots);
+                      if (entries.length === 0) return null;
+                      return entries.map(([tid, count]) => {
+                        const team = teams.find(t => t.id === tid);
+                        return (
+                          <Badge key={tid} variant="outline" className="text-[10px]">
+                            <span className="inline-block h-2 w-2 rounded-full mr-1" style={{ backgroundColor: team?.color || "#888" }} />
+                            {team?.name}: {count}/4 slots
+                          </Badge>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
               </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={stepForward}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="outline" size="icon" onClick={() => setSelectedDate(d => addDays(d, 1))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
             {!isToday(selectedDate) && (
               <Button variant="outline" size="sm" onClick={() => setSelectedDate(new Date())}>
                 Today
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11"
+              onClick={zoomIn}
+              disabled={calendarView === "day"}
+              title="Zoom in (month → week → day)"
+            >
+              <ChevronsRight className="h-5 w-5" />
+            </Button>
           </div>
-          )}
 
           {/* Day's visits — shown in day & week views */}
           {calendarView !== "month" && (
@@ -330,17 +363,6 @@ export default function ServiceVisits() {
           {/* Week grid */}
           {calendarView === "week" && (
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addWeeks(d, -1))}>
-                <ChevronLeft className="h-4 w-4 mr-1" /> Previous Week
-              </Button>
-              <p className="text-sm font-medium text-muted-foreground">
-                {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
-              </p>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addWeeks(d, 1))}>
-                Next Week <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
             <div className="grid grid-cols-7 gap-1 min-h-[200px]">
                 {weekDays.map(day => {
                   const dayVisits = getOrdersForDate(day);
@@ -389,15 +411,6 @@ export default function ServiceVisits() {
           {/* Month grid */}
           {calendarView === "month" && (
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addMonths(d, -1))}>
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous Month
-                </Button>
-                <p className="text-sm font-medium">{format(selectedDate, "MMMM yyyy")}</p>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(d => addMonths(d, 1))}>
-                  Next Month <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
               <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground mb-1">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
                   <div key={d} className="text-center py-1">{d}</div>
@@ -416,7 +429,7 @@ export default function ServiceVisits() {
                       className={`min-h-[88px] rounded-md border p-1.5 cursor-pointer transition-colors ${
                         today ? "border-primary/40 bg-primary/[0.04]" : !workday ? "border-border bg-muted/40" : "border-border"
                       } ${!inMonth ? "opacity-40" : ""}`}
-                      onClick={() => { setSelectedDate(day); setCalendarView("day"); }}
+                      onClick={() => { setSelectedDate(day); setCameFromMonth(true); setCalendarView("day"); }}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-xs font-semibold ${today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>{format(day, "d")}</span>
