@@ -396,16 +396,23 @@ export default function CustomerDetail() {
       ) : (
         <div className="space-y-3">
           {visits.map((o) => (
-            <Link key={o.id} to={`/provider/visits/${o.id}`}>
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{o.period_label || o.scheduled_date || "Unscheduled"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
-                      {o.period_type} · {o.scheduled_date}
-                    </p>
-                  </div>
+            <Card key={o.id} className="hover:border-primary/50 transition-colors">
+              <CardContent className="pt-4 pb-4 flex items-center justify-between gap-3">
+                <Link to={`/provider/visits/${o.id}`} className="flex-1 min-w-0">
+                  <p className="font-medium">{o.period_label || o.scheduled_date || "Unscheduled"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
+                    {o.period_type} · {o.scheduled_date}
+                  </p>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
+                    <RescheduleVisitButton
+                      visitId={o.id}
+                      currentDate={o.scheduled_date}
+                      onRescheduled={load}
+                    />
+                  )}
                   <Badge variant="secondary" className={
                     o.status === "COMPLETED" ? "bg-success/10 text-success" :
                     o.status === "CANCELED" ? "bg-destructive/10 text-destructive" :
@@ -414,9 +421,9 @@ export default function CustomerDetail() {
                   }>
                     {o.status.replace(/_/g, " ")}
                   </Badge>
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
