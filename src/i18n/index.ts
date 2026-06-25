@@ -10,6 +10,7 @@ import enClient from "./locales/en/client.json";
 import enAdmin from "./locales/en/admin.json";
 import enValidation from "./locales/en/validation.json";
 import enEnums from "./locales/en/enums.json";
+import enPublic from "./locales/en/public.json";
 
 import roCommon from "./locales/ro/common.json";
 import roAuth from "./locales/ro/auth.json";
@@ -18,6 +19,7 @@ import roClient from "./locales/ro/client.json";
 import roAdmin from "./locales/ro/admin.json";
 import roValidation from "./locales/ro/validation.json";
 import roEnums from "./locales/ro/enums.json";
+import roPublic from "./locales/ro/public.json";
 
 const resources = {
   en: {
@@ -28,6 +30,7 @@ const resources = {
     admin: enAdmin,
     validation: enValidation,
     enums: enEnums,
+    public: enPublic,
   },
   ro: {
     common: roCommon,
@@ -37,6 +40,7 @@ const resources = {
     admin: roAdmin,
     validation: roValidation,
     enums: roEnums,
+    public: roPublic,
   },
 };
 
@@ -48,11 +52,11 @@ i18n
     fallbackLng: FALLBACK_LOCALE,
     supportedLngs: SUPPORTED_LOCALES.map((l) => l.code),
     nonExplicitSupportedLngs: true, // map en-US -> en
-    ns: ["common", "auth", "provider", "client", "admin", "validation", "enums"],
+    ns: ["common", "auth", "provider", "client", "admin", "validation", "enums", "public"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
-      order: ["localStorage", "navigator"],
+      order: ["localStorage"],
       caches: ["localStorage"],
       lookupLocalStorage: LOCALE_STORAGE_KEY,
     },

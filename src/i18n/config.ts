@@ -5,7 +5,7 @@ export const SUPPORTED_LOCALES = [
 
 export type LocaleCode = (typeof SUPPORTED_LOCALES)[number]["code"];
 
-export const FALLBACK_LOCALE: LocaleCode = "en";
+export const FALLBACK_LOCALE: LocaleCode = "ro";
 
 export const LOCALE_STORAGE_KEY = "locale";
 

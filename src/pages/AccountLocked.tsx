@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 interface LockedInfo {
   kind: "tenant" | "client";
@@ -15,6 +17,7 @@ export default function AccountLocked() {
   const { signOut, profile } = useAuth();
   const navigate = useNavigate();
   const [info, setInfo] = useState<LockedInfo | null>(null);
+  const { t } = useTranslation("public");
 
   useEffect(() => {
     (async () => {
@@ -35,25 +38,25 @@ export default function AccountLocked() {
     : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-background">
+    <div className="relative flex min-h-screen items-center justify-center p-6 bg-background">
+      <div className="absolute top-3 right-3"><LanguageSwitcher /></div>
       <div className="max-w-lg w-full rounded-2xl border bg-card p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Account locked</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t("accountLocked.title")}</h1>
         <p className="text-muted-foreground mb-4">
-          {info?.kind === "client" ? "Your client account " : "Your workspace "}
-          {info?.name && <strong>{info.name}</strong>} has been locked due to inactivity or by an administrator.
+          {info?.kind === "client" ? t("accountLocked.clientPrefix") : t("accountLocked.workspacePrefix")}
+          {info?.name && <strong>{info.name}</strong>}{t("accountLocked.lockedSuffix")}
         </p>
         {daysLeft !== null && (
           <div className="rounded-lg bg-muted p-4 mb-4 text-sm">
-            <strong className="text-foreground">{daysLeft} days</strong> remain before permanent deletion.
-            All data is preserved until then.
+            <strong className="text-foreground">{t("accountLocked.daysRemaining", { days: daysLeft })}</strong>{t("accountLocked.deletionInfo")}
           </div>
         )}
         <p className="text-sm text-muted-foreground mb-6">
-          To reactivate, please contact your administrator. If you're the account owner, signing in again will automatically restore access.
+          {t("accountLocked.contact")}
         </p>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={async () => { await signOut(); navigate("/auth"); }}>Sign out</Button>
-          <Button onClick={() => window.location.reload()}>Refresh</Button>
+          <Button variant="outline" onClick={async () => { await signOut(); navigate("/auth"); }}>{t("accountLocked.signOut")}</Button>
+          <Button onClick={() => window.location.reload()}>{t("accountLocked.refresh")}</Button>
         </div>
       </div>
     </div>

@@ -1,0 +1,158 @@
+{
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "how": "How It Works",
+      "testimonials": "Testimonials",
+      "signIn": "Sign In",
+      "startFree": "Start Free"
+    },
+    "startFreeDialog": {
+      "title": "Start Growing Your Business",
+      "description": "Enter your email to create your free provider account.",
+      "emailLabel": "Work Email",
+      "emailPlaceholder": "you@yourbusiness.com",
+      "submit": "Get Started Free 🌱",
+      "disclaimer": "No credit card required • Free forever for solo operators"
+    },
+    "hero": {
+      "badge": "🌱 Free to get started",
+      "titlePrefix": "Your Lawn Care Business,",
+      "titleHighlight": "Blooming",
+      "subtitle": "The CRM that grows with you — schedule jobs, delight customers, get paid. All in one sunny place.",
+      "emailPlaceholder": "Enter your email",
+      "cta": "Get Growing 🌱",
+      "errorRequired": "Please enter your email address",
+      "errorInvalid": "Please enter a valid email address"
+    },
+    "social": {
+      "trustedBy": "Trusted by",
+      "trustedSuffix": "lawn care pros across the country 🏡"
+    },
+    "features": {
+      "title": "Everything you need to",
+      "titleHighlight": "grow",
+      "subtitle": "From first call to five-star review — GreenGrass handles the heavy lifting.",
+      "items": {
+        "customers": { "title": "Customer Management", "desc": "Keep all your clients, properties & notes in one cozy place." },
+        "scheduling": { "title": "Smart Scheduling", "desc": "Drag, drop & done — crews always know where to go." },
+        "pipeline": { "title": "Sales Pipeline", "desc": "From inspection to signed contract — watch deals bloom." },
+        "invoicing": { "title": "Invoicing & Offers", "desc": "Professional quotes in minutes, payments on time." },
+        "feedback": { "title": "Feedback Loop", "desc": "5-star reviews start with happy homeowners." },
+        "dashboard": { "title": "Team Dashboard", "desc": "Real-time view of every crew, every job, every dollar." }
+      }
+    },
+    "how": {
+      "title": "Getting started is a",
+      "titleHighlight": "breeze",
+      "steps": {
+        "signup": { "label": "Sign Up", "desc": "Create your free account in 30 seconds." },
+        "addCustomer": { "label": "Add Your First Customer", "desc": "Import or type — we make it easy." },
+        "grow": { "label": "Watch It Grow", "desc": "Schedule, invoice & delight customers." }
+      }
+    },
+    "testimonials": {
+      "title": "Lawn pros",
+      "titleHighlight": "love",
+      "titleSuffix": "us 💚",
+      "items": {
+        "jake": { "name": "Jake M.", "role": "Owner, FreshCut Lawns", "quote": "GreenGrass replaced three apps for us. Our crew loves how simple scheduling is!" },
+        "maria": { "name": "Maria S.", "role": "Ops Manager, EverGreen Pro", "quote": "We doubled our client base in 6 months. The pipeline view is *chef's kiss*." },
+        "devon": { "name": "Devon R.", "role": "Solo Landscaper", "quote": "Finally, a CRM that doesn't feel like homework. It's actually fun to use!" }
+      }
+    },
+    "cta": {
+      "title": "Ready to ditch the clipboard?",
+      "subtitle": "Join hundreds of lawn care pros who traded spreadsheets for sunshine.",
+      "button": "Start Free — No Credit Card"
+    },
+    "footer": {
+      "tagline": "Grow smarter, mow better. 🌿"
+    }
+  },
+  "pricing": {
+    "back": "Back",
+    "eyebrow": "Pricing",
+    "title": "Grow at your own pace.",
+    "subtitle": "From a single patio to an entire territory — pick the plan that fits today, and upgrade when you're ready. All paid plans + VAT.",
+    "trialBadge": "You're on the 90-day Territory trial — every feature unlocked.",
+    "perks": {
+      "trial": { "title": "90-day full trial", "desc": "Every new account starts on Territory for 90 days. No credit card required." },
+      "noDataLoss": { "title": "No data loss on downgrade", "desc": "Your data stays. Excess teams are simply locked until you upgrade again." },
+      "vat": { "title": "VAT-compliant invoicing", "desc": "Add your VAT ID in Settings to receive proper EU VAT invoices." }
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Oops! Page not found",
+    "home": "Return to Home"
+  },
+  "accountLocked": {
+    "title": "Account locked",
+    "clientPrefix": "Your client account ",
+    "workspacePrefix": "Your workspace ",
+    "lockedSuffix": " has been locked due to inactivity or by an administrator.",
+    "daysRemaining": "{{days}} days",
+    "deletionInfo": " remain before permanent deletion. All data is preserved until then.",
+    "contact": "To reactivate, please contact your administrator. If you're the account owner, signing in again will automatically restore access.",
+    "signOut": "Sign out",
+    "refresh": "Refresh"
+  },
+  "verify": {
+    "title": "Verify your email",
+    "description": "Enter the 6-digit code from the email we sent you, or click the link in the email.",
+    "emailLabel": "Email",
+    "codeLabel": "Verification code",
+    "verify": "Verify email",
+    "verifying": "Verifying…",
+    "resend": "Resend code",
+    "verified": "Email verified.",
+    "expired": "Code expired. Request a new one.",
+    "invalid": "Invalid code.",
+    "newCode": "New code sent."
+  },
+  "resetPassword": {
+    "invalidTitle": "Invalid Reset Link",
+    "invalidDesc": "This password reset link is invalid or has expired.",
+    "backToSignIn": "Back to Sign In",
+    "title": "Set New Password",
+    "description": "Enter your new password below.",
+    "newPassword": "New Password",
+    "confirm": "Confirm Password",
+    "submit": "Update Password",
+    "updating": "Updating…",
+    "mismatch": "Passwords don't match",
+    "tooShort": "Password must be at least 8 characters",
+    "success": "Password updated successfully!",
+    "failure": "Failed to update password."
+  },
+  "changePassword": {
+    "title": "Change Your Password",
+    "description": "You're using a temporary password. Please set a new password to continue.",
+    "newPassword": "New Password",
+    "newPlaceholder": "Min 6 chars, 1 uppercase, 1 number",
+    "confirm": "Confirm Password",
+    "confirmPlaceholder": "Re-enter your new password",
+    "submit": "Set New Password",
+    "updating": "Updating…",
+    "rule": "Password must be at least 6 characters, with 1 uppercase letter and 1 number",
+    "mismatch": "Passwords do not match",
+    "success": "Password updated successfully!",
+    "failure": "Failed to update password: ",
+    "show": "Show password",
+    "hide": "Hide password"
+  },
+  "unsubscribe": {
+    "title": "Unsubscribe",
+    "description": "Click below to stop receiving app emails from GreenGrass.",
+    "confirm": "Confirm Unsubscribe",
+    "successTitle": "You're unsubscribed",
+    "successDesc": "You won't receive any more app emails from us.",
+    "alreadyTitle": "Already unsubscribed",
+    "alreadyDesc": "You've already opted out of app emails.",
+    "invalidTitle": "Invalid link",
+    "invalidDesc": "This unsubscribe link is invalid or has expired.",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "Please try again later."
+  }
+}

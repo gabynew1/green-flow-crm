@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function Verify() {
   const [params] = useSearchParams();
@@ -13,6 +15,7 @@ export default function Verify() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation("public");
 
   useEffect(() => {
     (async () => {
@@ -29,10 +32,10 @@ export default function Verify() {
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes("type=signup") || hash.includes("type=email")) {
-      toast.success("Email verified.");
+      toast.success(t("verify.verified"));
       setTimeout(() => navigate("/provider"), 800);
     }
-  }, [navigate]);
+  }, [navigate, t]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,10 +44,10 @@ export default function Verify() {
     const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
     setBusy(false);
     if (error) {
-      if (error.message.toLowerCase().includes("expired")) toast.error("Code expired. Request a new one.");
-      else toast.error("Invalid code.");
+      if (error.message.toLowerCase().includes("expired")) toast.error(t("verify.expired"));
+      else toast.error(t("verify.invalid"));
     } else {
-      toast.success("Email verified.");
+      toast.success(t("verify.verified"));
       navigate("/provider");
     }
   };
@@ -53,28 +56,29 @@ export default function Verify() {
     if (!email) return;
     const { error } = await supabase.auth.resend({ type: "signup", email });
     if (error) toast.error(error.message);
-    else toast.success("New code sent.");
+    else toast.success(t("verify.newCode"));
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="relative min-h-screen flex items-center justify-center p-4 bg-background">
+      <div className="absolute top-3 right-3"><LanguageSwitcher /></div>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Verify your email</CardTitle>
-          <CardDescription>Enter the 6-digit code from the email we sent you, or click the link in the email.</CardDescription>
+          <CardTitle>{t("verify.title")}</CardTitle>
+          <CardDescription>{t("verify.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("verify.emailLabel")}</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="code">Verification code</Label>
+              <Label htmlFor="code">{t("verify.codeLabel")}</Label>
               <Input id="code" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="123456" />
             </div>
-            <Button type="submit" className="w-full" disabled={busy || code.length < 6}>{busy ? "Verifying…" : "Verify email"}</Button>
-            <Button type="button" variant="ghost" className="w-full" onClick={resend}>Resend code</Button>
+            <Button type="submit" className="w-full" disabled={busy || code.length < 6}>{busy ? t("verify.verifying") : t("verify.verify")}</Button>
+            <Button type="button" variant="ghost" className="w-full" onClick={resend}>{t("verify.resend")}</Button>
           </form>
         </CardContent>
       </Card>
