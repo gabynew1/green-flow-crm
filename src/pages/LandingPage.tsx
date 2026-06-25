@@ -472,6 +472,47 @@ export default function LandingPage() {
               </Card>
             ))}
           </div>
+          <p className="mt-10 mx-auto max-w-2xl text-center text-base text-foreground/80 italic">
+            {t("landing.testimonials.objection")}
+          </p>
+        </div>
+      </section>
+
+      {/* ===== PRICING / FREE FOREVER ===== */}
+      <section id="pricing" className="py-20 sm:py-28 bg-landing-mint/30">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
+          <span className="inline-block mb-4 rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+            {t("landing.pricing.eyebrow")}
+          </span>
+          <h2 className="text-3xl font-extrabold text-foreground sm:text-5xl leading-tight">
+            {t("landing.pricing.title")}{" "}
+            <span className="text-primary">{t("landing.pricing.titleHighlight")}</span>
+          </h2>
+          <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">
+            {t("landing.pricing.subtitle")}
+          </p>
+
+          <Card className="mt-10 mx-auto max-w-2xl border-0 bg-card p-8 text-left shadow-lg">
+            <ul className="space-y-4">
+              {pricingPerks.map((k) => (
+                <li key={k} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Check className="h-4 w-4" />
+                  </span>
+                  <span className="text-sm sm:text-base text-foreground/90">
+                    {t(`landing.pricing.perks.${k}`)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              size="lg"
+              onClick={() => setStartFreeOpen(true)}
+              className="mt-8 w-full h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-md"
+            >
+              {t("landing.pricing.cta")} <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Card>
         </div>
       </section>
 
