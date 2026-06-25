@@ -26,6 +26,13 @@ import {
   Menu,
   X,
   Mail,
+  CloudRain,
+  MessageCircle,
+  Clock,
+  Receipt,
+  Smartphone,
+  Calculator,
+  Check,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -74,43 +81,22 @@ const FlowerDoodle = ({ className = "" }: { className?: string }) => (
 /*  Feature data                                                       */
 /* ------------------------------------------------------------------ */
 const featureDefs = [
-  {
-    key: "customers",
-    icon: Users,
-    color: "bg-landing-mint text-emerald-700",
-    tilt: "",
-  },
-  {
-    key: "scheduling",
-    icon: CalendarCheck,
-    color: "bg-landing-sky text-sky-700",
-    tilt: "",
-  },
-  {
-    key: "pipeline",
-    icon: TrendingUp,
-    color: "bg-landing-coral/20 text-rose-600",
-    tilt: "",
-  },
-  {
-    key: "invoicing",
-    icon: FileText,
-    color: "bg-landing-yellow/30 text-amber-700",
-    tilt: "",
-  },
-  {
-    key: "feedback",
-    icon: MessageSquareHeart,
-    color: "bg-landing-lavender/40 text-violet-600",
-    tilt: "",
-  },
-  {
-    key: "dashboard",
-    icon: LayoutDashboard,
-    color: "bg-landing-mint text-emerald-700",
-    tilt: "",
-  },
+  { key: "scheduling",  icon: CalendarCheck,    color: "bg-landing-sky text-sky-700",          tilt: "" },
+  { key: "estimates",   icon: Calculator,       color: "bg-landing-mint text-emerald-700",     tilt: "" },
+  { key: "compliance",  icon: Receipt,          color: "bg-landing-yellow/30 text-amber-700",  tilt: "" },
+  { key: "mobile",      icon: Smartphone,       color: "bg-landing-lavender/40 text-violet-600", tilt: "" },
+  { key: "crews",       icon: Users,            color: "bg-landing-coral/20 text-rose-600",    tilt: "" },
+  { key: "dashboard",   icon: LayoutDashboard,  color: "bg-landing-mint text-emerald-700",     tilt: "" },
 ];
+
+const problemDefs = [
+  { key: "whatsapp",    icon: MessageCircle, color: "bg-landing-coral/20 text-rose-600" },
+  { key: "weather",     icon: CloudRain,     color: "bg-landing-sky text-sky-700" },
+  { key: "maintenance", icon: Clock,         color: "bg-landing-yellow/30 text-amber-700" },
+  { key: "quotes",      icon: FileText,      color: "bg-landing-lavender/40 text-violet-600" },
+];
+
+const pricingPerks = ["noCard", "noLimit", "core", "optional"] as const;
 
 const stepDefs = [
   { num: 1, key: "signup", icon: Sprout },
@@ -181,6 +167,7 @@ export default function LandingPage() {
   const navItems: { id: string; key: "features" | "how" | "testimonials" }[] = [
     { id: "features", key: "features" },
     { id: "how", key: "how" },
+    { id: "pricing", key: "pricing" as "features" },
     { id: "testimonials", key: "testimonials" },
   ];
 
