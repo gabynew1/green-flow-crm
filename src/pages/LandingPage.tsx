@@ -164,10 +164,10 @@ export default function LandingPage() {
     navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
 
-  const navItems: { id: string; key: "features" | "how" | "testimonials" }[] = [
+  const navItems: { id: string; key: "features" | "how" | "pricing" | "testimonials" }[] = [
     { id: "features", key: "features" },
     { id: "how", key: "how" },
-    { id: "pricing", key: "pricing" as "features" },
+    { id: "pricing", key: "pricing" },
     { id: "testimonials", key: "testimonials" },
   ];
 
