@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 /* ------------------------------------------------------------------ */
 /*  Inline SVG doodles                                                 */
@@ -71,79 +73,55 @@ const FlowerDoodle = ({ className = "" }: { className?: string }) => (
 /* ------------------------------------------------------------------ */
 /*  Feature data                                                       */
 /* ------------------------------------------------------------------ */
-const features = [
+const featureDefs = [
   {
+    key: "customers",
     icon: Users,
-    title: "Customer Management",
-    desc: "Keep all your clients, properties & notes in one cozy place.",
     color: "bg-landing-mint text-emerald-700",
     tilt: "",
   },
   {
+    key: "scheduling",
     icon: CalendarCheck,
-    title: "Smart Scheduling",
-    desc: "Drag, drop & done — crews always know where to go.",
     color: "bg-landing-sky text-sky-700",
     tilt: "",
   },
   {
+    key: "pipeline",
     icon: TrendingUp,
-    title: "Sales Pipeline",
-    desc: "From inspection to signed contract — watch deals bloom.",
     color: "bg-landing-coral/20 text-rose-600",
     tilt: "",
   },
   {
+    key: "invoicing",
     icon: FileText,
-    title: "Invoicing & Offers",
-    desc: "Professional quotes in minutes, payments on time.",
     color: "bg-landing-yellow/30 text-amber-700",
     tilt: "",
   },
   {
+    key: "feedback",
     icon: MessageSquareHeart,
-    title: "Feedback Loop",
-    desc: "5-star reviews start with happy homeowners.",
     color: "bg-landing-lavender/40 text-violet-600",
     tilt: "",
   },
   {
+    key: "dashboard",
     icon: LayoutDashboard,
-    title: "Team Dashboard",
-    desc: "Real-time view of every crew, every job, every dollar.",
     color: "bg-landing-mint text-emerald-700",
     tilt: "",
   },
 ];
 
-const steps = [
-  { num: 1, icon: Sprout, label: "Sign Up", desc: "Create your free account in 30 seconds." },
-  { num: 2, icon: Users, label: "Add Your First Customer", desc: "Import or type — we make it easy." },
-  { num: 3, icon: TreePine, label: "Watch It Grow", desc: "Schedule, invoice & delight customers." },
+const stepDefs = [
+  { num: 1, key: "signup", icon: Sprout },
+  { num: 2, key: "addCustomer", icon: Users },
+  { num: 3, key: "grow", icon: TreePine },
 ];
 
-const testimonials = [
-  {
-    name: "Jake M.",
-    role: "Owner, FreshCut Lawns",
-    quote: "GreenGrass replaced three apps for us. Our crew loves how simple scheduling is!",
-    stars: 5,
-    bg: "bg-landing-lavender/30",
-  },
-  {
-    name: "Maria S.",
-    role: "Ops Manager, EverGreen Pro",
-    quote: "We doubled our client base in 6 months. The pipeline view is *chef's kiss*.",
-    stars: 5,
-    bg: "bg-landing-mint",
-  },
-  {
-    name: "Devon R.",
-    role: "Solo Landscaper",
-    quote: "Finally, a CRM that doesn't feel like homework. It's actually fun to use!",
-    stars: 5,
-    bg: "bg-landing-sky/30",
-  },
+const testimonialDefs = [
+  { key: "jake", stars: 5, bg: "bg-landing-lavender/30" },
+  { key: "maria", stars: 5, bg: "bg-landing-mint" },
+  { key: "devon", stars: 5, bg: "bg-landing-sky/30" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -151,6 +129,7 @@ const testimonials = [
 /* ------------------------------------------------------------------ */
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("public");
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [heroEmail, setHeroEmail] = useState("");
@@ -175,11 +154,11 @@ export default function LandingPage() {
   const handleGetGrowing = () => {
     const email = heroEmail.trim();
     if (!email) {
-      toast.error("Please enter your email address");
+      toast.error(t("landing.hero.errorRequired"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Please enter a valid email address");
+      toast.error(t("landing.hero.errorInvalid"));
       return;
     }
     navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
@@ -188,16 +167,22 @@ export default function LandingPage() {
   const handleStartFreeSubmit = () => {
     const email = startFreeEmail.trim();
     if (!email) {
-      toast.error("Please enter your email address");
+      toast.error(t("landing.hero.errorRequired"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Please enter a valid email address");
+      toast.error(t("landing.hero.errorInvalid"));
       return;
     }
     setStartFreeOpen(false);
     navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
+
+  const navItems: { id: string; key: "features" | "how" | "testimonials" }[] = [
+    { id: "features", key: "features" },
+    { id: "how", key: "how" },
+    { id: "testimonials", key: "testimonials" },
+  ];
 
   return (
     <div className="min-h-screen bg-background font-sans scroll-smooth overflow-x-hidden">
@@ -214,42 +199,46 @@ export default function LandingPage() {
           </button>
 
           <div className="hidden items-center gap-6 md:flex">
-            {["features", "how", "testimonials"].map((s) => (
-              <button key={s} onClick={() => scrollTo(s)} className="text-sm font-medium capitalize text-foreground/70 hover:text-primary transition-colors">
-                {s === "how" ? "How It Works" : s}
+            {navItems.map((s) => (
+              <button key={s.id} onClick={() => scrollTo(s.id)} className="text-sm font-medium text-foreground/70 hover:text-primary transition-colors">
+                {t(`landing.nav.${s.key}`)}
               </button>
             ))}
+            <LanguageSwitcher />
             <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
-              Sign In
+              {t("landing.nav.signIn")}
             </Button>
             <Button
               size="sm"
               className="rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white shadow-md"
               onClick={() => setStartFreeOpen(true)}
             >
-              Start Free
+              {t("landing.nav.startFree")}
             </Button>
           </div>
 
-          <button className="md:hidden text-foreground" onClick={() => setMobileMenu(!mobileMenu)}>
-            {mobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-1">
+            <LanguageSwitcher />
+            <button className="text-foreground" onClick={() => setMobileMenu(!mobileMenu)}>
+              {mobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {mobileMenu && (
           <div className="md:hidden bg-background/95 backdrop-blur border-t border-border px-4 pb-4 space-y-2">
-            {["features", "how", "testimonials"].map((s) => (
-              <button key={s} onClick={() => scrollTo(s)} className="block w-full text-left py-2 text-sm font-medium capitalize text-foreground/70">
-                {s === "how" ? "How It Works" : s}
+            {navItems.map((s) => (
+              <button key={s.id} onClick={() => scrollTo(s.id)} className="block w-full text-left py-2 text-sm font-medium text-foreground/70">
+                {t(`landing.nav.${s.key}`)}
               </button>
             ))}
-            <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate("/auth")}>Sign In</Button>
+            <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate("/auth")}>{t("landing.nav.signIn")}</Button>
             <Button
               size="sm"
               className="w-full rounded-full bg-landing-coral text-white"
               onClick={() => { setMobileMenu(false); setStartFreeOpen(true); }}
             >
-              Start Free
+              {t("landing.nav.startFree")}
             </Button>
           </div>
         )}
@@ -261,10 +250,10 @@ export default function LandingPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Sprout className="h-6 w-6 text-primary icon-hand-drawn" />
-              Start Growing Your Business
+              {t("landing.startFreeDialog.title")}
             </DialogTitle>
             <DialogDescription>
-              Enter your email to create your free provider account.
+              {t("landing.startFreeDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <form
@@ -275,13 +264,13 @@ export default function LandingPage() {
             className="space-y-4 pt-2"
           >
             <div className="space-y-2">
-              <Label htmlFor="start-free-email">Work Email</Label>
+              <Label htmlFor="start-free-email">{t("landing.startFreeDialog.emailLabel")}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="start-free-email"
                   type="email"
-                  placeholder="you@yourbusiness.com"
+                  placeholder={t("landing.startFreeDialog.emailPlaceholder")}
                   value={startFreeEmail}
                   onChange={(e) => setStartFreeEmail(e.target.value)}
                   className="pl-10 h-11"
@@ -295,10 +284,10 @@ export default function LandingPage() {
               className="w-full h-11 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold"
               disabled={false}
             >
-              {"Get Started Free 🌱"}
+              {t("landing.startFreeDialog.submit")}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
-              No credit card required • Free forever for solo operators
+              {t("landing.startFreeDialog.disclaimer")}
             </p>
           </form>
         </DialogContent>
@@ -321,12 +310,12 @@ export default function LandingPage() {
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6 text-center">
           <span className="inline-block mb-4 rounded-full bg-landing-yellow/30 px-4 py-1.5 text-sm font-semibold text-amber-800">
-            🌱 Free to get started
+            {t("landing.hero.badge")}
           </span>
           <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl leading-[1.1]">
-            Your Lawn Care Business,{" "}
+            {t("landing.hero.titlePrefix")}{" "}
             <span className="text-primary relative">
-              Blooming
+              {t("landing.hero.titleHighlight")}
               <svg className="absolute -bottom-2 left-0 w-full h-3 text-landing-coral/50" viewBox="0 0 200 12" preserveAspectRatio="none">
                 <path d="M2 8 Q50 2 100 7 T198 5" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
               </svg>
@@ -334,7 +323,7 @@ export default function LandingPage() {
             .
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
-            The CRM that grows with you — schedule jobs, delight customers, get paid. All in one sunny place.
+            {t("landing.hero.subtitle")}
           </p>
 
           <form
@@ -345,7 +334,7 @@ export default function LandingPage() {
             className="mx-auto mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
           >
             <Input
-              placeholder="Enter your email"
+              placeholder={t("landing.hero.emailPlaceholder")}
               type="email"
               value={heroEmail}
               onChange={(e) => setHeroEmail(e.target.value)}
@@ -357,7 +346,7 @@ export default function LandingPage() {
               className="h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-lg px-8 whitespace-nowrap"
               disabled={false}
             >
-              {"Get Growing 🌱"}
+              {t("landing.hero.cta")}
             </Button>
           </form>
         </div>
@@ -367,12 +356,12 @@ export default function LandingPage() {
       <section className="bg-landing-yellow/20 py-5">
         <div className="mx-auto max-w-7xl px-4 text-center">
           <p className="text-sm font-semibold text-amber-800">
-            Trusted by{" "}
+            {t("landing.social.trustedBy")}{" "}
             <span className="relative inline-block font-extrabold text-foreground">
               500+
               <span className="absolute -bottom-0.5 left-0 h-[3px] w-full rounded-full bg-landing-coral/60" />
             </span>{" "}
-            lawn care pros across the country 🏡
+            {t("landing.social.trustedSuffix")}
           </p>
         </div>
       </section>
@@ -382,27 +371,27 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center mb-14">
             <h2 className="text-3xl font-extrabold text-foreground sm:text-4xl">
-              Everything you need to{" "}
-              <span className="text-primary">grow</span>
+              {t("landing.features.title")}{" "}
+              <span className="text-primary">{t("landing.features.titleHighlight")}</span>
             </h2>
             <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-              From first call to five-star review — GreenGrass handles the heavy lifting.
+              {t("landing.features.subtitle")}
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((f) => {
+            {featureDefs.map((f) => {
               const Icon = f.icon;
               return (
                 <Card
-                  key={f.title}
+                  key={f.key}
                   className={`group relative overflow-hidden border-0 p-6 transition-all duration-300 hover:shadow-xl hover:rotate-0 ${f.tilt} cursor-default`}
                 >
                   <div className={`mb-4 inline-flex h-14 w-14 items-center justify-center rounded-blob ${f.color}`}>
                     <Icon className="h-7 w-7 icon-hand-drawn" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground">{f.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
+                  <h3 className="text-lg font-bold text-foreground">{t(`landing.features.items.${f.key}.title`)}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t(`landing.features.items.${f.key}.desc`)}</p>
                 </Card>
               );
             })}
@@ -414,13 +403,13 @@ export default function LandingPage() {
       <section id="how" className="py-20 sm:py-28 bg-secondary/40">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <h2 className="text-center text-3xl font-extrabold text-foreground sm:text-4xl mb-14">
-            Getting started is a <span className="text-primary">breeze</span> 🍃
+            {t("landing.how.title")} <span className="text-primary">{t("landing.how.titleHighlight")}</span> 🍃
           </h2>
 
           <div className="grid gap-10 sm:grid-cols-3 relative">
             <div className="hidden sm:block absolute top-10 left-[20%] right-[20%] border-t-2 border-dashed border-primary/30" />
 
-            {steps.map((s) => {
+            {stepDefs.map((s) => {
               const Icon = s.icon;
               return (
                 <div key={s.num} className="relative text-center">
@@ -430,8 +419,8 @@ export default function LandingPage() {
                     </span>
                     <Icon className="h-9 w-9 icon-hand-drawn text-primary" />
                   </div>
-                  <h3 className="font-bold text-foreground text-lg">{s.label}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
+                  <h3 className="font-bold text-foreground text-lg">{t(`landing.how.steps.${s.key}.label`)}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{t(`landing.how.steps.${s.key}.desc`)}</p>
                 </div>
               );
             })}
@@ -443,22 +432,22 @@ export default function LandingPage() {
       <section id="testimonials" className="py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h2 className="text-center text-3xl font-extrabold text-foreground sm:text-4xl mb-14">
-            Lawn pros <span className="text-primary">love</span> us 💚
+            {t("landing.testimonials.title")} <span className="text-primary">{t("landing.testimonials.titleHighlight")}</span> {t("landing.testimonials.titleSuffix")}
           </h2>
 
           <div className="grid gap-6 sm:grid-cols-3">
-            {testimonials.map((t) => (
-              <Card key={t.name} className={`border-0 p-6 ${t.bg} transition-transform duration-300 hover:-translate-y-1`}>
+            {testimonialDefs.map((item) => (
+              <Card key={item.key} className={`border-0 p-6 ${item.bg} transition-transform duration-300 hover:-translate-y-1`}>
                 <span className="text-5xl leading-none text-foreground/10 font-serif">"</span>
-                <p className="mt-2 text-sm text-foreground/80 italic">{t.quote}</p>
+                <p className="mt-2 text-sm text-foreground/80 italic">{t(`landing.testimonials.items.${item.key}.quote`)}</p>
                 <div className="mt-4 flex items-center gap-1">
-                  {Array.from({ length: t.stars }).map((_, i) => (
+                  {Array.from({ length: item.stars }).map((_, i) => (
                     <Star key={i} className="h-4 w-4 fill-landing-yellow text-landing-yellow" />
                   ))}
                 </div>
                 <div className="mt-3">
-                  <p className="font-bold text-foreground text-sm">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                  <p className="font-bold text-foreground text-sm">{t(`landing.testimonials.items.${item.key}.name`)}</p>
+                  <p className="text-xs text-muted-foreground">{t(`landing.testimonials.items.${item.key}.role`)}</p>
                 </div>
               </Card>
             ))}
@@ -475,16 +464,14 @@ export default function LandingPage() {
         </div>
 
         <div className="relative mx-auto max-w-3xl px-4 text-center text-white">
-          <h2 className="text-3xl font-extrabold sm:text-4xl">Ready to ditch the clipboard?</h2>
-          <p className="mt-3 text-lg text-white/80">
-            Join hundreds of lawn care pros who traded spreadsheets for sunshine.
-          </p>
+          <h2 className="text-3xl font-extrabold sm:text-4xl">{t("landing.cta.title")}</h2>
+          <p className="mt-3 text-lg text-white/80">{t("landing.cta.subtitle")}</p>
           <Button
             size="lg"
             className="mt-8 h-14 rounded-full bg-white text-landing-coral font-bold text-lg px-10 shadow-xl hover:bg-white/90"
             onClick={() => navigate("/onboard?source=landing")}
           >
-            Start Free — No Credit Card <ArrowRight className="ml-2 h-5 w-5" />
+            {t("landing.cta.button")} <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </section>
@@ -498,14 +485,14 @@ export default function LandingPage() {
               GreenGrass
             </div>
             <div className="flex gap-6 text-sm text-sidebar-foreground/60">
-              <button onClick={() => scrollTo("features")} className="hover:text-sidebar-primary transition-colors">Features</button>
-              <button onClick={() => scrollTo("how")} className="hover:text-sidebar-primary transition-colors">How It Works</button>
-              <button onClick={() => scrollTo("testimonials")} className="hover:text-sidebar-primary transition-colors">Testimonials</button>
-              <button onClick={() => navigate("/auth")} className="hover:text-sidebar-primary transition-colors">Sign In</button>
+              <button onClick={() => scrollTo("features")} className="hover:text-sidebar-primary transition-colors">{t("landing.nav.features")}</button>
+              <button onClick={() => scrollTo("how")} className="hover:text-sidebar-primary transition-colors">{t("landing.nav.how")}</button>
+              <button onClick={() => scrollTo("testimonials")} className="hover:text-sidebar-primary transition-colors">{t("landing.nav.testimonials")}</button>
+              <button onClick={() => navigate("/auth")} className="hover:text-sidebar-primary transition-colors">{t("landing.nav.signIn")}</button>
             </div>
           </div>
           <div className="mt-8 border-t border-sidebar-border pt-6 text-center text-xs text-sidebar-foreground/40">
-            © {new Date().getFullYear()} GreenGrass CRM. Grow smarter, mow better. 🌿
+            © {new Date().getFullYear()} GreenGrass CRM. {t("landing.footer.tagline")}
           </div>
         </div>
       </footer>
