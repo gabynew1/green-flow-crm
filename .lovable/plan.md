@@ -1,63 +1,77 @@
+ns
+# Lovable features worth adopting for GreenGrassCRM
 
-## Goal
-Transform the landing page into a high-converting RO-first sales page built around the attached growth-marketer brief. Drive free account signups from Romanian landscaping business owners.
+Below is a curated list of Lovable platform capabilities that would meaningfully benefit this project, grouped by impact. Nothing is implemented yet — pick which ones to turn into actual work items.
 
-## Scope
-Frontend-only. Update copy in `src/i18n/locales/ro/public.json` (and EN mirror for fallback parity), add 3 new sections to `src/pages/LandingPage.tsx`, and refresh existing section copy keys. No backend, no auth, no pricing logic changes.
+## 1. Growth & SEO (high ROI, low effort)
+- **SEO Review agent** — automated scan that flags missing meta, OG, canonical, JSON-LD, robots, sitemap, alt text, H1 issues. We already have a landing page rewrite; this catches regressions.
+- **Per-route head metadata** via `react-helmet-async` — today only `index.html` has tags. Add unique `<title>`, description, canonical, OG per public route (`/`, `/pricing`, `/onboard`, `/auth`, future blog).
+- **Sitemap generator** (`scripts/generate-sitemap.ts` + `predev`/`prebuild`) — currently no dynamic sitemap. Helps Google index public pages.
+- **robots.txt hardening** — ensure `/admin`, `/provider`, `/client`, `/onboard` internals not indexed.
+- **Semrush integration** — keyword research for RO landscaping market ("firmă întreținere spații verzi", "CRM peisagistică"), competitor gap analysis, ongoing rank tracking dashboard inside the app.
+- **OG image generation** for landing + pricing using imagegen (Romanian-language social cards).
 
-## Sections to ship (in order)
+## 2. Security & Compliance (matches project's tenant-isolation mandate)
+- **Security Scanner** — automated RLS / policy / grant / secret-leak findings. Run on a schedule; we already use it ad-hoc.
+- **Security memory** — encode our tenant-isolation rules (RLS required, GRANTs, no roles on profiles, super_admin table check) so future scans don't false-positive.
+- **Dependency scan** (`code--dependency_scan`) — surface vulnerable npm packages.
+- **Secrets manager** — migrate any hardcoded keys/URLs to `secrets--add_secret` (Resend, Google OAuth client secret, etc.).
+- **Rotate API keys** workflow documented for incident response.
 
-1. **Navbar** — unchanged structurally. Update RO labels; add Pricing link.
-2. **Hero** (rewrite copy only)
-   - H1 (locked, verbatim): *"Aplicația de gestiune creată special pentru firmele de amenajări spații verzi și grădinărit"*
-   - H2: pain → solution (echipe haotice, oferte lente, clienți pierduți → totul într-o aplicație simplă pe telefon).
-   - CTA button: *"Începe gratuit – Fără card"*
-   - Micro-copy: *"Configurare în 2 minute. Nu necesită cunoștințe tehnice."*
-3. **NEW — Problem / Agitation** (`#problem`)
-   - "O zi din viața unui patron de firmă de amenajări" — 4 bullet pains: WhatsApp haos, ploaie peste planificare, mentenanță uitată, devize în Excel duminica.
-4. **Features → Benefits** (rewrite existing 6 feature cards using JTBD translation)
-   - Scheduling → "Adaptează-te instant la vreme"
-   - Devize/Quoting → "Închide vânzarea pe loc"
-   - e-Factura → "Termină cu bătăile de cap cu ANAF"
-   - Istoric client & mobil → "Biroul tău, în buzunar"
-   - Echipe în teren → "Echipele văd doar programul lor zilnic"
-   - Dashboard → "Vezi toate lucrările și încasările dintr-o privire"
-5. **How it works** — keep 3 steps, retune RO copy.
-6. **Testimonials** — rewrite as RO mock testimonials: patron firmă mică de grădinărit + antreprenor mare amenajări + voce echipă teren. Add objection-handling line: "Dacă știi să folosești WhatsApp, știi să folosești GreenGrass."
-7. **NEW — Pricing / Free Forever** (`#pricing`)
-   - One-message section, not a tier comparison.
-   - Headline: *"Începe gratuit. Rămâi gratuit pentru totdeauna."*
-   - Sub: accesul și utilizarea de bază sunt gratuite — fără card, fără perioadă de probă care expiră, fără surprize.
-   - 3-4 bullet reassurance: "Fără card de credit", "Fără limită de timp", "Toate funcțiile esențiale incluse", "Plătești doar când vrei opțiuni avansate" (sau echivalent — copy only).
-   - Single CTA opens the existing Start Free dialog.
-8. **NEW — Final CTA** (`#final-cta`)
-   - Headline: *"Oprește haosul din firmă. Creează cont gratuit."*
-   - Sub: time-saved promise ("Economisește 6+ ore pe săptămână").
-   - Single big coral button → Start Free dialog.
-9. **Footer** — light refresh; add RO trust line (e-Factura ready, RON, suport în română).
+## 3. Lovable AI Gateway (replace/augment current AI usage)
+- Already using Gemini-1.5-Flash for the assistant. Gateway gives:
+  - **No API key management** + usage caps per-tenant.
+  - **Embeddings** → semantic search across contracts, visits, properties (e.g., "find all properties with irrigation issues last summer").
+  - **Vision** → photo intake for visit before/after pictures with auto-tagging.
+  - **TTS / STT** → field staff dictate visit notes from mobile.
+  - **Image gen** → property cover images, service-catalog illustrations in RO.
 
-## Implementation steps
+## 4. Lovable Cloud upgrades we haven't fully used
+- **Edge function scheduled jobs / cron** — already using `pg_cron` for email queue + lifecycle. Audit for: contract renewal reminders, overdue invoice nudges, weekly digest emails to PROVIDER_ADMINs.
+- **Realtime** — live updates on Visits calendar when team members complete jobs in the field (currently requires refresh).
+- **Storage buckets** — structured bucket policy review for property photos, contract PDFs, invoice attachments, e-Factura XMLs.
+- **Analytics tool** (`analytics--read_project_analytics`) — track which features tenants actually use to inform roadmap.
 
-1. Read full `LandingPage.tsx` (remaining lines) and existing `ro/public.json` + `en/public.json` to inventory current keys.
-2. Update `public.json` (RO + EN) under `landing.*`:
-   - Replace `hero`, `features.items.*`, `how.steps.*`, `testimonials.items.*`, `nav.*`, `startFreeDialog.*` strings with brief-aligned copy.
-   - Add new namespaces: `landing.problem.*`, `landing.pricing.*` (free-forever messaging, not tiers), `landing.finalCta.*`, `landing.footer.*`.
-3. Edit `LandingPage.tsx`:
-   - Insert Problem section after Hero (before Social Proof).
-   - Insert Pricing (Free Forever) section after Testimonials.
-   - Insert Final CTA section before footer.
-   - Add `#problem` and `#pricing` to `navItems` so navbar links scroll to them.
-   - Pricing and Final CTA buttons call `setStartFreeOpen(true)`.
-4. Keep design tokens (landing-coral, landing-mint, etc.), hand-drawn doodles, and existing motion. No new dependencies.
-5. Verify build + visual check on desktop and mobile widths via Playwright screenshot.
+## 5. Connectors & Integrations
+- **Standard connectors** browser — check for native integrations replacing custom code:
+  - Google Calendar (we built custom OAuth — connector may be simpler).
+  - Gmail (same).
+  - Stripe / Paddle for paid plans once we move past Free Forever.
+  - Shopify (not relevant unless you sell merch).
+- **MCP knowledge** — expose RO bank holiday calendar, e-Factura schema, service catalog as MCP for the AI assistant.
 
-## Out of scope
-- Real Stripe/Paddle integration (free-forever messaging, no paid tiers shown).
-- SEO meta rewrite (separate task if requested).
-- Backend, RLS, schema, or auth changes.
-- English copywriting parity beyond keeping fallback strings sensible.
+## 6. Email infrastructure (already on Resend)
+- **Custom domain status check** for `send.greengrasscrm.ro` (DKIM/SPF/DMARC health).
+- **Transactional template scaffolding** — we have 7 triggers; review for: welcome, password-reset polish, monthly statement, contract-expiry T-30/T-7, invoice-overdue T+7/T+14.
+- Note: project memory forbids Lovable Email tooling — stay on Resend.
 
-## Risks / notes
-- RO is default locale; EN strings stay as fallback only — won't be marketing-grade.
-- Locked H1 is long — typography needs to hold on mobile (will tune `text-3xl sm:text-5xl`).
-- "500+ firme" social proof line: keep as-is or soften to "zeci de firme" — confirm during build if you want it changed.
+## 7. Publishing & Deployment polish
+- **Custom domain** — already on `greengrasscrm.ro`. Confirm `www` → apex redirect and HTTPS.
+- **Hide "Edit with Lovable" badge** (Pro plan) for a more professional public site.
+- **Share-preview links** for prospects to demo without login (7-day public previews).
+- **Publish visibility settings** — confirm workspace-only vs public for staging.
+
+## 8. Performance & UX
+- **Preview device viewport** testing for mobile field-staff flows (visits, photo upload).
+- **Larger Cloud instance** if we hit timeouts on heavy tenants (multi-property dashboards, calendar month view).
+- **Slow query** + **DB health** review — index audit on `visits`, `contracts`, `inventory_items` tenant_id composite indexes.
+
+## 9. Developer productivity
+- **Skills** (`.workspace/skills/`) — codify our repeated workflows: "add a new tenant-isolated table" (table + GRANTs + RLS + types + useTenantQuery wiring), "add a new email trigger", "add a new translated screen".
+- **Subagents** (`acp_subagent--spawn_agent`) — parallelize multi-file refactors (e.g., adding i18n to remaining untranslated screens).
+- **Chat search** — recall earlier decisions across long history.
+
+## 10. Monetization readiness (when ready to leave Free Forever)
+- **Stripe** or **Paddle** enablement — Paddle handles EU VAT automatically (RO-friendly).
+- Plan limits already modeled (`free`/`trial`/`professional`/`enterprise`); just needs gateway wiring.
+
+---
+
+## Suggested first batch (if you want to act on this)
+1. SEO Review scan + per-route Helmet + sitemap generator (1 sprint).
+2. Security scan + dependency scan + secrets audit (½ sprint).
+3. Realtime on visits calendar (½ sprint).
+4. Semrush keyword/competitor scan for RO market (research only).
+5. Skill: "add tenant-isolated table" to prevent future GRANT/RLS misses.
+
+Tell me which numbered items to turn into real implementation plans and I'll scope each properly.
