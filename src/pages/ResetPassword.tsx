@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Leaf, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const { t } = useTranslation("public");
   const [searchParams] = useSearchParams();
   const customToken = searchParams.get("token");
   const [password, setPassword] = useState("");
@@ -43,11 +46,11 @@ export default function ResetPassword() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
+      toast.error(t("resetPassword.mismatch"));
       return;
     }
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+      toast.error(t("resetPassword.tooShort"));
       return;
     }
     setIsLoading(true);
@@ -59,11 +62,11 @@ export default function ResetPassword() {
       });
       setIsLoading(false);
       if (error || (data && (data as any).error)) {
-        const msg = (data as any)?.error || error?.message || "Failed to update password.";
+        const msg = (data as any)?.error || error?.message || t("resetPassword.failure");
         toast.error(msg);
         return;
       }
-      toast.success("Password updated successfully!");
+      toast.success(t("resetPassword.success"));
       navigate("/auth");
       return;
     }
@@ -74,25 +77,26 @@ export default function ResetPassword() {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Password updated successfully!");
+      toast.success(t("resetPassword.success"));
       navigate("/");
     }
   };
 
   if (!isRecovery) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="absolute top-3 right-3"><LanguageSwitcher /></div>
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <Leaf className="h-6 w-6 text-primary" />
             </div>
-            <CardTitle>Invalid Reset Link</CardTitle>
-            <CardDescription>This password reset link is invalid or has expired.</CardDescription>
+            <CardTitle>{t("resetPassword.invalidTitle")}</CardTitle>
+            <CardDescription>{t("resetPassword.invalidDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button className="w-full" onClick={() => navigate("/auth")}>
-              Back to Sign In
+              {t("resetPassword.backToSignIn")}
             </Button>
           </CardContent>
         </Card>
@@ -101,19 +105,20 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="absolute top-3 right-3"><LanguageSwitcher /></div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
             <Leaf className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle>Set New Password</CardTitle>
-          <CardDescription>Enter your new password below.</CardDescription>
+          <CardTitle>{t("resetPassword.title")}</CardTitle>
+          <CardDescription>{t("resetPassword.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleReset} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="new-password">{t("resetPassword.newPassword")}</Label>
               <div className="relative">
                 <Input
                   id="new-password"
@@ -135,7 +140,7 @@ export default function ResetPassword() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirm-password">Confirm Password</Label>
+              <Label htmlFor="confirm-password">{t("resetPassword.confirm")}</Label>
               <Input
                 id="confirm-password"
                 type="password"
@@ -146,7 +151,7 @@ export default function ResetPassword() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Updating…" : "Update Password"}
+              {isLoading ? t("resetPassword.updating") : t("resetPassword.submit")}
             </Button>
           </form>
         </CardContent>

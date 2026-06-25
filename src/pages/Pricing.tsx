@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { PricingTable } from "@/components/PricingTable";
 import { useTenantSubscription } from "@/hooks/useTenantSubscription";
 import { isTrial } from "@/lib/tiers";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export default function Pricing() {
   const { data: tenant } = useTenantSubscription();
   const onTrial = isTrial(tenant?.subscription_tier);
+  const { t } = useTranslation("public");
 
   return (
     <div className="min-h-screen bg-[hsl(40_30%_96%)] text-stone-900">
@@ -17,30 +20,32 @@ export default function Pricing() {
             <Leaf className="h-5 w-5" />
             <span>GreenGrass CRM</span>
           </Link>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                {t("pricing.back")}
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-14">
         <div className="text-center max-w-2xl mx-auto">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
-            Pricing
+            {t("pricing.eyebrow")}
           </p>
           <h1 className="mt-3 text-4xl md:text-5xl font-extrabold tracking-tight text-stone-900">
-            Grow at your own pace.
+            {t("pricing.title")}
           </h1>
           <p className="mt-4 text-stone-600 text-lg">
-            From a single patio to an entire territory — pick the plan that fits today,
-            and upgrade when you're ready. All paid plans + VAT.
+            {t("pricing.subtitle")}
           </p>
           {onTrial && (
             <p className="mt-3 inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">
-              You're on the 90-day Territory trial — every feature unlocked.
+              {t("pricing.trialBadge")}
             </p>
           )}
         </div>
@@ -51,22 +56,16 @@ export default function Pricing() {
 
         <div className="mt-16 grid gap-6 md:grid-cols-3 text-sm text-stone-700">
           <div>
-            <h3 className="font-bold text-stone-900">90-day full trial</h3>
-            <p className="mt-1 text-stone-600">
-              Every new account starts on Territory for 90 days. No credit card required.
-            </p>
+            <h3 className="font-bold text-stone-900">{t("pricing.perks.trial.title")}</h3>
+            <p className="mt-1 text-stone-600">{t("pricing.perks.trial.desc")}</p>
           </div>
           <div>
-            <h3 className="font-bold text-stone-900">No data loss on downgrade</h3>
-            <p className="mt-1 text-stone-600">
-              Your data stays. Excess teams are simply locked until you upgrade again.
-            </p>
+            <h3 className="font-bold text-stone-900">{t("pricing.perks.noDataLoss.title")}</h3>
+            <p className="mt-1 text-stone-600">{t("pricing.perks.noDataLoss.desc")}</p>
           </div>
           <div>
-            <h3 className="font-bold text-stone-900">VAT-compliant invoicing</h3>
-            <p className="mt-1 text-stone-600">
-              Add your VAT ID in Settings to receive proper EU VAT invoices.
-            </p>
+            <h3 className="font-bold text-stone-900">{t("pricing.perks.vat.title")}</h3>
+            <p className="mt-1 text-stone-600">{t("pricing.perks.vat.desc")}</p>
           </div>
         </div>
       </main>
