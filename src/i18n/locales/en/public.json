@@ -3,71 +3,148 @@
     "nav": {
       "features": "Features",
       "how": "How It Works",
+      "pricing": "Pricing",
       "testimonials": "Testimonials",
       "signIn": "Sign In",
       "startFree": "Start Free"
     },
     "startFreeDialog": {
-      "title": "Start Growing Your Business",
-      "description": "Enter your email to create your free provider account.",
-      "emailLabel": "Work Email",
+      "title": "Create your free account",
+      "description": "Drop your business email and you're set in 2 minutes. No card, no hassle.",
+      "emailLabel": "Business Email",
       "emailPlaceholder": "you@yourbusiness.com",
-      "submit": "Get Started Free 🌱",
-      "disclaimer": "No credit card required • Free forever for solo operators"
+      "submit": "Start Free",
+      "disclaimer": "No credit card • Free forever • Cancel anytime"
     },
     "hero": {
-      "badge": "🌱 Free to get started",
-      "titlePrefix": "Your Lawn Care Business,",
-      "titleHighlight": "Blooming",
-      "subtitle": "The CRM that grows with you — schedule jobs, delight customers, get paid. All in one sunny place.",
-      "emailPlaceholder": "Enter your email",
-      "cta": "Get Growing 🌱",
+      "badge": "🌱 Built in Romania, for landscaping companies",
+      "titlePrefix": "The management app built specifically for",
+      "titleHighlight": "landscaping and gardening companies",
+      "subtitle": "No more WhatsApp chaos, weekend Excel quotes, or forgotten maintenance visits. Schedule crews, send pro quotes, and bill compliantly — all from one simple mobile app.",
+      "emailPlaceholder": "Your business email",
+      "cta": "Start Free – No Card",
+      "microCopy": "2-minute setup. No tech skills required.",
       "errorRequired": "Please enter your email address",
       "errorInvalid": "Please enter a valid email address"
     },
+    "problem": {
+      "title": "A typical day at your landscaping business?",
+      "subtitle": "If you recognize yourself in even 2 of these, GreenGrass was built for you.",
+      "items": {
+        "whatsapp": {
+          "title": "Chaos in the WhatsApp group",
+          "desc": "Lost messages, photos from 5 clients all mixed up, crews calling to ask «where are we going today?»."
+        },
+        "weather": {
+          "title": "Rain ruins the whole week",
+          "desc": "You reschedule 8 jobs on paper, call every client one by one, and hope you didn't forget anyone."
+        },
+        "maintenance": {
+          "title": "Recurring maintenance slips",
+          "desc": "Your annual-contract client calls upset because you haven't been by in 2 months. You lose the renewal."
+        },
+        "quotes": {
+          "title": "Quotes written on Sunday in Excel",
+          "desc": "Instead of resting, you're calculating turf rolls, plants, labor — and still losing deals because the quote goes out too late."
+        }
+      }
+    },
     "social": {
-      "trustedBy": "Trusted by",
-      "trustedSuffix": "lawn care pros across the country 🏡"
+      "trustedBy": "Already used by",
+      "trustedSuffix": "landscaping and gardening companies in Romania 🇷🇴"
     },
     "features": {
       "title": "Everything you need to",
-      "titleHighlight": "grow",
-      "subtitle": "From first call to five-star review — GreenGrass handles the heavy lifting.",
+      "titleHighlight": "run your crew",
+      "subtitle": "Built around how a real landscaping business actually works — not a corporate CRM bolted on at the last minute.",
       "items": {
-        "customers": { "title": "Customer Management", "desc": "Keep all your clients, properties & notes in one cozy place." },
-        "scheduling": { "title": "Smart Scheduling", "desc": "Drag, drop & done — crews always know where to go." },
-        "pipeline": { "title": "Sales Pipeline", "desc": "From inspection to signed contract — watch deals bloom." },
-        "invoicing": { "title": "Invoicing & Offers", "desc": "Professional quotes in minutes, payments on time." },
-        "feedback": { "title": "Feedback Loop", "desc": "5-star reviews start with happy homeowners." },
-        "dashboard": { "title": "Team Dashboard", "desc": "Real-time view of every crew, every job, every dollar." }
+        "scheduling": {
+          "title": "Scheduling & calendar",
+          "desc": "Adapt instantly to the weather. Move crews by drag & drop. Recurring visits appear automatically — no more forgotten maintenance."
+        },
+        "estimates": {
+          "title": "Fast quotes & estimates",
+          "desc": "Close the deal on the spot. Calculate turf rolls, plants, topsoil and labor, then send a PDF quote to the client's WhatsApp before you leave."
+        },
+        "compliance": {
+          "title": "Invoicing & e-Factura",
+          "desc": "Stop fighting with ANAF. Generate compliant invoices in RON and send them to e-Factura or your accountant in one click."
+        },
+        "mobile": {
+          "title": "Mobile field access",
+          "desc": "Your office in your pocket. See yard dimensions, history, notes and before/after photos right from your phone on site."
+        },
+        "crews": {
+          "title": "Crews in the field",
+          "desc": "The team sees only their daily schedule — address, what to do, how long. No confusion."
+        },
+        "dashboard": {
+          "title": "Big-picture overview",
+          "desc": "See all active jobs, monthly revenue, and overdue clients at a glance. Decide on numbers, not gut feel."
+        }
       }
     },
     "how": {
-      "title": "Getting started is a",
-      "titleHighlight": "breeze",
+      "title": "You're up and running in",
+      "titleHighlight": "5 minutes",
       "steps": {
-        "signup": { "label": "Sign Up", "desc": "Create your free account in 30 seconds." },
-        "addCustomer": { "label": "Add Your First Customer", "desc": "Import or type — we make it easy." },
-        "grow": { "label": "Watch It Grow", "desc": "Schedule, invoice & delight customers." }
+        "signup": {
+          "label": "1. Create account",
+          "desc": "Email + password. No card, no endless forms."
+        },
+        "addCustomer": {
+          "label": "2. Add your first clients",
+          "desc": "Type them in or import from Excel. We'll help."
+        },
+        "grow": {
+          "label": "3. Run the business stress-free",
+          "desc": "Schedule crews, send quotes, get paid on time."
+        }
       }
     },
     "testimonials": {
-      "title": "Lawn pros",
-      "titleHighlight": "love",
-      "titleSuffix": "us 💚",
+      "title": "Landscaping owners",
+      "titleHighlight": "recommend us",
+      "titleSuffix": "💚",
+      "objection": "«Is it hard to use?» — If you can use WhatsApp, you can use GreenGrass. Field crews only see their daily schedule, nothing complicated.",
       "items": {
-        "jake": { "name": "Jake M.", "role": "Owner, FreshCut Lawns", "quote": "GreenGrass replaced three apps for us. Our crew loves how simple scheduling is!" },
-        "maria": { "name": "Maria S.", "role": "Ops Manager, EverGreen Pro", "quote": "We doubled our client base in 6 months. The pipeline view is *chef's kiss*." },
-        "devon": { "name": "Devon R.", "role": "Solo Landscaper", "quote": "Finally, a CRM that doesn't feel like homework. It's actually fun to use!" }
+        "jake": {
+          "name": "Andrei M.",
+          "role": "Owner, small gardening company – Cluj",
+          "quote": "I work with 2 guys. I used to forget half the maintenance visits. Now everything is on my phone, clients are happy, and I picked up 6 more annual contracts."
+        },
+        "maria": {
+          "name": "Mihaela S.",
+          "role": "Landscaping contractor – Bucharest",
+          "quote": "We have 4 crews in the field. Rescheduling when it rained was a nightmare — now I do it in 2 minutes. Quotes go out same day, not on the weekend."
+        },
+        "devon": {
+          "name": "Cătălin R.",
+          "role": "Crew lead – Brașov",
+          "quote": "I'm not a computer guy. But here I see in the morning where I'm going, what to do, and that's it. And I can add before/after photos straight from my phone."
+        }
       }
     },
+    "pricing": {
+      "eyebrow": "Simple pricing",
+      "title": "Start free.",
+      "titleHighlight": "Stay free forever.",
+      "subtitle": "Core access and features are free — no card, no trial that expires, no end-of-month surprises.",
+      "perks": {
+        "noCard": "No credit card at sign-up",
+        "noLimit": "No time limit — free forever",
+        "core": "All essential features included (clients, scheduling, quotes, mobile)",
+        "optional": "Pay only if you want advanced options (automatic e-Factura, multiple crews, integrations)"
+      },
+      "cta": "Create free account"
+    },
     "cta": {
-      "title": "Ready to ditch the clipboard?",
-      "subtitle": "Join hundreds of lawn care pros who traded spreadsheets for sunshine.",
-      "button": "Start Free — No Credit Card"
+      "title": "Stop the chaos. Create your free account.",
+      "subtitle": "Save 6+ hours a week on scheduling, quotes and phone calls. Start today, see the difference by Friday.",
+      "button": "Start Free – No Card"
     },
     "footer": {
-      "tagline": "Grow smarter, mow better. 🌿"
+      "tagline": "Built in Romania for landscaping companies. RON, e-Factura ready, support in Romanian. 🌿"
     }
   },
   "pricing": {
@@ -77,9 +154,18 @@
     "subtitle": "From a single patio to an entire territory — pick the plan that fits today, and upgrade when you're ready. All paid plans + VAT.",
     "trialBadge": "You're on the 90-day Territory trial — every feature unlocked.",
     "perks": {
-      "trial": { "title": "90-day full trial", "desc": "Every new account starts on Territory for 90 days. No credit card required." },
-      "noDataLoss": { "title": "No data loss on downgrade", "desc": "Your data stays. Excess teams are simply locked until you upgrade again." },
-      "vat": { "title": "VAT-compliant invoicing", "desc": "Add your VAT ID in Settings to receive proper EU VAT invoices." }
+      "trial": {
+        "title": "90-day full trial",
+        "desc": "Every new account starts on Territory for 90 days. No credit card required."
+      },
+      "noDataLoss": {
+        "title": "No data loss on downgrade",
+        "desc": "Your data stays. Excess teams are simply locked until you upgrade again."
+      },
+      "vat": {
+        "title": "VAT-compliant invoicing",
+        "desc": "Add your VAT ID in Settings to receive proper EU VAT invoices."
+      }
     }
   },
   "notFound": {
