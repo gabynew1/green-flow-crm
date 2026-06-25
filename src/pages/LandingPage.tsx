@@ -530,7 +530,7 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="mt-8 h-14 rounded-full bg-white text-landing-coral font-bold text-lg px-10 shadow-xl hover:bg-white/90"
-            onClick={() => navigate("/onboard?source=landing")}
+            onClick={() => setStartFreeOpen(true)}
           >
             {t("landing.cta.button")} <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
