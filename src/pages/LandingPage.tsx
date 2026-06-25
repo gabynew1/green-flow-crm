@@ -336,6 +336,39 @@ export default function LandingPage() {
               {t("landing.hero.cta")}
             </Button>
           </form>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {t("landing.hero.microCopy")}
+          </p>
+        </div>
+      </section>
+
+      {/* ===== PROBLEM / AGITATION ===== */}
+      <section id="problem" className="py-20 sm:py-24 bg-secondary/30">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-extrabold text-foreground sm:text-4xl max-w-3xl mx-auto leading-tight">
+              {t("landing.problem.title")}
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+              {t("landing.problem.subtitle")}
+            </p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {problemDefs.map((p) => {
+              const Icon = p.icon;
+              return (
+                <Card key={p.key} className="flex gap-4 border-0 p-5 bg-card">
+                  <div className={`flex-shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-blob ${p.color}`}>
+                    <Icon className="h-6 w-6 icon-hand-drawn" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground">{t(`landing.problem.items.${p.key}.title`)}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{t(`landing.problem.items.${p.key}.desc`)}</p>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </section>
 
