@@ -1,0 +1,158 @@
+{
+  "landing": {
+    "nav": {
+      "features": "Funcționalități",
+      "how": "Cum funcționează",
+      "testimonials": "Testimoniale",
+      "signIn": "Conectare",
+      "startFree": "Începe gratuit"
+    },
+    "startFreeDialog": {
+      "title": "Începe să-ți dezvolți afacerea",
+      "description": "Introdu emailul pentru a-ți crea contul gratuit de furnizor.",
+      "emailLabel": "Email de serviciu",
+      "emailPlaceholder": "tu@firmata.ro",
+      "submit": "Începe gratuit 🌱",
+      "disclaimer": "Fără card de credit • Gratuit pentru operatorii individuali"
+    },
+    "hero": {
+      "badge": "🌱 Începe gratuit",
+      "titlePrefix": "Afacerea ta de îngrijire a peluzelor,",
+      "titleHighlight": "Înflorește",
+      "subtitle": "CRM-ul care crește odată cu tine — programează lucrări, încântă clienții, fii plătit. Totul într-un loc însorit.",
+      "emailPlaceholder": "Introdu emailul",
+      "cta": "Pornește 🌱",
+      "errorRequired": "Te rugăm să introduci adresa de email",
+      "errorInvalid": "Te rugăm să introduci o adresă de email validă"
+    },
+    "social": {
+      "trustedBy": "Avem încrederea a",
+      "trustedSuffix": "profesioniști din întreaga țară 🏡"
+    },
+    "features": {
+      "title": "Tot ce-ți trebuie ca să",
+      "titleHighlight": "crești",
+      "subtitle": "De la primul apel la recenzia de 5 stele — GreenGrass se ocupă de partea grea.",
+      "items": {
+        "customers": { "title": "Gestionarea clienților", "desc": "Toți clienții, proprietățile și notele într-un singur loc." },
+        "scheduling": { "title": "Programare inteligentă", "desc": "Trage, plasează și gata — echipele știu mereu unde merg." },
+        "pipeline": { "title": "Pipeline de vânzări", "desc": "De la inspecție la contract semnat — vezi cum înfloresc tranzacțiile." },
+        "invoicing": { "title": "Facturare și oferte", "desc": "Oferte profesionale în câteva minute, plăți la timp." },
+        "feedback": { "title": "Bucla de feedback", "desc": "Recenziile de 5 stele încep cu proprietari mulțumiți." },
+        "dashboard": { "title": "Tablou de bord pentru echipă", "desc": "Vizibilitate în timp real: fiecare echipă, fiecare lucrare, fiecare leu." }
+      }
+    },
+    "how": {
+      "title": "Începerea este o",
+      "titleHighlight": "briză",
+      "steps": {
+        "signup": { "label": "Înscrie-te", "desc": "Creează-ți contul gratuit în 30 de secunde." },
+        "addCustomer": { "label": "Adaugă primul client", "desc": "Importă sau introdu — facem totul ușor." },
+        "grow": { "label": "Vezi-o cum crește", "desc": "Programează, facturează și încântă clienții." }
+      }
+    },
+    "testimonials": {
+      "title": "Profesioniștii",
+      "titleHighlight": "iubesc",
+      "titleSuffix": "GreenGrass 💚",
+      "items": {
+        "jake": { "name": "Jake M.", "role": "Proprietar, FreshCut Lawns", "quote": "GreenGrass a înlocuit trei aplicații. Echipei mele îi place cât de simplă e programarea!" },
+        "maria": { "name": "Maria S.", "role": "Manager Operațiuni, EverGreen Pro", "quote": "Ne-am dublat baza de clienți în 6 luni. Vizualizarea pipeline-ului este excelentă." },
+        "devon": { "name": "Devon R.", "role": "Peisagist independent", "quote": "În sfârșit un CRM care nu pare temă pentru acasă. Chiar e plăcut de folosit!" }
+      }
+    },
+    "cta": {
+      "title": "Gata să renunți la pix și hârtie?",
+      "subtitle": "Alătură-te sutelor de profesioniști care au schimbat foile de calcul cu soarele.",
+      "button": "Începe gratuit — fără card"
+    },
+    "footer": {
+      "tagline": "Crește mai inteligent, lucrează mai bine. 🌿"
+    }
+  },
+  "pricing": {
+    "back": "Înapoi",
+    "eyebrow": "Prețuri",
+    "title": "Crește în ritmul tău.",
+    "subtitle": "De la o singură curte la un întreg teritoriu — alege planul potrivit astăzi și avansează când ești pregătit. Toate planurile plătite + TVA.",
+    "trialBadge": "Ești în perioada de probă Territory de 90 de zile — toate funcțiile sunt deblocate.",
+    "perks": {
+      "trial": { "title": "Probă completă 90 de zile", "desc": "Fiecare cont nou începe pe Territory 90 de zile. Fără card de credit." },
+      "noDataLoss": { "title": "Fără pierderea datelor la downgrade", "desc": "Datele tale rămân. Echipele în plus sunt doar blocate până la upgrade." },
+      "vat": { "title": "Facturare conformă cu TVA", "desc": "Adaugă CUI-ul în Setări pentru facturi UE corecte cu TVA." }
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "message": "Hopa! Pagina nu a fost găsită",
+    "home": "Înapoi la pagina principală"
+  },
+  "accountLocked": {
+    "title": "Cont blocat",
+    "clientPrefix": "Contul tău de client ",
+    "workspacePrefix": "Spațiul tău de lucru ",
+    "lockedSuffix": " a fost blocat din cauza inactivității sau de către un administrator.",
+    "daysRemaining": "{{days}} zile",
+    "deletionInfo": " mai sunt până la ștergerea definitivă. Toate datele sunt păstrate până atunci.",
+    "contact": "Pentru a reactiva contul, contactează administratorul. Dacă ești proprietarul contului, conectarea din nou va restaura accesul automat.",
+    "signOut": "Deconectare",
+    "refresh": "Reîmprospătează"
+  },
+  "verify": {
+    "title": "Confirmă adresa de email",
+    "description": "Introdu codul de 6 cifre din emailul trimis sau dă click pe link.",
+    "emailLabel": "Email",
+    "codeLabel": "Cod de verificare",
+    "verify": "Confirmă emailul",
+    "verifying": "Se verifică…",
+    "resend": "Retrimite codul",
+    "verified": "Email confirmat.",
+    "expired": "Cod expirat. Solicită unul nou.",
+    "invalid": "Cod invalid.",
+    "newCode": "Cod nou trimis."
+  },
+  "resetPassword": {
+    "invalidTitle": "Link de resetare invalid",
+    "invalidDesc": "Acest link de resetare a parolei este invalid sau a expirat.",
+    "backToSignIn": "Înapoi la conectare",
+    "title": "Setează parola nouă",
+    "description": "Introdu parola nouă mai jos.",
+    "newPassword": "Parolă nouă",
+    "confirm": "Confirmă parola",
+    "submit": "Actualizează parola",
+    "updating": "Se actualizează…",
+    "mismatch": "Parolele nu coincid",
+    "tooShort": "Parola trebuie să aibă cel puțin 8 caractere",
+    "success": "Parolă actualizată cu succes!",
+    "failure": "Nu s-a putut actualiza parola."
+  },
+  "changePassword": {
+    "title": "Schimbă parola",
+    "description": "Folosești o parolă temporară. Setează o parolă nouă pentru a continua.",
+    "newPassword": "Parolă nouă",
+    "newPlaceholder": "Min 6 caractere, 1 literă mare, 1 cifră",
+    "confirm": "Confirmă parola",
+    "confirmPlaceholder": "Reintrodu parola nouă",
+    "submit": "Setează parola nouă",
+    "updating": "Se actualizează…",
+    "rule": "Parola trebuie să aibă cel puțin 6 caractere, cu 1 literă mare și 1 cifră",
+    "mismatch": "Parolele nu coincid",
+    "success": "Parolă actualizată cu succes!",
+    "failure": "Eroare la actualizarea parolei: ",
+    "show": "Arată parola",
+    "hide": "Ascunde parola"
+  },
+  "unsubscribe": {
+    "title": "Dezabonare",
+    "description": "Apasă mai jos pentru a opri primirea emailurilor de la GreenGrass.",
+    "confirm": "Confirmă dezabonarea",
+    "successTitle": "Te-ai dezabonat",
+    "successDesc": "Nu vei mai primi emailuri de la noi.",
+    "alreadyTitle": "Deja dezabonat",
+    "alreadyDesc": "Te-ai dezabonat deja de la emailurile aplicației.",
+    "invalidTitle": "Link invalid",
+    "invalidDesc": "Acest link de dezabonare este invalid sau a expirat.",
+    "errorTitle": "A apărut o eroare",
+    "errorDesc": "Te rugăm să încerci mai târziu."
+  }
+}
