@@ -1,51 +1,63 @@
+
 ## Goal
-Make the entire app Romanian by default, with a visible language widget everywhere (including public pages), and ensure remaining English-only public pages get translated.
+Transform the landing page into a high-converting RO-first sales page built around the attached growth-marketer brief. Drive free account signups from Romanian landscaping business owners.
 
-## Current state (verified)
-- i18n infrastructure exists (`src/i18n/index.ts`, `useLocale`, `LanguageSwitcher`).
-- Two locales: `ro` (Română) and `en`. RO and EN translation files are at parity (141 lines each, all 7 namespaces present).
-- Service catalog and inventory categories are **already fully translated in RO** in DB (`service_catalog_translations`: 162/162 rows; `inventory_category_translations`: 11/11). No DB work needed.
-- `LanguageSwitcher` is already mounted in `ProviderLayout`, `ClientLayout`, `AdminLayout`, and `Auth`.
-- Gaps:
-  1. **Default language is English** (`FALLBACK_LOCALE = "en"`, detection prefers `navigator`).
-  2. **Public marketing pages are hardcoded English** with no widget: `LandingPage.tsx` (514 lines), `Pricing.tsx`, `NotFound.tsx`, `AccountLocked.tsx`, `Verify.tsx`, `ResetPassword.tsx`, `ChangePassword.tsx`, `Unsubscribe.tsx`.
+## Scope
+Frontend-only. Update copy in `src/i18n/locales/ro/public.json` (and EN mirror for fallback parity), add 3 new sections to `src/pages/LandingPage.tsx`, and refresh existing section copy keys. No backend, no auth, no pricing logic changes.
 
-## Changes
+## Sections to ship (in order)
 
-### 1. Default language → Romanian
-- `src/i18n/config.ts`: `FALLBACK_LOCALE = "ro"`.
-- `src/i18n/index.ts`: keep `localStorage` first in detection order (preserves explicit user choice), but set `fallbackLng: "ro"` and add `lng: undefined` so first-time visitors with no stored choice and unsupported browser language land on RO.
-- `useLocale.ts`: `current ?? "ro"`.
-- Behavior:
-  - Existing users with a `profiles.locale` keep their choice.
-  - Existing anonymous visitors with `localStorage.locale` keep their choice.
-  - New visitors → RO immediately, switchable via widget.
+1. **Navbar** — unchanged structurally. Update RO labels; add Pricing link.
+2. **Hero** (rewrite copy only)
+   - H1 (locked, verbatim): *"Aplicația de gestiune creată special pentru firmele de amenajări spații verzi și grădinărit"*
+   - H2: pain → solution (echipe haotice, oferte lente, clienți pierduți → totul într-o aplicație simplă pe telefon).
+   - CTA button: *"Începe gratuit – Fără card"*
+   - Micro-copy: *"Configurare în 2 minute. Nu necesită cunoștințe tehnice."*
+3. **NEW — Problem / Agitation** (`#problem`)
+   - "O zi din viața unui patron de firmă de amenajări" — 4 bullet pains: WhatsApp haos, ploaie peste planificare, mentenanță uitată, devize în Excel duminica.
+4. **Features → Benefits** (rewrite existing 6 feature cards using JTBD translation)
+   - Scheduling → "Adaptează-te instant la vreme"
+   - Devize/Quoting → "Închide vânzarea pe loc"
+   - e-Factura → "Termină cu bătăile de cap cu ANAF"
+   - Istoric client & mobil → "Biroul tău, în buzunar"
+   - Echipe în teren → "Echipele văd doar programul lor zilnic"
+   - Dashboard → "Vezi toate lucrările și încasările dintr-o privire"
+5. **How it works** — keep 3 steps, retune RO copy.
+6. **Testimonials** — rewrite as RO mock testimonials: patron firmă mică de grădinărit + antreprenor mare amenajări + voce echipă teren. Add objection-handling line: "Dacă știi să folosești WhatsApp, știi să folosești GreenGrass."
+7. **NEW — Pricing / Free Forever** (`#pricing`)
+   - One-message section, not a tier comparison.
+   - Headline: *"Începe gratuit. Rămâi gratuit pentru totdeauna."*
+   - Sub: accesul și utilizarea de bază sunt gratuite — fără card, fără perioadă de probă care expiră, fără surprize.
+   - 3-4 bullet reassurance: "Fără card de credit", "Fără limită de timp", "Toate funcțiile esențiale incluse", "Plătești doar când vrei opțiuni avansate" (sau echivalent — copy only).
+   - Single CTA opens the existing Start Free dialog.
+8. **NEW — Final CTA** (`#final-cta`)
+   - Headline: *"Oprește haosul din firmă. Creează cont gratuit."*
+   - Sub: time-saved promise ("Economisește 6+ ore pe săptămână").
+   - Single big coral button → Start Free dialog.
+9. **Footer** — light refresh; add RO trust line (e-Factura ready, RON, suport în română).
 
-### 2. New `public` i18n namespace
-Add `src/i18n/locales/{en,ro}/public.json` covering all strings in the 8 public pages above (hero, features, pricing tiers, CTAs, footer, 404, account-locked, email verification, password flows, unsubscribe). Register it in `src/i18n/index.ts` (`ns` array).
+## Implementation steps
 
-### 3. Translate public pages
-Refactor these to use `useTranslation("public")` and pull strings from the new namespace — no visual/layout changes, only string replacement:
-- `LandingPage.tsx` — nav, hero, features, testimonials, pricing teaser, CTA, footer.
-- `Pricing.tsx` — tier names, features, CTAs.
-- `NotFound.tsx`, `AccountLocked.tsx`, `Verify.tsx`, `ResetPassword.tsx`, `ChangePassword.tsx`, `Unsubscribe.tsx`.
-
-### 4. Add language widget to public pages
-- `LandingPage.tsx` nav (top-right, both desktop bar and mobile menu): `<LanguageSwitcher variant="icon" />`.
-- `Pricing.tsx` header.
-- Smaller utility pages (NotFound / AccountLocked / Verify / Reset / ChangePassword / Unsubscribe): add a discreet `LanguageSwitcher` in a top-right absolute-positioned wrapper so visitors can flip language before/after the action.
-
-### 5. Service templates
-No code or DB changes — already 100% translated in `service_catalog_translations` and surfaced via existing `useServiceCatalogTranslator`. Verify by switching locale in the widget on `/provider/services` and confirming Romanian names appear.
+1. Read full `LandingPage.tsx` (remaining lines) and existing `ro/public.json` + `en/public.json` to inventory current keys.
+2. Update `public.json` (RO + EN) under `landing.*`:
+   - Replace `hero`, `features.items.*`, `how.steps.*`, `testimonials.items.*`, `nav.*`, `startFreeDialog.*` strings with brief-aligned copy.
+   - Add new namespaces: `landing.problem.*`, `landing.pricing.*` (free-forever messaging, not tiers), `landing.finalCta.*`, `landing.footer.*`.
+3. Edit `LandingPage.tsx`:
+   - Insert Problem section after Hero (before Social Proof).
+   - Insert Pricing (Free Forever) section after Testimonials.
+   - Insert Final CTA section before footer.
+   - Add `#problem` and `#pricing` to `navItems` so navbar links scroll to them.
+   - Pricing and Final CTA buttons call `setStartFreeOpen(true)`.
+4. Keep design tokens (landing-coral, landing-mint, etc.), hand-drawn doodles, and existing motion. No new dependencies.
+5. Verify build + visual check on desktop and mobile widths via Playwright screenshot.
 
 ## Out of scope
-- No changes to the provider/client/admin internal pages (already wired through i18n; any missed strings would be tracked separately).
-- No new locales beyond `ro` and `en`.
-- No DB migrations.
+- Real Stripe/Paddle integration (free-forever messaging, no paid tiers shown).
+- SEO meta rewrite (separate task if requested).
+- Backend, RLS, schema, or auth changes.
+- English copywriting parity beyond keeping fallback strings sensible.
 
-## Acceptance
-- First visit on a clean browser → UI in Romanian.
-- Language widget visible on landing, pricing, auth, and all utility pages.
-- Switching to English on any page persists across navigation (localStorage + `profiles.locale` when signed in).
-- Service catalog entries (e.g. on `/provider/services`, contract creation, offers) display Romanian names when locale = RO.
-- No remaining hardcoded English on the 8 public pages listed above.
+## Risks / notes
+- RO is default locale; EN strings stay as fallback only — won't be marketing-grade.
+- Locked H1 is long — typography needs to hold on mobile (will tune `text-3xl sm:text-5xl`).
+- "500+ firme" social proof line: keep as-is or soften to "zeci de firme" — confirm during build if you want it changed.

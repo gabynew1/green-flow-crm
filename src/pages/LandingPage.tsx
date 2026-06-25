@@ -26,6 +26,13 @@ import {
   Menu,
   X,
   Mail,
+  CloudRain,
+  MessageCircle,
+  Clock,
+  Receipt,
+  Smartphone,
+  Calculator,
+  Check,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -74,43 +81,22 @@ const FlowerDoodle = ({ className = "" }: { className?: string }) => (
 /*  Feature data                                                       */
 /* ------------------------------------------------------------------ */
 const featureDefs = [
-  {
-    key: "customers",
-    icon: Users,
-    color: "bg-landing-mint text-emerald-700",
-    tilt: "",
-  },
-  {
-    key: "scheduling",
-    icon: CalendarCheck,
-    color: "bg-landing-sky text-sky-700",
-    tilt: "",
-  },
-  {
-    key: "pipeline",
-    icon: TrendingUp,
-    color: "bg-landing-coral/20 text-rose-600",
-    tilt: "",
-  },
-  {
-    key: "invoicing",
-    icon: FileText,
-    color: "bg-landing-yellow/30 text-amber-700",
-    tilt: "",
-  },
-  {
-    key: "feedback",
-    icon: MessageSquareHeart,
-    color: "bg-landing-lavender/40 text-violet-600",
-    tilt: "",
-  },
-  {
-    key: "dashboard",
-    icon: LayoutDashboard,
-    color: "bg-landing-mint text-emerald-700",
-    tilt: "",
-  },
+  { key: "scheduling",  icon: CalendarCheck,    color: "bg-landing-sky text-sky-700",          tilt: "" },
+  { key: "estimates",   icon: Calculator,       color: "bg-landing-mint text-emerald-700",     tilt: "" },
+  { key: "compliance",  icon: Receipt,          color: "bg-landing-yellow/30 text-amber-700",  tilt: "" },
+  { key: "mobile",      icon: Smartphone,       color: "bg-landing-lavender/40 text-violet-600", tilt: "" },
+  { key: "crews",       icon: Users,            color: "bg-landing-coral/20 text-rose-600",    tilt: "" },
+  { key: "dashboard",   icon: LayoutDashboard,  color: "bg-landing-mint text-emerald-700",     tilt: "" },
 ];
+
+const problemDefs = [
+  { key: "whatsapp",    icon: MessageCircle, color: "bg-landing-coral/20 text-rose-600" },
+  { key: "weather",     icon: CloudRain,     color: "bg-landing-sky text-sky-700" },
+  { key: "maintenance", icon: Clock,         color: "bg-landing-yellow/30 text-amber-700" },
+  { key: "quotes",      icon: FileText,      color: "bg-landing-lavender/40 text-violet-600" },
+];
+
+const pricingPerks = ["noCard", "noLimit", "core", "optional"] as const;
 
 const stepDefs = [
   { num: 1, key: "signup", icon: Sprout },
@@ -178,9 +164,10 @@ export default function LandingPage() {
     navigate(`/auth?email=${encodeURIComponent(email)}&source=landing`);
   };
 
-  const navItems: { id: string; key: "features" | "how" | "testimonials" }[] = [
+  const navItems: { id: string; key: "features" | "how" | "pricing" | "testimonials" }[] = [
     { id: "features", key: "features" },
     { id: "how", key: "how" },
+    { id: "pricing", key: "pricing" },
     { id: "testimonials", key: "testimonials" },
   ];
 
@@ -349,6 +336,39 @@ export default function LandingPage() {
               {t("landing.hero.cta")}
             </Button>
           </form>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {t("landing.hero.microCopy")}
+          </p>
+        </div>
+      </section>
+
+      {/* ===== PROBLEM / AGITATION ===== */}
+      <section id="problem" className="py-20 sm:py-24 bg-secondary/30">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-extrabold text-foreground sm:text-4xl max-w-3xl mx-auto leading-tight">
+              {t("landing.problem.title")}
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+              {t("landing.problem.subtitle")}
+            </p>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {problemDefs.map((p) => {
+              const Icon = p.icon;
+              return (
+                <Card key={p.key} className="flex gap-4 border-0 p-5 bg-card">
+                  <div className={`flex-shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-blob ${p.color}`}>
+                    <Icon className="h-6 w-6 icon-hand-drawn" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground">{t(`landing.problem.items.${p.key}.title`)}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{t(`landing.problem.items.${p.key}.desc`)}</p>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -452,6 +472,47 @@ export default function LandingPage() {
               </Card>
             ))}
           </div>
+          <p className="mt-10 mx-auto max-w-2xl text-center text-base text-foreground/80 italic">
+            {t("landing.testimonials.objection")}
+          </p>
+        </div>
+      </section>
+
+      {/* ===== PRICING / FREE FOREVER ===== */}
+      <section id="pricing" className="py-20 sm:py-28 bg-landing-mint/30">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 text-center">
+          <span className="inline-block mb-4 rounded-full bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+            {t("landing.pricing.eyebrow")}
+          </span>
+          <h2 className="text-3xl font-extrabold text-foreground sm:text-5xl leading-tight">
+            {t("landing.pricing.title")}{" "}
+            <span className="text-primary">{t("landing.pricing.titleHighlight")}</span>
+          </h2>
+          <p className="mt-5 text-lg text-muted-foreground max-w-2xl mx-auto">
+            {t("landing.pricing.subtitle")}
+          </p>
+
+          <Card className="mt-10 mx-auto max-w-2xl border-0 bg-card p-8 text-left shadow-lg">
+            <ul className="space-y-4">
+              {pricingPerks.map((k) => (
+                <li key={k} className="flex items-start gap-3">
+                  <span className="flex-shrink-0 mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Check className="h-4 w-4" />
+                  </span>
+                  <span className="text-sm sm:text-base text-foreground/90">
+                    {t(`landing.pricing.perks.${k}`)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <Button
+              size="lg"
+              onClick={() => setStartFreeOpen(true)}
+              className="mt-8 w-full h-12 rounded-full bg-landing-coral hover:bg-landing-coral/90 text-white font-semibold shadow-md"
+            >
+              {t("landing.pricing.cta")} <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Card>
         </div>
       </section>
 
@@ -469,7 +530,7 @@ export default function LandingPage() {
           <Button
             size="lg"
             className="mt-8 h-14 rounded-full bg-white text-landing-coral font-bold text-lg px-10 shadow-xl hover:bg-white/90"
-            onClick={() => navigate("/onboard?source=landing")}
+            onClick={() => setStartFreeOpen(true)}
           >
             {t("landing.cta.button")} <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
