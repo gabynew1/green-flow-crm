@@ -3,27 +3,99 @@
     "nav": {
       "features": "Funcționalități",
       "how": "Cum funcționează",
+      "pricing": "Preț",
       "testimonials": "Testimoniale",
       "signIn": "Conectare",
       "startFree": "Începe gratuit"
     },
     "startFreeDialog": {
-      "title": "Începe să-ți dezvolți afacerea",
-      "description": "Introdu emailul pentru a-ți crea contul gratuit de furnizor.",
-      "emailLabel": "Email de serviciu",
-      "emailPlaceholder": "tu@firmata.ro",
-      "submit": "Începe gratuit 🌱",
-      "disclaimer": "Fără card de credit • Gratuit pentru operatorii individuali"
+      "title": "Creează-ți contul gratuit",
+      "description": "Lasă-ne emailul tău de business și ești gata în 2 minute. Fără card, fără bătăi de cap.",
+      "emailLabel": "Email business",
+      "emailPlaceholder": "tu@firma-ta.ro",
+      "submit": "Începe gratuit",
+      "disclaimer": "Fără card de credit • Gratuit pentru totdeauna • Anulezi când vrei"
     },
     "hero": {
-      "badge": "🌱 Începe gratuit",
-      "titlePrefix": "Afacerea ta de îngrijire a peluzelor,",
-      "titleHighlight": "Înflorește",
-      "subtitle": "CRM-ul care crește odată cu tine — programează lucrări, încântă clienții, fii plătit. Totul într-un loc însorit.",
-      "emailPlaceholder": "Introdu emailul",
-      "cta": "Pornește 🌱",
+      "badge": "🌱 Făcut în România, pentru firmele de amenajări",
+      "titlePrefix": "Aplicația de gestiune creată special pentru firmele de",
+      "titleHighlight": "amenajări spații verzi și grădinărit",
+      "subtitle": "Gata cu haosul din WhatsApp, devizele scrise duminica și mentenanțele uitate. Programezi echipele, trimiți oferte profesionale și emiți facturi conforme — totul dintr-o aplicație simplă, pe telefon.",
+      "emailPlaceholder": "Email-ul tău de business",
+      "cta": "Începe gratuit – Fără card",
+      "microCopy": "Configurare în 2 minute. Nu necesită cunoștințe tehnice.",
       "errorRequired": "Te rugăm să introduci adresa de email",
       "errorInvalid": "Te rugăm să introduci o adresă de email validă"
+    },
+    "problem": {
+      "title": "O zi obișnuită în firma ta de amenajări?",
+      "subtitle": "Dacă te regăsești în măcar 2 din situațiile de mai jos, GreenGrass e construit pentru tine.",
+      "items": {
+        "whatsapp": { "title": "Haos în grupul de WhatsApp", "desc": "Mesaje pierdute, poze de la 5 clienți amestecate, băieții te sună să întrebe «unde mergem azi?»." },
+        "weather": { "title": "Ploaia îți strică toată săptămâna", "desc": "Reprogramezi 8 lucrări pe hârtie, suni fiecare client în parte și speri să nu uiți pe cineva." },
+        "maintenance": { "title": "Uiți de mentenanțele recurente", "desc": "Clientul cu contract anual te sună supărat că n-ați mai trecut de 2 luni. Pierzi contractul anul viitor." },
+        "quotes": { "title": "Devize scrise duminica în Excel", "desc": "În loc să te odihnești, calculezi role de gazon, plante, manoperă — și tot mai pierzi clienți pentru că trimiți oferta târziu." }
+      }
+    },
+    "social": {
+      "trustedBy": "Folosit deja de",
+      "trustedSuffix": "firme de amenajări și grădinărit din România 🇷🇴"
+    },
+    "features": {
+      "title": "Tot ce-ți trebuie ca să",
+      "titleHighlight": "controlezi firma",
+      "subtitle": "Construit pe baza fluxului real dintr-o firmă de amenajări — nu un CRM corporate adaptat la repezeală.",
+      "items": {
+        "scheduling": { "title": "Programare și calendar", "desc": "Adaptează-te instant la vreme. Mută echipele cu drag & drop. Vizitele recurente apar automat — nu mai uiți de nicio mentenanță." },
+        "estimates": { "title": "Devize și oferte rapide", "desc": "Închizi vânzarea pe loc. Calculezi role de gazon, plante, pământ vegetal și manoperă, apoi trimiți oferta în PDF pe WhatsApp înainte să pleci de la client." },
+        "compliance": { "title": "Facturare și e-Factura", "desc": "Termini cu bătăile de cap cu ANAF. Emiți facturi conforme în RON și le trimiți într-un click la e-Factura sau direct la contabil." },
+        "mobile": { "title": "Acces mobil pe teren", "desc": "Biroul tău, în buzunar. Vezi dimensiunile curții, istoricul, notele și pozele înainte/după direct din telefon, pe șantier." },
+        "crews": { "title": "Echipe în teren", "desc": "Băieții văd doar programul lor zilnic — adresă, ce au de făcut, cât timp. Fără confuzie, fără «pe ce stradă ziceai?»." },
+        "dashboard": { "title": "Vedere de ansamblu", "desc": "Vezi toate lucrările active, încasările lunii și clienții în întârziere dintr-o singură privire. Iei decizii pe cifre, nu pe intuiție." }
+      }
+    },
+    "how": {
+      "title": "Te apuci în",
+      "titleHighlight": "5 minute",
+      "steps": {
+        "signup": { "label": "1. Creează cont", "desc": "Email + parolă. Fără card, fără formulare interminabile." },
+        "addCustomer": { "label": "2. Adaugă primii clienți", "desc": "Îi introduci manual sau imporți dintr-un Excel. Te ajutăm noi." },
+        "grow": { "label": "3. Conduci firma fără stres", "desc": "Programezi echipele, trimiți devize, încasezi la timp." }
+      }
+    },
+    "testimonials": {
+      "title": "Patroni de firme de amenajări",
+      "titleHighlight": "ne recomandă",
+      "titleSuffix": "💚",
+      "objection": "«Greu de folosit?» — Dacă știi să folosești WhatsApp, știi să folosești GreenGrass. Băieții din teren văd doar programul lor zilnic, nimic complicat.",
+      "items": {
+        "jake": { "name": "Andrei M.", "role": "Patron, firmă mică de grădinărit – Cluj", "quote": "Lucrez singur cu 2 băieți. Înainte uitam de jumătate din mentenanțe. Acum totul e în telefon, clienții sunt mulțumiți și am mai luat 6 contracte anuale." },
+        "maria": { "name": "Mihaela S.", "role": "Antreprenor amenajări – București", "quote": "Avem 4 echipe în teren. Reprogramarea când plouă era un coșmar — acum o fac în 2 minute. Devizele pleacă în aceeași zi, nu în weekend." },
+        "devon": { "name": "Cătălin R.", "role": "Șef echipă – Brașov", "quote": "Eu nu sunt cu calculatorul. Dar aici văd dimineața unde merg, ce am de făcut și gata. Și pot să bag poze înainte/după direct din telefon." }
+      }
+    },
+    "pricing": {
+      "eyebrow": "Preț simplu",
+      "title": "Începe gratuit.",
+      "titleHighlight": "Rămâi gratuit pentru totdeauna.",
+      "subtitle": "Accesul și funcțiile esențiale sunt gratuite — fără card, fără perioadă de probă care expiră, fără surprize la final de lună.",
+      "perks": {
+        "noCard": "Fără card de credit la înscriere",
+        "noLimit": "Fără limită de timp — gratuit pentru totdeauna",
+        "core": "Toate funcțiile esențiale incluse (clienți, programare, devize, mobil)",
+        "optional": "Plătești doar dacă vrei opțiuni avansate (e-Factura automat, echipe multiple, integrări)"
+      },
+      "cta": "Creează cont gratuit"
+    },
+    "cta": {
+      "title": "Oprește haosul din firmă. Creează cont gratuit.",
+      "subtitle": "Economisești 6+ ore pe săptămână din planificare, devize și telefoane. Începi azi, vezi diferența până vineri.",
+      "button": "Începe gratuit – Fără card"
+    },
+    "footer": {
+      "tagline": "Făcut în România pentru firmele de amenajări. RON, e-Factura ready, suport în română. 🌿"
+    }
+  },
     },
     "social": {
       "trustedBy": "Avem încrederea a",
