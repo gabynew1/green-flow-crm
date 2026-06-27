@@ -34,6 +34,7 @@ export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
   'onboarding-day-0':      'lifecycle',
   'onboarding-day-2':      'lifecycle',
   'onboarding-day-7':      'lifecycle',
+  'super-admin-new-signup':'account',
   'lifecycle-prelock':     'lifecycle',
   'lifecycle-locked':      'lifecycle',
   'lifecycle-d30':         'lifecycle',
@@ -55,6 +56,7 @@ import { template as connectionApproved } from './connection-approved.tsx'
 import { template as onboardingDay0 } from './onboarding-day-0.tsx'
 import { template as onboardingDay2 } from './onboarding-day-2.tsx'
 import { template as onboardingDay7 } from './onboarding-day-7.tsx'
+import { template as superAdminNewSignup } from './super-admin-new-signup.tsx'
 import {
   prelock as lifecyclePrelock,
   locked as lifecycleLocked,
@@ -78,6 +80,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'onboarding-day-0': onboardingDay0,
   'onboarding-day-2': onboardingDay2,
   'onboarding-day-7': onboardingDay7,
+  'super-admin-new-signup': superAdminNewSignup,
   'lifecycle-prelock': lifecyclePrelock,
   'lifecycle-locked': lifecycleLocked,
   'lifecycle-d30': lifecycleD30,
