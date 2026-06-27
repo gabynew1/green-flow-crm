@@ -1,77 +1,96 @@
-ns
-# Lovable features worth adopting for GreenGrassCRM
+# Signup Lifecycle — Phased Plan
 
-Below is a curated list of Lovable platform capabilities that would meaningfully benefit this project, grouped by impact. Nothing is implemented yet — pick which ones to turn into actual work items.
+Foundation first, then layer security, growth, and UX. Each step ships independently and leaves the system better than before.
 
-## 1. Growth & SEO (high ROI, low effort)
-- **SEO Review agent** — automated scan that flags missing meta, OG, canonical, JSON-LD, robots, sitemap, alt text, H1 issues. We already have a landing page rewrite; this catches regressions.
-- **Per-route head metadata** via `react-helmet-async` — today only `index.html` has tags. Add unique `<title>`, description, canonical, OG per public route (`/`, `/pricing`, `/onboard`, `/auth`, future blog).
-- **Sitemap generator** (`scripts/generate-sitemap.ts` + `predev`/`prebuild`) — currently no dynamic sitemap. Helps Google index public pages.
-- **robots.txt hardening** — ensure `/admin`, `/provider`, `/client`, `/onboard` internals not indexed.
-- **Semrush integration** — keyword research for RO landscaping market ("firmă întreținere spații verzi", "CRM peisagistică"), competitor gap analysis, ongoing rank tracking dashboard inside the app.
-- **OG image generation** for landing + pricing using imagegen (Romanian-language social cards).
+## Step 1 — Foundation: `signup_completed` event + super admin notify (THIS STEP)
 
-## 2. Security & Compliance (matches project's tenant-isolation mandate)
-- **Security Scanner** — automated RLS / policy / grant / secret-leak findings. Run on a schedule; we already use it ad-hoc.
-- **Security memory** — encode our tenant-isolation rules (RLS required, GRANTs, no roles on profiles, super_admin table check) so future scans don't false-positive.
-- **Dependency scan** (`code--dependency_scan`) — surface vulnerable npm packages.
-- **Secrets manager** — migrate any hardcoded keys/URLs to `secrets--add_secret` (Resend, Google OAuth client secret, etc.).
-- **Rotate API keys** workflow documented for incident response.
+Goal: every signup (provider tenant or client) fires one canonical event. Super admins get an email, a bell notification, and an activity-feed row. Everything later hangs off this event.
 
-## 3. Lovable AI Gateway (replace/augment current AI usage)
-- Already using Gemini-1.5-Flash for the assistant. Gateway gives:
-  - **No API key management** + usage caps per-tenant.
-  - **Embeddings** → semantic search across contracts, visits, properties (e.g., "find all properties with irrigation issues last summer").
-  - **Vision** → photo intake for visit before/after pictures with auto-tagging.
-  - **TTS / STT** → field staff dictate visit notes from mobile.
-  - **Image gen** → property cover images, service-catalog illustrations in RO.
+Scope:
+- DB migration:
+  - Extend `handle_new_user()` to call a new SECURITY DEFINER `fn_emit_signup_completed(profile_id)` inside a `BEGIN/EXCEPTION` block (never blocks signup).
+  - `fn_emit_signup_completed`:
+    - Resolves account type from profile (`role`, `tenant_id`) → label "New provider tenant" / "New client" / "New user".
+    - Inserts one `activity_log` row, `source='system'`, `action='signup'`, with `metadata` = role, tenant id, email, full name.
+    - Inserts one `user_notifications` row per super admin (type `new_signup`, deep link `/admin/users/{profile_id}`).
+    - Enqueues one email per super admin via existing `enqueue_email` into `transactional_emails`, idempotency key `new-signup-<profile_id>-<recipient>`.
+  - Idempotency guard: `activity_log` unique partial index on `(action, (metadata->>'profile_id'))` where `action='signup'`.
+- Email template (new):
+  - `supabase/functions/_shared/transactional-email-templates/super-admin-new-signup.tsx` — RO copy, branded layout reused from existing templates, subject `Cont nou pe GreenGrassCRM — {full_name}`, body: name, email, role, tenant (if provider), timestamp, CTA "Vezi contul".
+  - Register in `_shared/transactional-email-templates/registry.ts`.
+  - Deploy `send-transactional-email`.
+- Frontend (minimal, reuse only):
+  - Add `new_signup` case to the existing notification renderer (icon + label mapping).
+  - Add `signup` case to the existing activity feed label map ("Cont nou: {name} ({role})").
 
-## 4. Lovable Cloud upgrades we haven't fully used
-- **Edge function scheduled jobs / cron** — already using `pg_cron` for email queue + lifecycle. Audit for: contract renewal reminders, overdue invoice nudges, weekly digest emails to PROVIDER_ADMINs.
-- **Realtime** — live updates on Visits calendar when team members complete jobs in the field (currently requires refresh).
-- **Storage buckets** — structured bucket policy review for property photos, contract PDFs, invoice attachments, e-Factura XMLs.
-- **Analytics tool** (`analytics--read_project_analytics`) — track which features tenants actually use to inform roadmap.
+No new tables, no new edge functions, no new UI screens.
 
-## 5. Connectors & Integrations
-- **Standard connectors** browser — check for native integrations replacing custom code:
-  - Google Calendar (we built custom OAuth — connector may be simpler).
-  - Gmail (same).
-  - Stripe / Paddle for paid plans once we move past Free Forever.
-  - Shopify (not relevant unless you sell merch).
-- **MCP knowledge** — expose RO bank holiday calendar, e-Factura schema, service catalog as MCP for the AI assistant.
+## Step 2 — User-side welcome email
 
-## 6. Email infrastructure (already on Resend)
-- **Custom domain status check** for `send.greengrasscrm.ro` (DKIM/SPF/DMARC health).
-- **Transactional template scaffolding** — we have 7 triggers; review for: welcome, password-reset polish, monthly statement, contract-expiry T-30/T-7, invoice-overdue T+7/T+14.
-- Note: project memory forbids Lovable Email tooling — stay on Resend.
+- Welcome template (RO) per role: provider variant ("creează primul contract"), client variant ("conectează prima proprietate").
+- Triggered from the same `fn_emit_signup_completed` so it stays one source of truth.
+- Idempotent per `profile_id`.
 
-## 7. Publishing & Deployment polish
-- **Custom domain** — already on `greengrasscrm.ro`. Confirm `www` → apex redirect and HTTPS.
-- **Hide "Edit with Lovable" badge** (Pro plan) for a more professional public site.
-- **Share-preview links** for prospects to demo without login (7-day public previews).
-- **Publish visibility settings** — confirm workspace-only vs public for staging.
+## Step 3 — Consent, attribution & audit capture
 
-## 8. Performance & UX
-- **Preview device viewport** testing for mobile field-staff flows (visits, photo upload).
-- **Larger Cloud instance** if we hit timeouts on heavy tenants (multi-property dashboards, calendar month view).
-- **Slow query** + **DB health** review — index audit on `visits`, `contracts`, `inventory_items` tenant_id composite indexes.
+- Add `signup_metadata jsonb` to `profiles` (utm_source/medium/campaign, referrer, landing path, signup_method, signup_variant).
+- Add `accepted_tos_at`, `accepted_privacy_at`, `tos_version`, `marketing_opt_in` columns + checkbox in signup form (RO).
+- Capture truncated IP (`/24`) + country + user-agent in `activity_log.metadata` (GDPR-friendly).
+- Surface in super admin user detail.
 
-## 9. Developer productivity
-- **Skills** (`.workspace/skills/`) — codify our repeated workflows: "add a new tenant-isolated table" (table + GRANTs + RLS + types + useTenantQuery wiring), "add a new email trigger", "add a new translated screen".
-- **Subagents** (`acp_subagent--spawn_agent`) — parallelize multi-file refactors (e.g., adding i18n to remaining untranslated screens).
-- **Chat search** — recall earlier decisions across long history.
+## Step 4 — Provider vs client routing
 
-## 10. Monetization readiness (when ready to leave Free Forever)
-- **Stripe** or **Paddle** enablement — Paddle handles EU VAT automatically (RO-friendly).
-- Plan limits already modeled (`free`/`trial`/`professional`/`enterprise`); just needs gateway wiring.
+- Client signups also notify the linked tenant's `PROVIDER_ADMIN`s (bell + email, reusing same fan-out).
+- Provider signups also auto-init: `subscription_status='trial'`, `trial_ends_at = now()+14d`, seed default service catalog/zones if missing, seed onboarding checklist.
+- Email subjects diverge: "Trial provider nou" vs "Client nou pentru {tenant}".
+
+## Step 5 — Anti-noise: digest, dedupe, quiet hours
+
+- Per-super-admin preference in `user_email_preferences`: instant / hourly digest / daily digest.
+- Use existing `notification_dedupe` to collapse bell rows ("12 signups noi în ultima oră").
+- Threshold: instant up to 5/hour, then auto-switch to hourly digest for that admin.
+- Background worker (extend `lifecycle-cron`) flushes digests.
+
+## Step 6 — Risk scoring & soft hold
+
+- Score on disposable-domain list, free-mail vs business, IP geo outside RO/EU, signup velocity per IP/ASN, headless fingerprint.
+- High-risk → `profiles.review_status='pending_review'`, account read-only until approved.
+- Super admin email gets inline buttons: "Aprobă", "Suspendă", "Marchează spam" (signed tokens, single-use, expiry 7d, reuses existing token pattern).
+- Score + factors shown in admin user detail.
+
+## Step 7 — Lifecycle drip scheduling
+
+- On `signup_completed`, schedule trial drip (D-7, D-3, D-1, D-0 for providers) via existing `lifecycle_email_log_v2`.
+- Register signup as the entry event in `lifecycle-email-drip`.
+- Funnel events table: `signup_started`, `signup_completed`, `first_login`, `first_value_action` (first contract / first property linked).
+
+## Step 8 — Super admin analytics tile
+
+- Reuses existing card components on Super Admin dashboard:
+  - Signups 24h / 7d / 30d (provider vs client split).
+  - Activation rate (signup → first_value_action).
+  - Risk-flagged %.
+  - Source breakdown from `signup_metadata`.
+
+## Step 9 — Async fan-out (refactor)
+
+- Once Steps 1–8 work synchronously inside the trigger, move heavy side-effects (risk scoring, drip scheduling, analytics forward) behind `pg_notify('signup_completed', ...)` consumed by an edge function, keeping the auth path < 50ms.
+- Errors land in a `signup_post_hook_errors` table with retry button in admin UI.
+
+## Step 10 — External fan-out (optional)
+
+- Slack/Telegram ping for paying-tier signups only (reuses Telegram connector context already in the project).
+- PostHog/Plausible event forward from the async worker.
 
 ---
 
-## Suggested first batch (if you want to act on this)
-1. SEO Review scan + per-route Helmet + sitemap generator (1 sprint).
-2. Security scan + dependency scan + secrets audit (½ sprint).
-3. Realtime on visits calendar (½ sprint).
-4. Semrush keyword/competitor scan for RO market (research only).
-5. Skill: "add tenant-isolated table" to prevent future GRANT/RLS misses.
+## Implementing Step 1 now
 
-Tell me which numbered items to turn into real implementation plans and I'll scope each properly.
+When you approve this plan, Step 1 will produce:
+
+1. One migration creating `fn_emit_signup_completed` + idempotency index + `handle_new_user` extension.
+2. One new email template file + registry update.
+3. Tiny renderer updates for `new_signup` notification type and `signup` activity action.
+4. One redeploy of `send-transactional-email`.
+
+Subsequent steps will be proposed as their own plans when you're ready.

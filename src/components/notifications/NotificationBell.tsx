@@ -10,12 +10,21 @@ import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const { items, unreadCount, markRead, markAllRead } = useNotifications(15);
-  const { isProvider } = useAuth();
+  const { isProvider, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
-  const tasksRoute = isProvider ? "/provider/tasks" : "/client/tasks";
+  const tasksRoute = isSuperAdmin ? "/admin" : isProvider ? "/provider/tasks" : "/client/tasks";
 
   const handleOpen = (n: (typeof items)[number]) => {
     if (!n.read_at) markRead([n.id]);
+    // Super admin routing: profile entities → global user management
+    if (isSuperAdmin) {
+      if (n.entity_type === "profile") {
+        navigate("/admin/users");
+        return;
+      }
+      navigate("/admin");
+      return;
+    }
     if (n.task_id) {
       navigate(`${tasksRoute}?task=${n.task_id}`);
     } else if (n.entity_type && n.entity_id) {

@@ -270,9 +270,15 @@ export default function AdminDashboard() {
                                             <Activity className="h-4 w-4" />
                                         </div>
                                         <div className="flex-1 space-y-1 min-w-0">
-                                            <p className="text-sm font-semibold">{log.action}</p>
+                                            <p className="text-sm font-semibold">
+                                                {log.action === "new_account_signup"
+                                                    ? `New signup: ${(log.metadata as any)?.full_name || (log.metadata as any)?.email || "unknown"}`
+                                                    : log.action}
+                                            </p>
                                             <p className="text-xs text-muted-foreground font-medium truncate">
-                                                {log.target_type
+                                                {log.action === "new_account_signup"
+                                                    ? `${(log.metadata as any)?.label || "Account"} · ${(log.metadata as any)?.role || ""}${(log.metadata as any)?.tenant_name ? ` · ${(log.metadata as any).tenant_name}` : ""}`
+                                                    : log.target_type
                                                     ? `${log.target_type}${log.target_id ? ` · ${log.target_id.slice(0, 8)}` : ""}`
                                                     : "System action"}
                                             </p>
