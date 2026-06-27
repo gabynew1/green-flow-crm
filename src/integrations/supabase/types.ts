@@ -2639,6 +2639,7 @@ export type Database = {
         | "connection_approved"
         | "connection_revoked"
         | "contract_closed"
+        | "new_signup"
       offer_status:
         | "DRAFT"
         | "IN_PROGRESS"
@@ -2863,6 +2864,7 @@ export const Constants = {
         "connection_approved",
         "connection_revoked",
         "contract_closed",
+        "new_signup",
       ],
       offer_status: [
         "DRAFT",
