@@ -25,7 +25,7 @@ Scope:
 
 No new tables, no new edge functions, no new UI screens.
 
-## Step 2 — User-side welcome email
+## Step 2 — User-side welcome email ✅
 
 - Welcome template (RO) per role: provider variant ("creează primul contract"), client variant ("conectează prima proprietate").
 - Triggered from the same `fn_emit_signup_completed` so it stays one source of truth.
