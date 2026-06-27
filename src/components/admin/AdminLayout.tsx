@@ -7,7 +7,6 @@ import {
     History,
     ScrollText,
     LogOut,
-    Bell,
     Search,
     Mail
 , Recycle } from "lucide-react";
@@ -15,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const AdminLayout = () => {
     const location = useLocation();
@@ -99,10 +99,7 @@ const AdminLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="relative">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-2 right-2 h-2 w-2 bg-destructive rounded-full border-2 border-background" />
-                        </Button>
+                        <NotificationBell />
                         <LanguageSwitcher />
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border text-[10px] font-bold">
                             SA
