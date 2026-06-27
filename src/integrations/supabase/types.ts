@@ -2420,6 +2420,10 @@ export type Database = {
       expire_stale_action_tasks: { Args: never; Returns: number }
       expire_trials_to_patio: { Args: never; Returns: undefined }
       extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
+      fn_emit_signup_completed: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       get_customer_email_history: {
         Args: { _customer_id: string; _limit?: number; _offset?: number }
         Returns: {
