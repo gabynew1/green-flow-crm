@@ -871,6 +871,50 @@ export default function AdminOnboard() {
                 </div>
               )}
 
+              {isPublic && (
+                <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={acceptedTos}
+                      onCheckedChange={(v) => setAcceptedTos(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm leading-snug text-foreground">
+                      Sunt de acord cu{" "}
+                      <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">
+                        Termenii și Condițiile
+                      </a>{" "}
+                      <span className="text-destructive">*</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={acceptedPrivacy}
+                      onCheckedChange={(v) => setAcceptedPrivacy(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm leading-snug text-foreground">
+                      Am citit{" "}
+                      <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">
+                        Politica de Confidențialitate
+                      </a>{" "}
+                      și consimt prelucrarea datelor mele (GDPR){" "}
+                      <span className="text-destructive">*</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={marketingOptIn}
+                      onCheckedChange={(v) => setMarketingOptIn(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm leading-snug text-muted-foreground">
+                      Vreau să primesc sfaturi, noutăți și oferte ocazionale pe email (opțional).
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <Button
                 onClick={handleManualSubmit}
                 disabled={isLoading}
