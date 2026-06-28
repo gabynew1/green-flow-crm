@@ -38,11 +38,11 @@ No new tables, no new edge functions, no new UI screens.
 - Capture truncated IP (`/24`) + country + user-agent in `activity_log.metadata` (GDPR-friendly).
 - Surface in super admin user detail.
 
-## Step 4 — Provider vs client routing
+## Step 4 — Provider vs client routing ✅
 
-- Client signups also notify the linked tenant's `PROVIDER_ADMIN`s (bell + email, reusing same fan-out).
-- Provider signups also auto-init: `subscription_status='trial'`, `trial_ends_at = now()+14d`, seed default service catalog/zones if missing, seed onboarding checklist.
-- Email subjects diverge: "Trial provider nou" vs "Client nou pentru {tenant}".
+- Client signups also notify the linked tenant's `PROVIDER_ADMIN`s (bell + email, reusing same fan-out, deduped per recipient).
+- Provider signups auto-init via `fn_init_provider_tenant`: `status='trial'`, `trial_expires_at = now()+14d`, seed default service catalog and default service zone if missing.
+- Email subjects diverge by `label`: "Trial furnizor nou — …" vs "Client nou (tenant) — …".
 
 ## Step 5 — Anti-noise: digest, dedupe, quiet hours
 
