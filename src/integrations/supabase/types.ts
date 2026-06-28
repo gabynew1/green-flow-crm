@@ -2273,6 +2273,41 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_consumed_identities: {
+        Row: {
+          consumed_at: string
+          fingerprint_hash: string
+          fingerprint_kind: string
+          id: string
+          metadata: Json
+          tenant_id: string | null
+        }
+        Insert: {
+          consumed_at?: string
+          fingerprint_hash: string
+          fingerprint_kind: string
+          id?: string
+          metadata?: Json
+          tenant_id?: string | null
+        }
+        Update: {
+          consumed_at?: string
+          fingerprint_hash?: string
+          fingerprint_kind?: string
+          id?: string
+          metadata?: Json
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_consumed_identities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trial_extensions: {
         Row: {
           created_at: string
@@ -2559,21 +2594,42 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_check_trial_eligibility: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       fn_emit_signup_completed: {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      fn_expire_trials: { Args: never; Returns: number }
       fn_get_tenant_entitlements: {
         Args: { p_tenant_id: string }
         Returns: Json
+      }
+      fn_grant_extra_trial: {
+        Args: { p_days?: number; p_reason?: string; p_tenant_id: string }
+        Returns: undefined
       }
       fn_init_provider_tenant: {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
+      fn_record_trial_identities: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       fn_set_entitlement: {
         Args: { p_key: string; p_tier: string; p_value: Json }
         Returns: undefined
+      }
+      fn_trial_hash: {
+        Args: { p_kind: string; p_value: string }
+        Returns: string
+      }
+      fn_trial_normalise: {
+        Args: { p_kind: string; p_value: string }
+        Returns: string
       }
       get_customer_email_history: {
         Args: { _customer_id: string; _limit?: number; _offset?: number }
