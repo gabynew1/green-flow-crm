@@ -31,7 +31,7 @@ No new tables, no new edge functions, no new UI screens.
 - Triggered from the same `fn_emit_signup_completed` so it stays one source of truth.
 - Idempotent per `profile_id`.
 
-## Step 3 — Consent, attribution & audit capture
+## Step 3 — Consent, attribution & audit capture ✅
 
 - Add `signup_metadata jsonb` to `profiles` (utm_source/medium/campaign, referrer, landing path, signup_method, signup_variant).
 - Add `accepted_tos_at`, `accepted_privacy_at`, `tos_version`, `marketing_opt_in` columns + checkbox in signup form (RO).
