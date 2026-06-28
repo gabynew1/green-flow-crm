@@ -2439,6 +2439,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      fn_init_provider_tenant: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
       get_customer_email_history: {
         Args: { _customer_id: string; _limit?: number; _offset?: number }
         Returns: {
