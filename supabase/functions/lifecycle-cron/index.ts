@@ -40,11 +40,15 @@ Deno.serve(async (req) => {
   const { data: nowBiz } = await svc.rpc('is_business_moment', { _at: new Date().toISOString() })
   const businessNow = !!nowBiz
 
+  // Soft-lock expired trials → Patio (data preserved)
+  const { data: trialsExpired } = await svc.rpc('fn_expire_trials')
+
   const summary = {
     tenants: await processTenants(svc, businessNow),
     customers: await processCustomers(svc, businessNow),
     business_moment: businessNow,
     login_sync: syncRes ?? null,
+    trials_expired: trialsExpired ?? 0,
     emails_sent: runState.emailsSent,
     email_cap: MAX_EMAILS_PER_RUN,
   }

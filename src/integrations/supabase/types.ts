@@ -606,6 +606,48 @@ export type Database = {
         }
         Relationships: []
       }
+      entitlement_keys: {
+        Row: {
+          category: string
+          created_at: string
+          default_value: Json
+          description: string | null
+          enum_values: string[] | null
+          key: string
+          label: string
+          sort_order: number
+          unlimited_sentinel: number | null
+          updated_at: string
+          value_type: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          default_value: Json
+          description?: string | null
+          enum_values?: string[] | null
+          key: string
+          label: string
+          sort_order?: number
+          unlimited_sentinel?: number | null
+          updated_at?: string
+          value_type: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_value?: Json
+          description?: string | null
+          enum_values?: string[] | null
+          key?: string
+          label?: string
+          sort_order?: number
+          unlimited_sentinel?: number | null
+          updated_at?: string
+          value_type?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           comment: string | null
@@ -1210,6 +1252,75 @@ export type Database = {
           token_hash?: string
           used_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      plan_entitlement_values: {
+        Row: {
+          key: string
+          tier: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          key: string
+          tier: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          key?: string
+          tier?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_entitlement_values_key_fkey"
+            columns: ["key"]
+            isOneToOne: false
+            referencedRelation: "entitlement_keys"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "plan_entitlement_values_tier_fkey"
+            columns: ["tier"]
+            isOneToOne: false
+            referencedRelation: "plan_entitlements"
+            referencedColumns: ["tier"]
+          },
+        ]
+      }
+      plan_entitlements: {
+        Row: {
+          created_at: string
+          display_name: string
+          notes: string | null
+          price_monthly_eur: number | null
+          sort_order: number
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          notes?: string | null
+          price_monthly_eur?: number | null
+          sort_order?: number
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          notes?: string | null
+          price_monthly_eur?: number | null
+          sort_order?: number
+          tier?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2162,6 +2273,41 @@ export type Database = {
         }
         Relationships: []
       }
+      trial_consumed_identities: {
+        Row: {
+          consumed_at: string
+          fingerprint_hash: string
+          fingerprint_kind: string
+          id: string
+          metadata: Json
+          tenant_id: string | null
+        }
+        Insert: {
+          consumed_at?: string
+          fingerprint_hash: string
+          fingerprint_kind: string
+          id?: string
+          metadata?: Json
+          tenant_id?: string | null
+        }
+        Update: {
+          consumed_at?: string
+          fingerprint_hash?: string
+          fingerprint_kind?: string
+          id?: string
+          metadata?: Json
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_consumed_identities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trial_extensions: {
         Row: {
           created_at: string
@@ -2435,13 +2581,55 @@ export type Database = {
       expire_stale_action_tasks: { Args: never; Returns: number }
       expire_trials_to_patio: { Args: never; Returns: undefined }
       extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
+      fn_add_entitlement_key: {
+        Args: {
+          p_category: string
+          p_default_value: Json
+          p_description?: string
+          p_enum_values?: string[]
+          p_key: string
+          p_label: string
+          p_unlimited_sentinel?: number
+          p_value_type: string
+        }
+        Returns: undefined
+      }
+      fn_check_trial_eligibility: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       fn_emit_signup_completed: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      fn_expire_trials: { Args: never; Returns: number }
+      fn_get_tenant_entitlements: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      fn_grant_extra_trial: {
+        Args: { p_days?: number; p_reason?: string; p_tenant_id: string }
         Returns: undefined
       }
       fn_init_provider_tenant: {
         Args: { p_tenant_id: string }
         Returns: undefined
+      }
+      fn_record_trial_identities: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
+      fn_set_entitlement: {
+        Args: { p_key: string; p_tier: string; p_value: Json }
+        Returns: undefined
+      }
+      fn_trial_hash: {
+        Args: { p_kind: string; p_value: string }
+        Returns: string
+      }
+      fn_trial_normalise: {
+        Args: { p_kind: string; p_value: string }
+        Returns: string
       }
       get_customer_email_history: {
         Args: { _customer_id: string; _limit?: number; _offset?: number }
