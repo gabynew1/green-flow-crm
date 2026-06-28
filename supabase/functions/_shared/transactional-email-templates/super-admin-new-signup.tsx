@@ -83,6 +83,10 @@ export const template = {
   component: SuperAdminNewSignupEmail,
   subject: (data: Record<string, any>) => {
     const name = data.fullName || data.email || 'utilizator nou'
+    const label = data.label as string | undefined
+    const tenant = data.tenantName ? ` (${data.tenantName})` : ''
+    if (label === 'New provider account') return `Trial furnizor nou — ${name}${tenant}`
+    if (label === 'New client account')   return `Client nou${tenant} — ${name}`
     return `Cont nou pe ${SITE_NAME} — ${name}`
   },
   displayName: 'Super Admin · Cont nou',
