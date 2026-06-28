@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
   Building2,
@@ -263,6 +264,31 @@ export default function AdminOnboard() {
 
   const [confirmationData, setConfirmationData] = useState<any>(null);
 
+  // Consent (RO compliance) — required for public self-serve signups
+  const [acceptedTos, setAcceptedTos] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+
+  // Capture attribution at first render (UTM + referrer + landing path)
+  const signupMetadata = useMemo(() => {
+    if (typeof window === "undefined") return {};
+    const sp = new URLSearchParams(window.location.search);
+    return {
+      utm_source: sp.get("utm_source"),
+      utm_medium: sp.get("utm_medium"),
+      utm_campaign: sp.get("utm_campaign"),
+      utm_term: sp.get("utm_term"),
+      utm_content: sp.get("utm_content"),
+      referrer: document.referrer || null,
+      landing_path: window.location.pathname + window.location.search,
+      source_param: sp.get("source"),
+      locale: navigator.language || null,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+    };
+  }, []);
+
+  const TOS_VERSION = "2026-06-28";
+
   const stepLabels = isPublic ? STEP_LABELS_PUBLIC : STEP_LABELS_FULL;
   const totalSteps = stepLabels.length;
   // Map internal step to display step for progress
@@ -334,11 +360,26 @@ export default function AdminOnboard() {
   };
 
   const handleManualSubmit = async () => {
+    if (isPublic && (!acceptedTos || !acceptedPrivacy)) {
+      toast.error("Trebuie să accepți Termenii și Politica de Confidențialitate pentru a continua.");
+      return;
+    }
     setIsLoading(true);
     try {
       const body = entityType === "provider"
-        ? { type: "provider", data: providerData, ...(isPublic && { source: "public" }) }
-        : { type: "customer", data: customerData, ...(isPublic && { source: "public" }) };
+        ? { type: "provider", data: providerData }
+        : { type: "customer", data: customerData };
+
+      if (isPublic) {
+        Object.assign(body, {
+          source: "public",
+          signupMetadata,
+          acceptedTos,
+          acceptedPrivacy,
+          tosVersion: TOS_VERSION,
+          marketingOptIn,
+        });
+      }
 
       const { data, error } = await supabase.functions.invoke("create-manual-user", { body });
       
@@ -827,6 +868,50 @@ export default function AdminOnboard() {
                     onChange={(v) => setCustomerData({ ...customerData, phone: v })}
                     prefix="+40"
                   />
+                </div>
+              )}
+
+              {isPublic && (
+                <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={acceptedTos}
+                      onCheckedChange={(v) => setAcceptedTos(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm leading-snug text-foreground">
+                      Sunt de acord cu{" "}
+                      <a href="/terms" target="_blank" rel="noreferrer" className="text-primary underline">
+                        Termenii și Condițiile
+                      </a>{" "}
+                      <span className="text-destructive">*</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={acceptedPrivacy}
+                      onCheckedChange={(v) => setAcceptedPrivacy(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm leading-snug text-foreground">
+                      Am citit{" "}
+                      <a href="/privacy" target="_blank" rel="noreferrer" className="text-primary underline">
+                        Politica de Confidențialitate
+                      </a>{" "}
+                      și consimt prelucrarea datelor mele (GDPR){" "}
+                      <span className="text-destructive">*</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={marketingOptIn}
+                      onCheckedChange={(v) => setMarketingOptIn(v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm leading-snug text-muted-foreground">
+                      Vreau să primesc sfaturi, noutăți și oferte ocazionale pe email (opțional).
+                    </span>
+                  </label>
                 </div>
               )}
 

@@ -18,7 +18,8 @@ import {
     ChevronDown,
     Building2,
     Shield,
-    Ban
+    Ban,
+    Info
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -40,11 +41,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function GlobalUserManagement() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [signupInfo, setSignupInfo] = useState<any | null>(null);
+    const [signupInfoOpen, setSignupInfoOpen] = useState(false);
 
     const { data: users, isLoading, refetch } = useQuery({
         queryKey: ["admin-global-users", searchTerm],
@@ -59,6 +63,12 @@ export default function GlobalUserManagement() {
           is_locked,
           license_type,
           password_reset_pending,
+          signup_metadata,
+          accepted_tos_at,
+          accepted_privacy_at,
+          tos_version,
+          marketing_opt_in,
+          created_at,
           tenants (name, subscription_tier)
         `);
 
@@ -111,6 +121,11 @@ export default function GlobalUserManagement() {
             toast.success(`Temp Password Generated: ${tempPassword}`, { duration: 10000 });
             refetch();
         }
+    };
+
+    const openSignupInfo = (user: any) => {
+        setSignupInfo(user);
+        setSignupInfoOpen(true);
     };
 
     return (
@@ -243,6 +258,15 @@ export default function GlobalUserManagement() {
                                         <Button
                                             variant="outline"
                                             size="sm"
+                                            className="border-primary/10"
+                                            onClick={() => openSignupInfo(user)}
+                                            title="Signup attribution & consent"
+                                        >
+                                            <Info className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
                                             className="bg-primary/5 hover:bg-primary/10 border-primary/10"
                                             onClick={() => triggerReset(user.id)}
                                         >
@@ -271,6 +295,57 @@ export default function GlobalUserManagement() {
                     </TableBody>
                 </Table>
             </Card>
+
+            <Dialog open={signupInfoOpen} onOpenChange={setSignupInfoOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Info className="h-4 w-4 text-primary" />
+                            Signup attribution & consent
+                        </DialogTitle>
+                        <DialogDescription>
+                            {signupInfo?.full_name || signupInfo?.email || "User"}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {signupInfo && (
+                        <div className="space-y-4 text-sm">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Terms accepted</div>
+                                    <div className="font-mono text-xs mt-1">
+                                        {signupInfo.accepted_tos_at
+                                            ? new Date(signupInfo.accepted_tos_at).toLocaleString()
+                                            : "—"}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Privacy accepted</div>
+                                    <div className="font-mono text-xs mt-1">
+                                        {signupInfo.accepted_privacy_at
+                                            ? new Date(signupInfo.accepted_privacy_at).toLocaleString()
+                                            : "—"}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">ToS version</div>
+                                    <div className="font-mono text-xs mt-1">{signupInfo.tos_version || "—"}</div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Marketing opt-in</div>
+                                    <div className="font-mono text-xs mt-1">{signupInfo.marketing_opt_in ? "Yes" : "No"}</div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Attribution metadata</div>
+                                <pre className="bg-muted/50 rounded-lg p-3 text-[11px] font-mono overflow-auto max-h-72 border">
+{JSON.stringify(signupInfo.signup_metadata || {}, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

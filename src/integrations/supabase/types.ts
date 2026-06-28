@@ -1215,6 +1215,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_privacy_at: string | null
+          accepted_tos_at: string | null
           address_city: string | null
           address_county: string | null
           address_number: string | null
@@ -1237,17 +1239,22 @@ export type Database = {
           is_locked: boolean
           license_type: string
           locale: string | null
+          marketing_opt_in: boolean
           password_reset_pending: boolean
           phone: string | null
           provider_permission: string | null
+          signup_metadata: Json
           temporary_password: string | null
           tenant_id: string | null
+          tos_version: string | null
           unique_client_id: string | null
           updated_at: string
           user_id: string
           vat_id: string | null
         }
         Insert: {
+          accepted_privacy_at?: string | null
+          accepted_tos_at?: string | null
           address_city?: string | null
           address_county?: string | null
           address_number?: string | null
@@ -1270,17 +1277,22 @@ export type Database = {
           is_locked?: boolean
           license_type?: string
           locale?: string | null
+          marketing_opt_in?: boolean
           password_reset_pending?: boolean
           phone?: string | null
           provider_permission?: string | null
+          signup_metadata?: Json
           temporary_password?: string | null
           tenant_id?: string | null
+          tos_version?: string | null
           unique_client_id?: string | null
           updated_at?: string
           user_id: string
           vat_id?: string | null
         }
         Update: {
+          accepted_privacy_at?: string | null
+          accepted_tos_at?: string | null
           address_city?: string | null
           address_county?: string | null
           address_number?: string | null
@@ -1303,11 +1315,14 @@ export type Database = {
           is_locked?: boolean
           license_type?: string
           locale?: string | null
+          marketing_opt_in?: boolean
           password_reset_pending?: boolean
           phone?: string | null
           provider_permission?: string | null
+          signup_metadata?: Json
           temporary_password?: string | null
           tenant_id?: string | null
+          tos_version?: string | null
           unique_client_id?: string | null
           updated_at?: string
           user_id?: string

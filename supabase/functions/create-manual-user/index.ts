@@ -22,8 +22,41 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { type, data, source } = body;
+    const { type, data, source, signupMetadata, acceptedTos, acceptedPrivacy, tosVersion, marketingOptIn } = body;
     const isPublic = source === "public";
+
+    // Capture request-side attribution (truncated IP /24, country, UA)
+    const rawIp =
+      req.headers.get("cf-connecting-ip") ||
+      (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+      req.headers.get("x-real-ip") ||
+      "";
+    const truncatedIp = (() => {
+      if (!rawIp) return null;
+      const parts = rawIp.split(".");
+      if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
+      return null; // skip IPv6 to avoid PII
+    })();
+    const country = req.headers.get("cf-ipcountry") || null;
+    const userAgent = req.headers.get("user-agent") || null;
+
+    const mergedSignupMetadata = {
+      ...(signupMetadata && typeof signupMetadata === "object" ? signupMetadata : {}),
+      signup_method: isPublic ? "self_serve_wizard" : "admin_created",
+      signup_variant: type,
+      ip_subnet: truncatedIp,
+      country,
+      user_agent: userAgent,
+      captured_at: new Date().toISOString(),
+    };
+
+    const consentPatch: Record<string, unknown> = {
+      signup_metadata: mergedSignupMetadata,
+      marketing_opt_in: !!marketingOptIn,
+    };
+    if (acceptedTos) consentPatch.accepted_tos_at = new Date().toISOString();
+    if (acceptedPrivacy) consentPatch.accepted_privacy_at = new Date().toISOString();
+    if (tosVersion) consentPatch.tos_version = String(tosVersion);
 
     // Service role client for admin operations
     const adminClient = createClient(
@@ -132,6 +165,7 @@ Deno.serve(async (req) => {
           phone: phone || null,
           cui: cui || null,
           temporary_password: tempPassword,
+          ...consentPatch,
         })
         .eq("user_id", userId);
       if (profileErr) throw profileErr;
@@ -203,6 +237,7 @@ Deno.serve(async (req) => {
           full_name: contactPerson,
           phone: phone || null,
           temporary_password: tempPassword,
+          ...consentPatch,
         })
         .eq("user_id", userId);
       if (profileErr) throw profileErr;
