@@ -26,8 +26,8 @@ export function TrialBanner() {
       <Sparkles className="h-4 w-4 shrink-0" />
       <span className="font-medium">
         {expired
-          ? "Your Territory trial has ended — you're now on the Patio plan."
-          : `Your Territory Trial ends in ${days} day${days === 1 ? "" : "s"}.`}
+          ? "Trial ended — you're on free Patio. Your data is safe; upgrade to unlock teams + AI."
+          : `Your full-access trial ends in ${days} day${days === 1 ? "" : "s"}.`}
       </span>
       <Link
         to="/pricing"
