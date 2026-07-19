@@ -343,7 +343,7 @@ export default function ServiceVisits() {
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
-                        <Badge className={statusColor[o.status]} variant="secondary">
+                        <Badge className={statusColor(o.status)} variant="secondary">
                           {statusLabelFn(o.status)}
                         </Badge>
                     </div>
@@ -385,7 +385,7 @@ export default function ServiceVisits() {
                         return (
                           <Link key={o.id} to={`/provider/visits/${o.id}`} onClick={e => e.stopPropagation()}>
                             <div
-                              className={`rounded px-1.5 py-1 text-[10px] leading-tight truncate ${statusColor[o.status]}`}
+                              className={`rounded px-1.5 py-1 text-[10px] leading-tight truncate ${statusColor(o.status)}`}
                               style={teamFilter === "ALL" && tc ? { borderLeft: `3px solid ${tc}` } : {}}
                             >
                               {(o.properties as any)?.name}
@@ -437,7 +437,7 @@ export default function ServiceVisits() {
                           return (
                             <Link key={o.id} to={`/provider/visits/${o.id}`} onClick={e => e.stopPropagation()}>
                               <div
-                                className={`rounded px-1 py-0.5 text-[9px] leading-tight truncate ${statusColor[o.status]}`}
+                                className={`rounded px-1 py-0.5 text-[9px] leading-tight truncate ${statusColor(o.status)}`}
                                 style={teamFilter === "ALL" && tc ? { borderLeft: `2px solid ${tc}` } : {}}
                               >
                                 {(o.properties as any)?.name}
@@ -513,7 +513,7 @@ export default function ServiceVisits() {
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
-                        <Badge className={statusColor[o.status]} variant="secondary">{statusLabelFn(o.status)}</Badge>
+                        <Badge className={statusColor(o.status)} variant="secondary">{statusLabelFn(o.status)}</Badge>
                     </div>
                   </CardContent>
                 </Card>
