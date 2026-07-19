@@ -272,7 +272,7 @@ export default function ServiceVisits() {
                         return (
                           <Badge key={tid} variant="outline" className="text-[10px]">
                             <span className="inline-block h-2 w-2 rounded-full mr-1" style={{ backgroundColor: team?.color || "#888" }} />
-                            {team?.name}: {count}/4 slots
+                            {team?.name}: {count}/{MAX_VISITS_PER_TEAM_PER_DAY} slots
                           </Badge>
                         );
                       });
@@ -471,9 +471,7 @@ export default function ServiceVisits() {
                 <SelectItem value="SCHEDULED">Scheduled</SelectItem>
                 <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="PENDING_APPROVAL">Pending Approval</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="SENT_TO_CLIENT">Sent to Client</SelectItem>
+                <SelectItem value="NEEDS_REVIEW">Needs Client Review</SelectItem>
                 <SelectItem value="CANCELED">Canceled</SelectItem>
               </SelectContent>
             </Select>
