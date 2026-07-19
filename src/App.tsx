@@ -25,6 +25,7 @@ import ContractDetail from "./pages/provider/ContractDetail";
 import ContractNew from "./pages/provider/ContractNew";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
+import VisitRequests from "./pages/provider/VisitRequests";
 import FeedbackPage from "./pages/provider/Feedback";
 import InspectionDetail from "./pages/provider/InspectionDetail";
 import OfferDetail from "./pages/provider/OfferDetail";
