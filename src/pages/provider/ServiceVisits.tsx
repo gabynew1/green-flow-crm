@@ -13,26 +13,8 @@ import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, en
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
-
-const statusColor: Record<string, string> = {
-  SCHEDULED: "bg-muted text-muted-foreground",
-  IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-primary/10 text-primary",
-  PENDING_APPROVAL: "bg-warning/10 text-warning",
-  APPROVED: "bg-success/10 text-success",
-  SENT_TO_CLIENT: "bg-accent/10 text-accent",
-  CANCELED: "bg-destructive/10 text-destructive",
-};
-
-const statusLabels: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  PENDING_APPROVAL: "Pending Approval",
-  APPROVED: "Approved",
-  SENT_TO_CLIENT: "Sent to Client",
-  CANCELED: "Canceled",
-};
+import { visitStatusColor as statusColor, visitStatusLabel as statusLabelFn } from "@/lib/visit-status";
+import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
 
 interface Team {
   id: string;
