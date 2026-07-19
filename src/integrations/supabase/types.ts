@@ -1784,6 +1784,7 @@ export type Database = {
           created_at: string
           created_by_user_id: string | null
           id: string
+          needs_client_action: boolean
           notes: string | null
           performed_date: string | null
           period_label: string | null
@@ -1803,6 +1804,7 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string | null
           id?: string
+          needs_client_action?: boolean
           notes?: string | null
           performed_date?: string | null
           period_label?: string | null
@@ -1822,6 +1824,7 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string | null
           id?: string
+          needs_client_action?: boolean
           notes?: string | null
           performed_date?: string | null
           period_label?: string | null
@@ -2438,6 +2441,80 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      visit_requests: {
+        Row: {
+          converted_service_order_id: string | null
+          created_at: string
+          customer_id: string | null
+          description: string
+          id: string
+          preferred_date: string | null
+          property_id: string
+          provider_note: string | null
+          requested_by_user_id: string
+          status: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          converted_service_order_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          description: string
+          id?: string
+          preferred_date?: string | null
+          property_id: string
+          provider_note?: string | null
+          requested_by_user_id: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          converted_service_order_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          description?: string
+          id?: string
+          preferred_date?: string | null
+          property_id?: string
+          provider_note?: string | null
+          requested_by_user_id?: string
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_requests_converted_service_order_id_fkey"
+            columns: ["converted_service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
