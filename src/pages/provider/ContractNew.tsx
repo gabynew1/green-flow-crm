@@ -292,20 +292,6 @@ export default function ContractNew() {
         if (liError) toast.error("Contract created but failed to add service lines: " + liError.message);
       }
 
-      // Zone is per-property: persist only when exactly 1 property is selected and value changed.
-      if (selectedPropertyIds.length === 1 && selectedZoneId !== null) {
-        const current = properties.find((p) => p.id === selectedPropertyIds[0])?.zone_id ?? null;
-        if (current !== selectedZoneId) {
-          const { error: zoneErr } = await supabase
-            .from("properties")
-            .update({ zone_id: selectedZoneId })
-            .eq("id", selectedPropertyIds[0]);
-          if (zoneErr) {
-            toast.warning("Contract created, but zone could not be saved: " + zoneErr.message);
-          }
-        }
-      }
-
       toast.success(`${inserts.length} contract(s) created`);
       if (created && created.length === 1) {
         navigate(`/provider/contracts/${created[0].id}`);
@@ -401,39 +387,6 @@ export default function ContractNew() {
                 </div>
               )}
 
-              {selectedCustomerId && selectedPropertyIds.length === 1 && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    Service Zone{" "}
-                    <span className="text-xs text-muted-foreground font-normal">(optional)</span>
-                  </Label>
-                  <Select
-                    value={selectedZoneId ?? "__none__"}
-                    onValueChange={(v) => setSelectedZoneId(v === "__none__" ? null : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="— No zone —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— No zone —</SelectItem>
-                      {zones.map((z) => (
-                        <SelectItem key={z.id} value={z.id}>
-                          <span className="inline-flex items-center gap-2">
-                            <span
-                              className="h-2.5 w-2.5 rounded-full inline-block"
-                              style={{ backgroundColor: /^#[0-9a-fA-F]{6}$/.test(z.color) ? z.color : "#10b981" }}
-                            />
-                            {z.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Saved to the property. Used to cluster visits by zone.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -723,11 +676,6 @@ export default function ContractNew() {
                 ) : (
                   <Muted>None</Muted>
                 )}
-              </Row>
-              <Row label="Zone">
-                {selectedZoneId
-                  ? (zones.find((z) => z.id === selectedZoneId)?.name ?? <Muted>—</Muted>)
-                  : <Muted>None</Muted>}
               </Row>
               <Row label="Services">
                 {selectedServiceIds.length > 0 ? (
