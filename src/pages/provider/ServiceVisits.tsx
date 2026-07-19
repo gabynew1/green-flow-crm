@@ -286,7 +286,7 @@ export default function ServiceVisits() {
                         return (
                           <Badge key={tid} variant="outline" className="text-[10px]">
                             <span className="inline-block h-2 w-2 rounded-full mr-1" style={{ backgroundColor: team?.color || "#888" }} />
-                            {team?.name}: {count}/{MAX_VISITS_PER_TEAM_PER_DAY} slots
+                            {team?.name}: {count} visit{count === 1 ? "" : "s"}{count > TEAM_DAY_WARNING_THRESHOLD ? " · heavy" : ""}
                           </Badge>
                         );
                       });
