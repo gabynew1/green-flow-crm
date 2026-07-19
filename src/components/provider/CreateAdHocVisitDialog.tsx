@@ -512,12 +512,11 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
                   />
                 </div>
               )}
-              {capacityFull && (
-                <p className="text-xs text-destructive">Team at max capacity ({MAX_VISITS_PER_TEAM_PER_DAY}/{MAX_VISITS_PER_TEAM_PER_DAY} slots) for this day</p>
-              )}
-              {!capacityFull && daySlotCount > 0 && (
-                <p className="text-xs text-muted-foreground">{daySlotCount}/{MAX_VISITS_PER_TEAM_PER_DAY} slots used for this team</p>
-              )}
+              {isHeavyDay ? (
+                <p className="text-xs text-warning">Heavy day: this team already has {daySlotCount} visits scheduled</p>
+              ) : daySlotCount > 0 ? (
+                <p className="text-xs text-muted-foreground">{daySlotCount} visit{daySlotCount === 1 ? "" : "s"} already on this team for this day</p>
+              ) : null}
             </div>
           </div>
 
@@ -625,7 +624,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             />
           </div>
 
-          <Button className="w-full" onClick={handleCreate} disabled={saving || capacityFull}>
+          <Button className="w-full" onClick={handleCreate} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating…
