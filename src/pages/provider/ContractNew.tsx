@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Loader2, X, AlertTriangle, Search } from "lucide-react";
 import { toast } from "sonner";
 
-type FrequencyType = "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME";
+type FrequencyType = "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "PER_CONTRACT" | "ONE_TIME";
 
 interface ServiceCfg {
   frequency_type: FrequencyType;
@@ -40,8 +40,6 @@ export default function ContractNew() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
-  const [zones, setZones] = useState<{ id: string; name: string; color: string }[]>([]);
-  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -101,12 +99,10 @@ export default function ContractNew() {
       supabase.from("customers").select("id, name, company_name").eq("tenant_id", tid).order("name"),
       supabase.from("properties").select("id, name, customer_id, zone_id").eq("tenant_id", tid).order("name"),
       supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tid).order("code").order("name"),
-      supabase.from("service_zones").select("id, name, color").eq("tenant_id", tid).order("name"),
-    ]).then(([custRes, propRes, svcRes, zonesRes]) => {
+    ]).then(([custRes, propRes, svcRes]) => {
       setCustomers(custRes.data ?? []);
       setProperties(propRes.data ?? []);
       setServices(svcRes.data ?? []);
-      setZones((zonesRes.data ?? []) as { id: string; name: string; color: string }[]);
       setLoading(false);
     });
   }, [profile?.tenant_id]);
@@ -192,21 +188,6 @@ export default function ContractNew() {
 
   const toggleProperty = (id: string) =>
     setSelectedPropertyIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-
-  // Reset zone selection whenever customer changes
-  useEffect(() => {
-    setSelectedZoneId(null);
-  }, [selectedCustomerId]);
-
-  // Pre-fill zone when exactly one property is selected (guard against deleted zones)
-  useEffect(() => {
-    if (selectedPropertyIds.length !== 1) {
-      setSelectedZoneId(null);
-      return;
-    }
-    const existing = properties.find((p) => p.id === selectedPropertyIds[0])?.zone_id ?? null;
-    setSelectedZoneId(zones.some((z) => z.id === existing) ? existing : null);
-  }, [selectedPropertyIds, properties, zones]);
 
   const toggleService = (id: string) => {
     setSelectedServiceIds((prev) => {
