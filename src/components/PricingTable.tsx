@@ -131,7 +131,7 @@ export function PricingTable({ currentTier, isOnTrial, className }: PricingTable
                       ? "bg-emerald-800 hover:bg-emerald-900 text-white"
                       : "bg-stone-900 hover:bg-stone-800 text-white"
                   )}
-                  onClick={() => setPendingTier(id)}
+                  onClick={() => id !== "territory_trial" && setPendingTier(id)}
                   disabled={isCurrent || !canChange || !tenantId}
                 >
                   {label}
