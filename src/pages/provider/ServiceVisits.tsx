@@ -345,6 +345,9 @@ export default function ServiceVisits() {
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
+                        {o.needs_client_action && (
+                          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
+                        )}
                         <Badge className={statusColor(o.status)} variant="secondary">
                           {statusLabelFn(o.status)}
                         </Badge>
@@ -512,6 +515,9 @@ export default function ServiceVisits() {
                     <div className="flex items-center gap-2 shrink-0 ml-3">
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
+                        )}
+                        {o.needs_client_action && (
+                          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
                         )}
                         <Badge className={statusColor(o.status)} variant="secondary">{statusLabelFn(o.status)}</Badge>
                     </div>
