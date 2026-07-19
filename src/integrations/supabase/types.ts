@@ -2561,6 +2561,7 @@ export type Database = {
         Returns: boolean
       }
       email_exists: { Args: { _email: string }; Returns: boolean }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       email_send_allowed: {
         Args: { _category: string; _email: string; _tenant_id: string }
         Returns: boolean
