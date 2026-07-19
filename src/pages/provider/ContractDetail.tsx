@@ -154,6 +154,21 @@ export default function ContractDetail() {
     setActivating(true);
 
     try {
+      // Idempotency guard: if this contract already has visits, do not regenerate.
+      // Prevents duplicate visit sets from repeated Activate clicks or status
+      // round-trips (DRAFT -> ACTIVE -> DRAFT -> ACTIVE).
+      const { count: existingContractVisits } = await supabase
+        .from("service_orders")
+        .select("id", { count: "exact", head: true })
+        .eq("contract_id", contractId!);
+
+      if ((existingContractVisits ?? 0) > 0) {
+        await supabase.from("contracts").update({ status: "ACTIVE", rejection_comment: null } as any).eq("id", contractId!);
+        toast.success(`Contract activated (visits already scheduled: ${existingContractVisits})`);
+        load();
+        return;
+      }
+
       // Update status to ACTIVE
       await supabase.from("contracts").update({ status: "ACTIVE", rejection_comment: null } as any).eq("id", contractId!);
 
