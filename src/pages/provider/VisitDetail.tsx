@@ -23,23 +23,15 @@ import { useWorkdays } from "@/hooks/useWorkdays";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
+import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
 
-const statusColor: Record<string, string> = {
-  SCHEDULED: "bg-muted text-muted-foreground",
-  IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-success/10 text-success",
-  CANCELED: "bg-destructive/10 text-destructive",
-};
-
-const statusLabels: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  CANCELED: "Canceled",
-};
-
-// Only these statuses are shown in the dropdown
-const visibleStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELED"];
+const statusColor = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => visitStatusColor(key),
+});
+const statusLabels = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => visitStatusLabel(key),
+});
+const visibleStatuses = VISIBLE_VISIT_STATUSES as readonly string[];
 
 export default function VisitDetail() {
   const { tenantId } = useAuth();
@@ -294,6 +286,9 @@ export default function VisitDetail() {
               <Badge variant="outline" className="gap-1 text-xs">
                 <UserPlus className="h-3 w-3" /> Manually created
               </Badge>
+            )}
+            {order.needs_client_action && (
+              <Badge variant="outline" className="text-xs border-warning text-warning">Needs client review</Badge>
             )}
           </div>
           <p className="text-sm text-muted-foreground">

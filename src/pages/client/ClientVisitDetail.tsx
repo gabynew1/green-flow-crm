@@ -9,20 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Check, Star } from "lucide-react";
 import { toast } from "sonner";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
-
-const statusColor: Record<string, string> = {
-  SCHEDULED: "bg-muted text-muted-foreground",
-  IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-success/10 text-success",
-  CANCELED: "bg-destructive/10 text-destructive",
-};
-
-const statusLabels: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  CANCELED: "Canceled",
-};
+import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
 
 export default function ClientVisitDetail() {
   const { visitId } = useParams();
@@ -86,7 +73,7 @@ export default function ClientVisitDetail() {
 
   const contractItems = items.filter(i => i.source === "CONTRACT");
   const adHocItems = items.filter(i => i.source === "AD_HOC");
-  const displayStatus = statusLabels[order.status] || order.status.replace(/_/g, " ");
+  const displayStatus = visitStatusLabel(order.status);
 
   return (
     <div className="space-y-6">
@@ -96,7 +83,10 @@ export default function ClientVisitDetail() {
           <h1 className="text-2xl font-bold">{(order.properties as any)?.name}</h1>
           <p className="text-sm text-muted-foreground">{order.period_label} · {order.scheduled_date}</p>
         </div>
-        <Badge className={statusColor[order.status] || "bg-muted text-muted-foreground"} variant="secondary">
+        {order.needs_client_action && (
+          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs your review</Badge>
+        )}
+        <Badge className={visitStatusColor(order.status)} variant="secondary">
           {displayStatus}
         </Badge>
       </div>

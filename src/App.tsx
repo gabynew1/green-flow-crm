@@ -25,6 +25,7 @@ import ContractDetail from "./pages/provider/ContractDetail";
 import ContractNew from "./pages/provider/ContractNew";
 import ServiceVisits from "./pages/provider/ServiceVisits";
 import VisitDetail from "./pages/provider/VisitDetail";
+import VisitRequests from "./pages/provider/VisitRequests";
 import FeedbackPage from "./pages/provider/Feedback";
 import InspectionDetail from "./pages/provider/InspectionDetail";
 import OfferDetail from "./pages/provider/OfferDetail";
@@ -171,6 +172,7 @@ function AppRoutes(): JSX.Element {
         <Route path="contracts/:contractId" element={<ContractDetail />} />
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
+        <Route path="visit-requests" element={<VisitRequests />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="settings" element={<ProviderSettings />} />
         <Route path="ai" element={<AIAssistant />} />

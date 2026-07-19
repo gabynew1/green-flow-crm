@@ -35,17 +35,14 @@ export default function ClientFeedback() {
   const handleRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const { error } = await supabase.from("service_orders").insert({
+    const { error } = await supabase.from("visit_requests").insert({
       property_id: form.get("property_id") as string,
-      scheduled_date: (form.get("date") as string) || null,
-      period_type: "ONE_TIME",
-      period_label: "Ad-hoc request",
-      status: "SCHEDULED",
-      notes: form.get("description") as string,
-      created_by_user_id: user!.id,
+      preferred_date: (form.get("date") as string) || null,
+      description: form.get("description") as string,
+      requested_by_user_id: user!.id,
     });
     if (error) { toast.error(error.message); return; }
-    toast.success("Request submitted! The provider will review it shortly.");
+    toast.success("Request submitted! Your provider will review it and schedule a visit.");
     setRequestOpen(false);
   };
 

@@ -33,6 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
 
 interface Props {
   open: boolean;
@@ -238,7 +239,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const isContractSource = selectedSource !== "ad_hoc";
   const activeContract = propertyContracts.find((c) => c.id === selectedSource);
-  const capacityFull = daySlotCount >= 4;
+  const capacityFull = daySlotCount >= MAX_VISITS_PER_TEAM_PER_DAY;
 
   const getSlotEnd = (start: string) => {
     const [h, m] = start.split(":").map(Number);
@@ -257,7 +258,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
       }
     }
     if (capacityFull) {
-      toast.error("This team has reached max capacity (4 visits) for this day");
+      toast.error(`This team has reached max capacity (${MAX_VISITS_PER_TEAM_PER_DAY} visits) for this day`);
       return;
     }
 
@@ -512,10 +513,10 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
                 </div>
               )}
               {capacityFull && (
-                <p className="text-xs text-destructive">Team at max capacity (4/4 slots) for this day</p>
+                <p className="text-xs text-destructive">Team at max capacity ({MAX_VISITS_PER_TEAM_PER_DAY}/{MAX_VISITS_PER_TEAM_PER_DAY} slots) for this day</p>
               )}
               {!capacityFull && daySlotCount > 0 && (
-                <p className="text-xs text-muted-foreground">{daySlotCount}/4 slots used for this team</p>
+                <p className="text-xs text-muted-foreground">{daySlotCount}/{MAX_VISITS_PER_TEAM_PER_DAY} slots used for this team</p>
               )}
             </div>
           </div>

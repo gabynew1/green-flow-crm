@@ -1,7 +1,8 @@
 import { addDays, addWeeks, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isBefore, isAfter, parseISO, differenceInCalendarDays } from "date-fns";
+import { TIME_SLOT_VALUES, MAX_VISITS_PER_TEAM_PER_DAY } from "./scheduling-constants";
 
-const TIME_SLOTS = ["08:00", "10:00", "12:00", "14:00", "16:00"] as const;
-const MAX_SLOTS_PER_DAY = 5;
+const TIME_SLOTS = TIME_SLOT_VALUES;
+const MAX_SLOTS_PER_DAY = MAX_VISITS_PER_TEAM_PER_DAY;
 
 export interface ScheduleInput {
   startDate: string; // yyyy-MM-dd
@@ -155,8 +156,9 @@ export function generateSchedule(
   workdayChecker: WorkdayChecker,
   existingVisitCounts: ExistingVisitMap,
   zoneDateMap: ZoneDateMap = {},
-): { visits: ScheduledVisit[]; zoneDateMap: ZoneDateMap } {
+): { visits: ScheduledVisit[]; zoneDateMap: ZoneDateMap; skipped: Array<{ targetDate: string; reason: string }> } {
   const visits: ScheduledVisit[] = [];
+  const skipped: Array<{ targetDate: string; reason: string }> = [];
   const occupancy = { ...existingVisitCounts };
 
   const start = parseISO(input.startDate);
@@ -188,7 +190,13 @@ export function generateSchedule(
         input.zoneId ?? null,
         zoneDateMap,
       );
-      if (!result) continue;
+      if (!result) {
+        skipped.push({
+          targetDate: format(target, "yyyy-MM-dd"),
+          reason: `no free slot within 30 days (team at ${MAX_SLOTS_PER_DAY}/day capacity)`,
+        });
+        continue;
+      }
 
       const dateStr = format(result.date, "yyyy-MM-dd");
       const periodLabel = `${input.contractName} – ${format(result.date, "MMM d, yyyy")}`;
@@ -217,5 +225,5 @@ export function generateSchedule(
     if (visits.length >= 500) break;
   }
 
-  return { visits, zoneDateMap };
+  return { visits, zoneDateMap, skipped };
 }

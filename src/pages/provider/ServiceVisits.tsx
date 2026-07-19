@@ -13,26 +13,8 @@ import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, en
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
-
-const statusColor: Record<string, string> = {
-  SCHEDULED: "bg-muted text-muted-foreground",
-  IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-primary/10 text-primary",
-  PENDING_APPROVAL: "bg-warning/10 text-warning",
-  APPROVED: "bg-success/10 text-success",
-  SENT_TO_CLIENT: "bg-accent/10 text-accent",
-  CANCELED: "bg-destructive/10 text-destructive",
-};
-
-const statusLabels: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  PENDING_APPROVAL: "Pending Approval",
-  APPROVED: "Approved",
-  SENT_TO_CLIENT: "Sent to Client",
-  CANCELED: "Canceled",
-};
+import { visitStatusColor as statusColor, visitStatusLabel as statusLabelFn } from "@/lib/visit-status";
+import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
 
 interface Team {
   id: string;
@@ -103,7 +85,9 @@ export default function ServiceVisits() {
 
   // List view filtering
   const filtered = teamFiltered.filter(o => {
-    if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
+    if (statusFilter === "NEEDS_REVIEW") {
+      if (!o.needs_client_action) return false;
+    } else if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
     const q = search.toLowerCase();
     return (o.properties as any)?.name?.toLowerCase().includes(q) ||
       (o.properties as any)?.customers?.name?.toLowerCase().includes(q) ||
@@ -290,7 +274,7 @@ export default function ServiceVisits() {
                         return (
                           <Badge key={tid} variant="outline" className="text-[10px]">
                             <span className="inline-block h-2 w-2 rounded-full mr-1" style={{ backgroundColor: team?.color || "#888" }} />
-                            {team?.name}: {count}/4 slots
+                            {team?.name}: {count}/{MAX_VISITS_PER_TEAM_PER_DAY} slots
                           </Badge>
                         );
                       });
@@ -361,8 +345,11 @@ export default function ServiceVisits() {
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
-                        <Badge className={statusColor[o.status]} variant="secondary">
-                          {statusLabels[o.status] || o.status.replace(/_/g, " ")}
+                        {o.needs_client_action && (
+                          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
+                        )}
+                        <Badge className={statusColor(o.status)} variant="secondary">
+                          {statusLabelFn(o.status)}
                         </Badge>
                     </div>
                   </CardContent>
@@ -403,7 +390,7 @@ export default function ServiceVisits() {
                         return (
                           <Link key={o.id} to={`/provider/visits/${o.id}`} onClick={e => e.stopPropagation()}>
                             <div
-                              className={`rounded px-1.5 py-1 text-[10px] leading-tight truncate ${statusColor[o.status]}`}
+                              className={`rounded px-1.5 py-1 text-[10px] leading-tight truncate ${statusColor(o.status)}`}
                               style={teamFilter === "ALL" && tc ? { borderLeft: `3px solid ${tc}` } : {}}
                             >
                               {(o.properties as any)?.name}
@@ -455,7 +442,7 @@ export default function ServiceVisits() {
                           return (
                             <Link key={o.id} to={`/provider/visits/${o.id}`} onClick={e => e.stopPropagation()}>
                               <div
-                                className={`rounded px-1 py-0.5 text-[9px] leading-tight truncate ${statusColor[o.status]}`}
+                                className={`rounded px-1 py-0.5 text-[9px] leading-tight truncate ${statusColor(o.status)}`}
                                 style={teamFilter === "ALL" && tc ? { borderLeft: `2px solid ${tc}` } : {}}
                               >
                                 {(o.properties as any)?.name}
@@ -489,9 +476,7 @@ export default function ServiceVisits() {
                 <SelectItem value="SCHEDULED">Scheduled</SelectItem>
                 <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="PENDING_APPROVAL">Pending Approval</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="SENT_TO_CLIENT">Sent to Client</SelectItem>
+                <SelectItem value="NEEDS_REVIEW">Needs Client Review</SelectItem>
                 <SelectItem value="CANCELED">Canceled</SelectItem>
               </SelectContent>
             </Select>
@@ -531,7 +516,10 @@ export default function ServiceVisits() {
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
-                        <Badge className={statusColor[o.status]} variant="secondary">{statusLabels[o.status] || o.status.replace(/_/g, " ")}</Badge>
+                        {o.needs_client_action && (
+                          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
+                        )}
+                        <Badge className={statusColor(o.status)} variant="secondary">{statusLabelFn(o.status)}</Badge>
                     </div>
                   </CardContent>
                 </Card>
