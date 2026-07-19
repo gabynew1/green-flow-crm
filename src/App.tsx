@@ -172,6 +172,7 @@ function AppRoutes(): JSX.Element {
         <Route path="contracts/:contractId" element={<ContractDetail />} />
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
+        <Route path="visit-requests" element={<VisitRequests />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="settings" element={<ProviderSettings />} />
         <Route path="ai" element={<AIAssistant />} />
