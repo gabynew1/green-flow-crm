@@ -1,0 +1,1 @@
+ALTER VIEW public.v_client_upcoming_charges SET (security_invoker = true);

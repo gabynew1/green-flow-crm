@@ -36,6 +36,7 @@ import {
   UserCircle,
   X,
   Building2,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ const buildNavItems = (t: (k: string) => string) => [
   { title: t("client:contracts"), url: "/client/contracts", icon: FileText, badgeKey: "contracts" as const },
   { title: t("client:tasks"), url: "/client/tasks", icon: Bell },
   { title: t("client:myVisits"), url: "/client/visits", icon: ClipboardList },
+  { title: "Plăți", url: "/client/billing", icon: Receipt },
   { title: t("client:feedback"), url: "/client/feedback", icon: MessageSquare },
   { title: t("client:providers"), url: "/client/providers", icon: Building2, matchPaths: ["/client/providers", "/client/connect"] },
   { title: t("client:myProfile"), url: "/client/profile", icon: UserCircle },
