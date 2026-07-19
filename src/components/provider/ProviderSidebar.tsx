@@ -29,6 +29,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { usePendingVisitRequestCount } from "@/hooks/usePendingVisitRequestCount";
 
 const allNavItems = [
   { title: "Dashboard", url: "/provider", icon: LayoutDashboard, requiredPermission: null },
@@ -52,6 +54,7 @@ export function ProviderSidebar() {
   const navItems = allNavItems.filter(
     (item) => item.requiredPermission === null || item.requiredPermission === permission || permission === "full_admin"
   );
+  const pendingRequests = usePendingVisitRequestCount();
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
@@ -92,7 +95,15 @@ export function ProviderSidebar() {
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      {!collapsed && <span className="flex-1">{item.title}</span>}
+                      {item.url === "/provider/visit-requests" && pendingRequests > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className={collapsed ? "ml-0 h-4 min-w-4 px-1 text-[10px]" : "ml-auto h-5 min-w-5 px-1.5 text-[10px]"}
+                        >
+                          {pendingRequests}
+                        </Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
