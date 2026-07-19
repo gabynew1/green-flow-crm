@@ -23,23 +23,13 @@ import { useWorkdays } from "@/hooks/useWorkdays";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
+import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
 
-const statusColor: Record<string, string> = {
-  SCHEDULED: "bg-muted text-muted-foreground",
-  IN_PROGRESS: "bg-info/10 text-info",
-  COMPLETED: "bg-success/10 text-success",
-  CANCELED: "bg-destructive/10 text-destructive",
-};
-
-const statusLabels: Record<string, string> = {
-  SCHEDULED: "Scheduled",
-  IN_PROGRESS: "In Progress",
-  COMPLETED: "Completed",
-  CANCELED: "Canceled",
-};
-
-// Only these statuses are shown in the dropdown
-const visibleStatuses = ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELED"];
+const statusColor = (s: string) => visitStatusColor(s);
+const statusLabels = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => visitStatusLabel(key),
+});
+const visibleStatuses = VISIBLE_VISIT_STATUSES as readonly string[];
 
 export default function VisitDetail() {
   const { tenantId } = useAuth();
