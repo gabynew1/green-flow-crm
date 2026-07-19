@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
-import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
+import { VisitSections } from "@/components/provider/visits/VisitSections";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,6 @@ import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHistoryTab";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { ZoneChip } from "@/components/provider/ZoneChip";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
