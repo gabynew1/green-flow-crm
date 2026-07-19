@@ -287,6 +287,9 @@ export default function VisitDetail() {
                 <UserPlus className="h-3 w-3" /> Manually created
               </Badge>
             )}
+            {order.needs_client_action && (
+              <Badge variant="outline" className="text-xs border-warning text-warning">Needs client review</Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {(order.properties as any)?.name} · {(order.properties as any)?.customers?.name}
