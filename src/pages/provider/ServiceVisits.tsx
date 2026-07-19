@@ -344,7 +344,7 @@ export default function ServiceVisits() {
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
                         <Badge className={statusColor[o.status]} variant="secondary">
-                          {statusLabels[o.status] || o.status.replace(/_/g, " ")}
+                          {statusLabelFn(o.status)}
                         </Badge>
                     </div>
                   </CardContent>
@@ -513,7 +513,7 @@ export default function ServiceVisits() {
                         {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
                           <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
                         )}
-                        <Badge className={statusColor[o.status]} variant="secondary">{statusLabels[o.status] || o.status.replace(/_/g, " ")}</Badge>
+                        <Badge className={statusColor[o.status]} variant="secondary">{statusLabelFn(o.status)}</Badge>
                     </div>
                   </CardContent>
                 </Card>
