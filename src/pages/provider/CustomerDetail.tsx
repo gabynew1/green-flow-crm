@@ -242,7 +242,51 @@ export default function CustomerDetail() {
       {/* Customer Dashboard */}
       <CustomerDashboard customerId={customerId!} contracts={contracts} visits={visits} />
 
-      {/* Contracts Section */}
+      {/* Properties Section (step 1) */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Properties</h2>
+        <Dialog open={propOpen} onOpenChange={setPropOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Property</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>New Property</DialogTitle></DialogHeader>
+            <form onSubmit={handleCreateProperty} className="space-y-4">
+              <div className="space-y-2"><Label>Name *</Label><Input name="name" required /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>City</Label><Input name="city" /></div>
+                <div className="space-y-2"><Label>Address</Label><Input name="address" /></div>
+              </div>
+              <div className="space-y-2"><Label>Description</Label><Textarea name="description" rows={3} /></div>
+              <Button type="submit" className="w-full">Add Property</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {properties.map((p) => (
+          <Link key={p.id} to={`/provider/properties/${p.id}`}>
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium">{p.name}</p>
+                    <p className="text-sm text-muted-foreground">{[p.address, p.city].filter(Boolean).join(", ") || "No address"}</p>
+                    <Badge variant={p.status === "active" ? "default" : "secondary"} className="mt-2">{p.status}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+        {properties.length === 0 && (
+          <p className="text-muted-foreground col-span-full text-center py-8">No properties yet</p>
+        )}
+      </div>
+
+      {/* Contracts Section (step 2) */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Contracts</h2>
         <Button size="sm" asChild>
@@ -384,7 +428,7 @@ export default function CustomerDetail() {
         </div>
       )}
 
-      {/* Service Visits Section */}
+      {/* Service Visits Section (step 3) */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Service Visits</h2>
         <Button size="sm" onClick={() => setVisitOpen(true)}>
@@ -397,50 +441,6 @@ export default function CustomerDetail() {
       ) : (
         <VisitSections visits={visits} onChanged={load} />
       )}
-
-      {/* Properties Section */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Properties</h2>
-        <Dialog open={propOpen} onOpenChange={setPropOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add Property</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>New Property</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreateProperty} className="space-y-4">
-              <div className="space-y-2"><Label>Name *</Label><Input name="name" required /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>City</Label><Input name="city" /></div>
-                <div className="space-y-2"><Label>Address</Label><Input name="address" /></div>
-              </div>
-              <div className="space-y-2"><Label>Description</Label><Textarea name="description" rows={3} /></div>
-              <Button type="submit" className="w-full">Add Property</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {properties.map((p) => (
-          <Link key={p.id} to={`/provider/properties/${p.id}`}>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">{p.name}</p>
-                    <p className="text-sm text-muted-foreground">{[p.address, p.city].filter(Boolean).join(", ") || "No address"}</p>
-                    <Badge variant={p.status === "active" ? "default" : "secondary"} className="mt-2">{p.status}</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-        {properties.length === 0 && (
-          <p className="text-muted-foreground col-span-full text-center py-8">No properties yet</p>
-        )}
-      </div>
 
       <CreateAdHocVisitDialog
         open={visitOpen}
