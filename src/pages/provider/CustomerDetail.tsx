@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
+import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -497,73 +498,3 @@ export default function CustomerDetail() {
   );
 }
 
-function RescheduleVisitButton({
-  visitId,
-  currentDate,
-  onRescheduled,
-}: {
-  visitId: string;
-  currentDate: string | null;
-  onRescheduled: () => void | Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(currentDate ? new Date(currentDate) : undefined);
-  const [saving, setSaving] = useState(false);
-
-  const handleConfirm = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!date) return;
-    setSaving(true);
-    const iso = format(date, "yyyy-MM-dd");
-    const { error } = await supabase
-      .from("service_orders")
-      .update({ scheduled_date: iso })
-      .eq("id", visitId);
-    setSaving(false);
-    if (error) {
-      toast.error("Failed to reschedule: " + error.message);
-      return;
-    }
-    toast.success(`Visit rescheduled to ${format(date, "MMM d, yyyy")}`);
-    setOpen(false);
-    await onRescheduled();
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={(e) => e.stopPropagation()}
-          title="Reschedule"
-        >
-          <CalendarClock className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-auto p-0"
-        align="end"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          initialFocus
-          className="p-3 pointer-events-auto"
-        />
-        <div className="flex justify-end gap-2 p-2 border-t">
-          <Button variant="ghost" size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}>
-            Cancel
-          </Button>
-          <Button size="sm" onClick={handleConfirm} disabled={!date || saving}>
-            OK
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
