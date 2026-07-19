@@ -9,6 +9,7 @@ import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight, ChevronsLe
 import { Link, useNavigate } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
+import { ZoneChip } from "@/components/provider/ZoneChip";
 import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, format, isSameDay, isToday, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
@@ -36,6 +37,7 @@ export default function ServiceVisits() {
   const [calendarView, setCalendarView] = useState<"day" | "week" | "month">("month");
   const [cameFromMonth, setCameFromMonth] = useState(false);
   const [propertyFilter, setPropertyFilter] = useState<string>("ALL");
+  const [zoneFilter, setZoneFilter] = useState<string>("ALL");
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => { load(); loadTeams(); }, []);
@@ -46,7 +48,7 @@ export default function ServiceVisits() {
     if (!tenantId) return;
     const { data } = await supabase
       .from("service_orders")
-      .select("*, properties(name, customers(name)), teams(id, name, color)")
+      .select("*, properties(name, customers(name), service_zones(id, name, color)), teams(id, name, color)")
       .eq("tenant_id", tenantId)
       .order("scheduled_date", { ascending: true });;
     setOrders(data ?? []);
@@ -64,6 +66,11 @@ export default function ServiceVisits() {
   const teamFiltered = orders.filter(o => {
     if (teamFilter !== "ALL" && o.team_id !== teamFilter) return false;
     if (propertyFilter !== "ALL" && o.property_id !== propertyFilter) return false;
+    if (zoneFilter !== "ALL") {
+      const zid = (o.properties as any)?.service_zones?.id ?? null;
+      if (zoneFilter === "NONE") { if (zid) return false; }
+      else if (zid !== zoneFilter) return false;
+    }
     return true;
   });
 
@@ -75,6 +82,16 @@ export default function ServiceVisits() {
         .map(o => [o.property_id as string, (o.properties as any).name as string]),
     ).entries(),
   ).sort((a, b) => a[1].localeCompare(b[1]));
+
+  // Unique zones list from loaded orders
+  const zoneOptions = Array.from(
+    new Map(
+      orders
+        .map(o => (o.properties as any)?.service_zones)
+        .filter((z: any) => z && z.id)
+        .map((z: any) => [z.id as string, { name: z.name as string, color: z.color as string }]),
+    ).entries(),
+  ).sort((a, b) => a[1].name.localeCompare(b[1].name));
 
   // Calendar placement: completed visits surface on their performed date,
   // everything else on scheduled date. scheduled_date is never overwritten.
@@ -187,6 +204,24 @@ export default function ServiceVisits() {
               <SelectItem value="ALL">All Properties</SelectItem>
               {propertyOptions.map(([id, name]) => (
                 <SelectItem key={id} value={id}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Zone filter */}
+          <Select value={zoneFilter} onValueChange={setZoneFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Zones" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Zones</SelectItem>
+              <SelectItem value="NONE">No zone</SelectItem>
+              {zoneOptions.map(([id, z]) => (
+                <SelectItem key={id} value={id}>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: z.color }} />
+                    {z.name}
+                  </div>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
