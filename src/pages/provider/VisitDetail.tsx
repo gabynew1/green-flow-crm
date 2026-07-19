@@ -24,6 +24,7 @@ import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
+import { ZoneChip } from "@/components/provider/ZoneChip";
 
 const statusColor = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusColor(key),
@@ -67,7 +68,7 @@ export default function VisitDetail() {
   const load = async () => {
     const { data: o } = await supabase
       .from("service_orders")
-      .select("*, properties(name, tenant_id, customers(name, id)), contracts(contract_name)")
+      .select("*, properties(name, tenant_id, customers(name, id), service_zones(id, name, color)), contracts(contract_name)")
       .eq("id", visitId!)
       .single();
     setOrder(o);
@@ -294,6 +295,14 @@ export default function VisitDetail() {
           <p className="text-sm text-muted-foreground">
             {(order.properties as any)?.name} · {(order.properties as any)?.customers?.name}
           </p>
+          {(order.properties as any)?.service_zones?.name && (
+            <div className="mt-1">
+              <ZoneChip
+                name={(order.properties as any).service_zones.name}
+                color={(order.properties as any).service_zones.color}
+              />
+            </div>
+          )}
         </div>
         {/* Status dropdown — COMPLETED is final */}
         <Select

@@ -10,6 +10,7 @@ import { ArrowLeft, Check, Star } from "lucide-react";
 import { toast } from "sonner";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
+import { ZoneChip } from "@/components/provider/ZoneChip";
 
 export default function ClientVisitDetail() {
   const { visitId } = useParams();
@@ -26,7 +27,7 @@ export default function ClientVisitDetail() {
   const load = async () => {
     const { data: o } = await supabase
       .from("service_orders")
-      .select("*, properties(name)")
+      .select("*, properties(name, service_zones(id, name, color))")
       .eq("id", visitId!)
       .single();
     setOrder(o);
@@ -82,6 +83,14 @@ export default function ClientVisitDetail() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{(order.properties as any)?.name}</h1>
           <p className="text-sm text-muted-foreground">{order.period_label} · {order.scheduled_date}</p>
+          {(order.properties as any)?.service_zones?.name && (
+            <div className="mt-1">
+              <ZoneChip
+                name={(order.properties as any).service_zones.name}
+                color={(order.properties as any).service_zones.color}
+              />
+            </div>
+          )}
         </div>
         {order.needs_client_action && (
           <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs your review</Badge>

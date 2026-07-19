@@ -23,6 +23,7 @@ import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHist
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { ZoneChip } from "@/components/provider/ZoneChip";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
@@ -96,7 +97,7 @@ export default function CustomerDetail() {
     if (propIds.length > 0) {
       const { data: visitData } = await supabase
         .from("service_orders")
-        .select("*, properties(name)")
+        .select("*, properties(name, service_zones(id, name, color))")
         .in("property_id", propIds)
         .order("scheduled_date", { ascending: true });;
       setVisits(visitData ?? []);
@@ -521,6 +522,15 @@ function VisitRow({ o, kind, onChanged }: { o: Visit; kind: "overdue" | "upcomin
             {o.period_type}
             {o.period_label && !wasRescheduled ? ` · ${o.period_label}` : ""}
           </p>
+          {(o.properties as any)?.service_zones?.name && (
+            <div className="mt-1">
+              <ZoneChip
+                name={(o.properties as any).service_zones.name}
+                color={(o.properties as any).service_zones.color}
+                size="xs"
+              />
+            </div>
+          )}
         </Link>
         <div className="flex items-center gap-2 shrink-0">
           {active && (
