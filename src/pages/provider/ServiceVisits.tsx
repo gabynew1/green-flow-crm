@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, CalendarDays, List, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
-import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
 import { ZoneChip } from "@/components/provider/ZoneChip";
+import { VisitRow } from "@/components/provider/visits/VisitRow";
 import { startOfWeek, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, endOfWeek, eachDayOfInterval, isSameMonth, format, isSameDay, isToday, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
@@ -359,54 +359,15 @@ export default function ServiceVisits() {
           {/* Day's visits — shown in day & week views */}
           {calendarView !== "month" && (
           <div className="space-y-2">
-            {dayOrders.length > 0 ? dayOrders.map(o => {
-              const teamColor = o.team_id ? teamColorMap[o.team_id] : undefined;
-              const timeSlot = formatTimeSlot(o.scheduled_start_time, o.scheduled_end_time);
-              return (
-                <Card key={o.id} className="hover:border-primary/50 transition-colors" style={teamFilter === "ALL" && teamColor ? { borderLeftColor: teamColor, borderLeftWidth: 4 } : {}}>
-                  <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                    <div
-                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-                      onClick={() => navigate(`/provider/visits/${o.id}`)}
-                    >
-                        {teamFilter === "ALL" && teamColor && (
-                          <div className="h-6 w-6 rounded-full shrink-0" style={{ backgroundColor: teamColor }} title={(o.teams as any)?.name} />
-                        )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{(o.properties as any)?.name}</p>
-                            {o.contract_id && !o.created_by_user_id ? (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Auto</Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
-                            )}
-                            <ZoneChip
-                              name={(o.properties as any)?.service_zones?.name}
-                              color={(o.properties as any)?.service_zones?.color}
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {(o.properties as any)?.customers?.name}
-                            {timeSlot && ` · ${timeSlot}`}
-                            {` · ${o.period_label || o.scheduled_date}`}
-                          </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                        {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
-                          <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
-                        )}
-                        {o.needs_client_action && (
-                          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
-                        )}
-                        <Badge className={statusColor(o.status)} variant="secondary">
-                          {statusLabelFn(o.status)}
-                        </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            }) : (
+            {dayOrders.length > 0 ? dayOrders.map(o => (
+              <VisitRow
+                key={o.id}
+                visit={o}
+                showTeamColor={teamFilter === "ALL"}
+                showCustomerName
+                onChanged={load}
+              />
+            )) : (
               <p className="text-muted-foreground text-center py-4 text-sm">No visits for this day</p>
             )}
           </div>
@@ -546,52 +507,15 @@ export default function ServiceVisits() {
           </div>
 
           <div className="space-y-3">
-            {filtered.map(o => {
-              const teamColor = o.team_id ? teamColorMap[o.team_id] : undefined;
-              const timeSlot = formatTimeSlot(o.scheduled_start_time, o.scheduled_end_time);
-              return (
-                <Card key={o.id} className="hover:border-primary/50 transition-colors" style={teamFilter === "ALL" && teamColor ? { borderLeftColor: teamColor, borderLeftWidth: 4 } : {}}>
-                  <CardContent className="pt-4 pb-4 flex items-center justify-between">
-                    <div
-                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-                      onClick={() => navigate(`/provider/visits/${o.id}`)}
-                    >
-                        {teamFilter === "ALL" && teamColor && (
-                          <div className="h-5 w-5 rounded-full shrink-0" style={{ backgroundColor: teamColor }} />
-                        )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{(o.properties as any)?.name}</p>
-                            {o.contract_id && !o.created_by_user_id ? (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Auto</Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
-                            )}
-                            <ZoneChip
-                              name={(o.properties as any)?.service_zones?.name}
-                              color={(o.properties as any)?.service_zones?.color}
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {(o.properties as any)?.customers?.name}
-                            {timeSlot && ` · ${timeSlot}`}
-                            {` · ${o.period_label || o.scheduled_date}`}
-                          </p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                        {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
-                          <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={load} />
-                        )}
-                        {o.needs_client_action && (
-                          <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
-                        )}
-                        <Badge className={statusColor(o.status)} variant="secondary">{statusLabelFn(o.status)}</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {filtered.map(o => (
+              <VisitRow
+                key={o.id}
+                visit={o}
+                showTeamColor={teamFilter === "ALL"}
+                showCustomerName
+                onChanged={load}
+              />
+            ))}
             {filtered.length === 0 && <p className="text-muted-foreground text-center py-8">No service visits found</p>}
           </div>
         </>

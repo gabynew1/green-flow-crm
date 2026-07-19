@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
-import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
+import { VisitSections } from "@/components/provider/visits/VisitSections";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,6 @@ import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHistoryTab";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { ZoneChip } from "@/components/provider/ZoneChip";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
@@ -467,179 +463,6 @@ export default function CustomerDetail() {
         onOpenChange={(o) => { if (!o) setCloseContractId(null); }}
         onClosed={load}
       />
-    </div>
-  );
-}
-
-type Visit = any;
-
-function VisitRow({ o, kind, onChanged }: { o: Visit; kind: "overdue" | "upcoming" | "past"; onChanged: () => void }) {
-  const scheduled = o.scheduled_date ? format(new Date(o.scheduled_date), "MMM d, yyyy") : "Unscheduled";
-  const labelDateMatch = (o.period_label || "").match(/([A-Z][a-z]{2} \d{1,2}, \d{4})/);
-  const originalDate = labelDateMatch?.[1];
-  const wasRescheduled = !!originalDate && originalDate !== scheduled;
-  const active = o.status !== "COMPLETED" && o.status !== "CANCELED";
-
-  const handleCancel = async () => {
-    const prevStatus = o.status;
-    const { error } = await supabase
-      .from("service_orders")
-      .update({ status: "CANCELED", cancel_reason: "Dismissed as overdue" })
-      .eq("id", o.id);
-    if (error) return toast.error(error.message);
-    toast.success("Visit canceled", {
-      action: {
-        label: "Undo",
-        onClick: async () => {
-          await supabase.from("service_orders").update({ status: prevStatus, cancel_reason: null }).eq("id", o.id);
-          onChanged();
-        },
-      },
-      duration: 10000,
-    });
-    onChanged();
-  };
-
-  return (
-    <Card className={`hover:border-primary/50 transition-colors ${kind === "overdue" ? "border-l-4 border-l-destructive" : ""}`}>
-      <CardContent className="pt-4 pb-4 flex items-center justify-between gap-3">
-        <Link to={`/provider/visits/${o.id}`} className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium">{scheduled}</p>
-            {kind === "overdue" && (
-              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-[10px]">
-                Overdue
-              </Badge>
-            )}
-            {wasRescheduled && (
-              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px]">
-                Rescheduled from {originalDate}
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
-            {o.period_type}
-            {o.period_label && !wasRescheduled ? ` · ${o.period_label}` : ""}
-          </p>
-          {(o.properties as any)?.service_zones?.name && (
-            <div className="mt-1">
-              <ZoneChip
-                name={(o.properties as any).service_zones.name}
-                color={(o.properties as any).service_zones.color}
-                size="xs"
-              />
-            </div>
-          )}
-        </Link>
-        <div className="flex items-center gap-2 shrink-0">
-          {active && (
-            <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={onChanged} />
-          )}
-          {kind === "overdue" && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Cancel visit">
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancel this overdue visit?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    It will be marked CANCELED and removed from the schedule. You can undo right after.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep it</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel}>Cancel visit</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          <Badge variant="secondary" className={
-            o.status === "COMPLETED" ? "bg-success/10 text-success" :
-            o.status === "CANCELED" ? "bg-destructive/10 text-destructive" :
-            o.status === "IN_PROGRESS" ? "bg-info/10 text-info" :
-            "bg-muted text-muted-foreground"
-          }>
-            {o.status.replace(/_/g, " ")}
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function VisitSection({
-  title,
-  items,
-  kind,
-  defaultOpen,
-  onChanged,
-  todayIso,
-}: {
-  title: string;
-  items: Visit[];
-  kind: "overdue" | "upcoming" | "past";
-  defaultOpen: boolean;
-  onChanged: () => void;
-  todayIso?: string;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  if (items.length === 0) return null;
-  return (
-    <Collapsible open={open} onOpenChange={setOpen} className="space-y-2">
-      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground w-full">
-        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        <span>{title} · {items.length}</span>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-2">
-        {items.map((o, i) => {
-          const showTodayDivider =
-            kind === "upcoming" && todayIso && o.scheduled_date === todayIso &&
-            (i === 0 || items[i - 1].scheduled_date !== todayIso);
-          return (
-            <div key={o.id} className="space-y-2">
-              {showTodayDivider && (
-                <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <div className="flex-1 h-px bg-border" />
-                  <span>Today</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-              )}
-              <VisitRow o={o} kind={kind} onChanged={onChanged} />
-            </div>
-          );
-        })}
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-function VisitSections({ visits, onChanged }: { visits: Visit[]; onChanged: () => void }) {
-  const todayIso = format(new Date(), "yyyy-MM-dd");
-  const overdue: Visit[] = [];
-  const upcoming: Visit[] = [];
-  const past: Visit[] = [];
-  for (const v of visits) {
-    const active = v.status !== "COMPLETED" && v.status !== "CANCELED";
-    if (!active) past.push(v);
-    else if (v.scheduled_date && v.scheduled_date < todayIso) overdue.push(v);
-    else upcoming.push(v);
-  }
-  overdue.sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
-  upcoming.sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
-  past.sort((a, b) => (b.scheduled_date || "").localeCompare(a.scheduled_date || ""));
-
-  return (
-    <div className="space-y-5">
-      <VisitSection title="Overdue" items={overdue} kind="overdue" defaultOpen onChanged={onChanged} />
-      {upcoming.length === 0 && (overdue.length > 0 || past.length > 0) && (
-        <p className="text-xs text-muted-foreground">No upcoming visits.</p>
-      )}
-      <VisitSection title="Upcoming" items={upcoming} kind="upcoming" defaultOpen onChanged={onChanged} todayIso={todayIso} />
-      <VisitSection title="Past" items={past} kind="past" defaultOpen={false} onChanged={onChanged} />
     </div>
   );
 }
