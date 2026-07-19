@@ -67,7 +67,7 @@ export default function VisitDetail() {
   const load = async () => {
     const { data: o } = await supabase
       .from("service_orders")
-      .select("*, properties(name, tenant_id, customers(name, id)), contracts(contract_name)")
+      .select("*, properties(name, tenant_id, customers(name, id), service_zones(id, name, color)), contracts(contract_name)")
       .eq("id", visitId!)
       .single();
     setOrder(o);
