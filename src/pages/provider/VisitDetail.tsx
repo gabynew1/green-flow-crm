@@ -24,6 +24,7 @@ import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
+import { ZoneChip } from "@/components/provider/ZoneChip";
 
 const statusColor = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusColor(key),
