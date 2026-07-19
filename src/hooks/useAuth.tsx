@@ -87,8 +87,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const LOCKED_STATUSES = ['soft_locked', 'flagged_for_deletion'];
 
   const touchAndCheckLock = async () => {
+    // Verify session is still valid on the server first. If the auth server
+    // rejects it (password reset, revoked session, etc.), sign out cleanly
+    // instead of firing follow-up queries with an empty user id.
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    const uid = userData?.user?.id;
+    if (userErr || !uid) {
+      await supabase.auth.signOut().catch(() => {});
+      return;
+    }
     try {
-      await supabase.functions.invoke('lifecycle-touch-login', { body: {} });
+      const { error: fnErr } = await supabase.functions.invoke('lifecycle-touch-login', { body: {} });
+      if (fnErr && (fnErr as any).context?.status === 401) {
+        await supabase.auth.signOut().catch(() => {});
+        return;
+      }
     } catch (e) {
       console.warn('touch-login failed', e);
     }
@@ -96,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: prof } = await supabase
       .from('profiles')
       .select('tenant_id,customer_id')
-      .eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '')
+      .eq('user_id', uid)
       .maybeSingle();
     if (prof?.tenant_id) {
       const { data: t } = await supabase.from('tenants')
