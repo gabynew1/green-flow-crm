@@ -11,6 +11,7 @@ import {
   Settings,
   Sparkles,
   Bell,
+  Inbox,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -34,6 +35,7 @@ const allNavItems = [
   { title: "Customers", url: "/provider/customers", icon: Users, requiredPermission: "full_admin" as const },
   { title: "Sales Pipeline", url: "/provider/pipeline", icon: ClipboardCheck, requiredPermission: "full_admin" as const },
   { title: "Service Visits", url: "/provider/visits", icon: ClipboardList, requiredPermission: null },
+  { title: "Visit Requests", url: "/provider/visit-requests", icon: Inbox, requiredPermission: null },
   { title: "Tasks", url: "/provider/tasks", icon: Bell, requiredPermission: null },
   { title: "Service Catalog", url: "/provider/catalog", icon: BookOpen, requiredPermission: "full_admin" as const },
   { title: "Feedback", url: "/provider/feedback", icon: MessageSquare, requiredPermission: "full_admin" as const },
