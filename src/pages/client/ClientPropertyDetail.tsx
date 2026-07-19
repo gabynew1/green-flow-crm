@@ -295,7 +295,7 @@ export default function ClientPropertyDetail() {
                         <div key={li.id} className="flex items-center justify-between text-sm py-1">
                           <span>{(li as any).service_catalog?.name ?? li.custom_name ?? "Service"}</span>
                           <span className="text-muted-foreground text-xs">
-                            {li.quantity} {li.unit} · {li.frequency_type.replace(/_/g, " ")}
+                            {li.quantity} × {li.frequency_type.replace(/_/g, " ").toLowerCase()}
                           </span>
                         </div>
                       ))}

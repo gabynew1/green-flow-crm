@@ -17,6 +17,8 @@ const freqLabel: Record<string, string> = {
   PER_VISIT: "per visit",
   PER_WEEK: "per week",
   PER_MONTH: "per month",
+  PER_YEAR: "per year",
+  PER_CONTRACT: "per contract",
   ONE_TIME: "one-time",
 };
 
