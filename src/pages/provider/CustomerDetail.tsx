@@ -498,14 +498,3 @@ export default function CustomerDetail() {
   );
 }
 
-function RescheduleVisitButton({
-  visitId,
-  currentDate,
-  onRescheduled,
-}: {
-  visitId: string;
-  currentDate: string | null;
-  onRescheduled: () => void | Promise<void>;
-}) {
-  return null;
-}
