@@ -25,7 +25,9 @@ import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
 
-const statusColor = (s: string) => visitStatusColor(s);
+const statusColor = new Proxy({} as Record<string, string>, {
+  get: (_t, key: string) => visitStatusColor(key),
+});
 const statusLabels = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusLabel(key),
 });
