@@ -398,54 +398,7 @@ export default function CustomerDetail() {
       {visits.length === 0 ? (
         <p className="text-muted-foreground text-center py-6">No service visits yet</p>
       ) : (
-        <div className="space-y-3">
-          {visits.map((o) => {
-            const scheduled = o.scheduled_date
-              ? format(new Date(o.scheduled_date), "MMM d, yyyy")
-              : "Unscheduled";
-            const labelDateMatch = (o.period_label || "").match(/([A-Z][a-z]{2} \d{1,2}, \d{4})/);
-            const originalDate = labelDateMatch?.[1];
-            const wasRescheduled = !!originalDate && originalDate !== scheduled;
-            return (
-            <Card key={o.id} className="hover:border-primary/50 transition-colors">
-              <CardContent className="pt-4 pb-4 flex items-center justify-between gap-3">
-                <Link to={`/provider/visits/${o.id}`} className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-medium">{scheduled}</p>
-                    {wasRescheduled && (
-                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px]">
-                        Rescheduled from {originalDate}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {(o.properties as any)?.name && <span>{(o.properties as any).name} · </span>}
-                    {o.period_type}
-                    {o.period_label && !wasRescheduled ? ` · ${o.period_label}` : ""}
-                  </p>
-                </Link>
-                <div className="flex items-center gap-2 shrink-0">
-                  {o.status !== "COMPLETED" && o.status !== "CANCELED" && (
-                    <RescheduleVisitButton
-                      visitId={o.id}
-                      currentDate={o.scheduled_date}
-                      onRescheduled={load}
-                    />
-                  )}
-                  <Badge variant="secondary" className={
-                    o.status === "COMPLETED" ? "bg-success/10 text-success" :
-                    o.status === "CANCELED" ? "bg-destructive/10 text-destructive" :
-                    o.status === "IN_PROGRESS" ? "bg-info/10 text-info" :
-                    "bg-muted text-muted-foreground"
-                  }>
-                    {o.status.replace(/_/g, " ")}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-            );
-          })}
-        </div>
+        <VisitSections visits={visits} onChanged={load} />
       )}
 
       {/* Properties Section */}
