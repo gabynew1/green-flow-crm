@@ -2930,6 +2930,7 @@ export type Database = {
         | "contract_closed"
         | "new_signup"
         | "visit_request_new"
+        | "schedule_simplified"
       offer_status:
         | "DRAFT"
         | "IN_PROGRESS"
@@ -3156,6 +3157,7 @@ export const Constants = {
         "contract_closed",
         "new_signup",
         "visit_request_new",
+        "schedule_simplified",
       ],
       offer_status: [
         "DRAFT",
