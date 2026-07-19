@@ -3152,6 +3152,7 @@ export type Database = {
         | "PER_MONTH"
         | "ONE_TIME"
         | "PER_YEAR"
+        | "PER_CONTRACT"
       inspection_status: "DRAFT" | "SCHEDULED" | "COMPLETED" | "OFFER_GENERATED"
       inventory_category:
         | "TREE"
@@ -3380,6 +3381,7 @@ export const Constants = {
         "PER_MONTH",
         "ONE_TIME",
         "PER_YEAR",
+        "PER_CONTRACT",
       ],
       inspection_status: ["DRAFT", "SCHEDULED", "COMPLETED", "OFFER_GENERATED"],
       inventory_category: [

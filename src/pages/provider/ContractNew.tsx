@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Loader2, X, AlertTriangle, Search } from "lucide-react";
 import { toast } from "sonner";
 
-type FrequencyType = "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME";
+type FrequencyType = "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "PER_CONTRACT" | "ONE_TIME";
 
 interface ServiceCfg {
   frequency_type: FrequencyType;
@@ -40,8 +40,6 @@ export default function ContractNew() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
-  const [zones, setZones] = useState<{ id: string; name: string; color: string }[]>([]);
-  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -65,6 +63,19 @@ export default function ContractNew() {
   useEffect(() => {
     setFlatFee("");
   }, [selectedCategory]);
+
+  // In flat-fee mode, auto-include all services of that category
+  useEffect(() => {
+    if (!isFlatFeeMode) return;
+    const catIds = services.filter((s) => s.code === selectedCategory).map((s) => s.id);
+    if (catIds.length === 0) return;
+    setSelectedServiceIds(catIds);
+    setServiceConfig((cfg) => {
+      const next = { ...cfg };
+      for (const id of catIds) if (!next[id]) next[id] = defaultCfg();
+      return next;
+    });
+  }, [isFlatFeeMode, selectedCategory, services]);
 
   // Live total preview (right of category selector)
   const servicesTotal = useMemo(() => {
@@ -101,12 +112,10 @@ export default function ContractNew() {
       supabase.from("customers").select("id, name, company_name").eq("tenant_id", tid).order("name"),
       supabase.from("properties").select("id, name, customer_id, zone_id").eq("tenant_id", tid).order("name"),
       supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tid).order("code").order("name"),
-      supabase.from("service_zones").select("id, name, color").eq("tenant_id", tid).order("name"),
-    ]).then(([custRes, propRes, svcRes, zonesRes]) => {
+    ]).then(([custRes, propRes, svcRes]) => {
       setCustomers(custRes.data ?? []);
       setProperties(propRes.data ?? []);
       setServices(svcRes.data ?? []);
-      setZones((zonesRes.data ?? []) as { id: string; name: string; color: string }[]);
       setLoading(false);
     });
   }, [profile?.tenant_id]);
@@ -192,21 +201,6 @@ export default function ContractNew() {
 
   const toggleProperty = (id: string) =>
     setSelectedPropertyIds((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-
-  // Reset zone selection whenever customer changes
-  useEffect(() => {
-    setSelectedZoneId(null);
-  }, [selectedCustomerId]);
-
-  // Pre-fill zone when exactly one property is selected (guard against deleted zones)
-  useEffect(() => {
-    if (selectedPropertyIds.length !== 1) {
-      setSelectedZoneId(null);
-      return;
-    }
-    const existing = properties.find((p) => p.id === selectedPropertyIds[0])?.zone_id ?? null;
-    setSelectedZoneId(zones.some((z) => z.id === existing) ? existing : null);
-  }, [selectedPropertyIds, properties, zones]);
 
   const toggleService = (id: string) => {
     setSelectedServiceIds((prev) => {
@@ -311,20 +305,6 @@ export default function ContractNew() {
         if (liError) toast.error("Contract created but failed to add service lines: " + liError.message);
       }
 
-      // Zone is per-property: persist only when exactly 1 property is selected and value changed.
-      if (selectedPropertyIds.length === 1 && selectedZoneId !== null) {
-        const current = properties.find((p) => p.id === selectedPropertyIds[0])?.zone_id ?? null;
-        if (current !== selectedZoneId) {
-          const { error: zoneErr } = await supabase
-            .from("properties")
-            .update({ zone_id: selectedZoneId })
-            .eq("id", selectedPropertyIds[0]);
-          if (zoneErr) {
-            toast.warning("Contract created, but zone could not be saved: " + zoneErr.message);
-          }
-        }
-      }
-
       toast.success(`${inserts.length} contract(s) created`);
       if (created && created.length === 1) {
         navigate(`/provider/contracts/${created[0].id}`);
@@ -420,39 +400,6 @@ export default function ContractNew() {
                 </div>
               )}
 
-              {selectedCustomerId && selectedPropertyIds.length === 1 && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1.5">
-                    Service Zone{" "}
-                    <span className="text-xs text-muted-foreground font-normal">(optional)</span>
-                  </Label>
-                  <Select
-                    value={selectedZoneId ?? "__none__"}
-                    onValueChange={(v) => setSelectedZoneId(v === "__none__" ? null : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="— No zone —" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— No zone —</SelectItem>
-                      {zones.map((z) => (
-                        <SelectItem key={z.id} value={z.id}>
-                          <span className="inline-flex items-center gap-2">
-                            <span
-                              className="h-2.5 w-2.5 rounded-full inline-block"
-                              style={{ backgroundColor: /^#[0-9a-fA-F]{6}$/.test(z.color) ? z.color : "#10b981" }}
-                            />
-                            {z.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Saved to the property. Used to cluster visits by zone.
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -541,7 +488,7 @@ export default function ContractNew() {
                 )}
               </div>
 
-              {selectedCategory && (
+              {selectedCategory && !isFlatFeeMode && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <Label>Catalog services</Label>
@@ -697,6 +644,7 @@ export default function ContractNew() {
                                 <SelectItem value="PER_WEEK">Per Week</SelectItem>
                                 <SelectItem value="PER_MONTH">Per Month</SelectItem>
                                 <SelectItem value="PER_YEAR">Per Year</SelectItem>
+                                <SelectItem value="PER_CONTRACT">Per Contract</SelectItem>
                                 <SelectItem value="ONE_TIME">One-time</SelectItem>
                               </SelectContent>
                             </Select>
@@ -742,11 +690,6 @@ export default function ContractNew() {
                 ) : (
                   <Muted>None</Muted>
                 )}
-              </Row>
-              <Row label="Zone">
-                {selectedZoneId
-                  ? (zones.find((z) => z.id === selectedZoneId)?.name ?? <Muted>—</Muted>)
-                  : <Muted>None</Muted>}
               </Row>
               <Row label="Services">
                 {selectedServiceIds.length > 0 ? (

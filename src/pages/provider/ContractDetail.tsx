@@ -627,6 +627,7 @@ export default function ContractDetail() {
                       <SelectItem value="PER_WEEK">Per Week</SelectItem>
                       <SelectItem value="PER_MONTH">Per Month</SelectItem>
                       <SelectItem value="PER_YEAR">Per Year</SelectItem>
+                      <SelectItem value="PER_CONTRACT">Per Contract</SelectItem>
                       <SelectItem value="ONE_TIME">One-time</SelectItem>
                     </SelectContent>
                   </Select>
@@ -637,10 +638,7 @@ export default function ContractDetail() {
                     <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
-                  <div className="space-y-2"><Label>Unit</Label><Input value={addFormUnit} onChange={e => setAddFormUnit(e.target.value)} /></div>
-                </div>
+                <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
                 <div className="space-y-2">
                   <Label>Unit Price *</Label>
                   <CurrencyInput currency={currency} required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
@@ -666,7 +664,6 @@ export default function ContractDetail() {
               <TableHead>Service</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Qty</TableHead>
-                <TableHead>Unit</TableHead>
                 <TableHead>Unit Price</TableHead>
                 <TableHead>Line Total</TableHead>
                 <TableHead>Max/Period</TableHead>
@@ -692,7 +689,6 @@ export default function ContractDetail() {
                   <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
                   <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
                   <TableCell>{li.quantity}</TableCell>
-                  <TableCell>{li.unit}</TableCell>
                   <TableCell>
                     {editable ? (
                       <CurrencyInput

@@ -242,7 +242,7 @@ export default function ClientContractDetail() {
                     <div>
                       <p className="font-medium">{li.custom_name || li.service_catalog?.name || "Service"}</p>
                       <p className="text-xs text-muted-foreground">
-                        {li.quantity} {li.unit || "unit(s)"} · {li.frequency_type.replace(/_/g, " ").toLowerCase()}
+                        {li.quantity} × {li.frequency_type.replace(/_/g, " ").toLowerCase()}
                         {maxOcc != null && <span className="ml-1">· max {maxOcc}/{li.frequency_type.replace("PER_", "").toLowerCase()}</span>}
                       </p>
                     </div>

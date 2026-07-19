@@ -103,7 +103,7 @@ export default function Customers() {
 
     const { error } = await supabase.from("customers").insert({
       name: form.get("name") as string,
-      contact_person_name: form.get("contact") as string,
+      contact_person_name: (form.get("contact") as string) || (form.get("name") as string),
       email: email || null,
       phone: form.get("phone") as string,
       company_name: form.get("company") as string,
@@ -214,12 +214,11 @@ export default function Customers() {
               <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-2"><Label>Name *</Label><Input name="name" required /></div>
-                <div className="space-y-2"><Label>Contact Person</Label><Input name="contact" /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Email</Label><Input name="email" type="email" /></div>
                   <div className="space-y-2"><Label>Phone</Label><Input name="phone" /></div>
                 </div>
-                <div className="space-y-2"><Label>Company</Label><Input name="company" /></div>
+                <div className="space-y-2"><Label>Company <span className="text-xs text-muted-foreground font-normal">(if different)</span></Label><Input name="company" /></div>
                 <div className="space-y-2"><Label>Billing Address</Label><Textarea name="address" rows={2} /></div>
                 <div className="space-y-2"><Label>Notes</Label><Textarea name="notes" rows={2} /></div>
                 <Button type="submit" className="w-full">Create Customer</Button>
