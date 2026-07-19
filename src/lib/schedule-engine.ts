@@ -1,8 +1,10 @@
 import { addDays, addWeeks, addMonths, startOfWeek, startOfMonth, endOfMonth, format, isBefore, isAfter, parseISO, differenceInCalendarDays } from "date-fns";
-import { TIME_SLOT_VALUES, MAX_VISITS_PER_TEAM_PER_DAY } from "./scheduling-constants";
+import { TIME_SLOT_VALUES, TEAM_DAY_WARNING_THRESHOLD } from "./scheduling-constants";
 
 const TIME_SLOTS = TIME_SLOT_VALUES;
-const MAX_SLOTS_PER_DAY = MAX_VISITS_PER_TEAM_PER_DAY;
+// Capacity is a soft advisory only. The engine never drops a visit
+// and always assigns a slot — even when a team's day is over the
+// warning threshold. Callers surface the overload separately.
 
 export interface ScheduleInput {
   startDate: string; // yyyy-MM-dd
@@ -37,6 +39,12 @@ export interface ScheduledVisit {
   status: "SCHEDULED";
   created_by_user_id: string;
   notes: string | null;
+}
+
+/** Extra metadata returned alongside each visit for UI purposes. */
+export interface ScheduledVisitMeta {
+  is_heavy_day: boolean;
+  team_day_count: number;
 }
 
 export interface WorkdayChecker {
@@ -103,22 +111,21 @@ function findAvailableSlot(
   maxLookahead: number = 30,
   zoneId?: string | null,
   zoneDateMap?: ZoneDateMap,
-): { date: Date; slot: string } | null {
+): { date: Date; slot: string; count: number } | null {
   // Zone clustering pass: prefer a workday within 14 days that already has the
-  // same zone booked for this team and still has capacity. Pure hint — never
-  // blocks and never drops a visit.
+  // same zone booked for this team. Pure hint — never blocks.
   if (zoneId && zoneDateMap) {
     let zc = targetDate;
     for (let i = 0; i < 14; i++) {
       if (workdayChecker.isWorkday(zc)) {
         const key = dateKey(zc, teamId);
         const currentCount = occupancyMap[key] || 0;
-        if (currentCount < MAX_SLOTS_PER_DAY && zoneDateMap[key]?.has(zoneId)) {
-          const slot = TIME_SLOTS[currentCount];
+        if (zoneDateMap[key]?.has(zoneId)) {
+          const slot = TIME_SLOTS[Math.min(currentCount, TIME_SLOTS.length - 1)];
           occupancyMap[key] = currentCount + 1;
           if (!zoneDateMap[key]) zoneDateMap[key] = new Set<string>();
           zoneDateMap[key].add(zoneId);
-          return { date: zc, slot };
+          return { date: zc, slot, count: currentCount + 1 };
         }
       }
       zc = addDays(zc, 1);
@@ -130,17 +137,15 @@ function findAvailableSlot(
     if (workdayChecker.isWorkday(candidate)) {
       const key = dateKey(candidate, teamId);
       const currentCount = occupancyMap[key] || 0;
-      if (currentCount < MAX_SLOTS_PER_DAY) {
-        const slotIdx = currentCount;
-        const slot = TIME_SLOTS[slotIdx];
-        // Book it
-        occupancyMap[key] = currentCount + 1;
-        if (zoneId && zoneDateMap) {
-          if (!zoneDateMap[key]) zoneDateMap[key] = new Set<string>();
-          zoneDateMap[key].add(zoneId);
-        }
-        return { date: candidate, slot };
+      // No hard cap — always accept the first workday.
+      const slotIdx = Math.min(currentCount, TIME_SLOTS.length - 1);
+      const slot = TIME_SLOTS[slotIdx];
+      occupancyMap[key] = currentCount + 1;
+      if (zoneId && zoneDateMap) {
+        if (!zoneDateMap[key]) zoneDateMap[key] = new Set<string>();
+        zoneDateMap[key].add(zoneId);
       }
+      return { date: candidate, slot, count: currentCount + 1 };
     }
     candidate = addDays(candidate, 1);
   }
@@ -149,16 +154,18 @@ function findAvailableSlot(
 }
 
 /**
- * Generate all scheduled visits for a contract activation.
+ * Generate scheduled visits for a contract across a period.
+ * No visit is ever silently dropped; if the team is busy that day
+ * it still gets booked and the caller sees is_heavy_day = true.
  */
 export function generateSchedule(
   input: ScheduleInput,
   workdayChecker: WorkdayChecker,
   existingVisitCounts: ExistingVisitMap,
   zoneDateMap: ZoneDateMap = {},
-): { visits: ScheduledVisit[]; zoneDateMap: ZoneDateMap; skipped: Array<{ targetDate: string; reason: string }> } {
+): { visits: ScheduledVisit[]; meta: ScheduledVisitMeta[]; zoneDateMap: ZoneDateMap } {
   const visits: ScheduledVisit[] = [];
-  const skipped: Array<{ targetDate: string; reason: string }> = [];
+  const meta: ScheduledVisitMeta[] = [];
   const occupancy = { ...existingVisitCounts };
 
   const start = parseISO(input.startDate);
@@ -190,13 +197,7 @@ export function generateSchedule(
         input.zoneId ?? null,
         zoneDateMap,
       );
-      if (!result) {
-        skipped.push({
-          targetDate: format(target, "yyyy-MM-dd"),
-          reason: `no free slot within 30 days (team at ${MAX_SLOTS_PER_DAY}/day capacity)`,
-        });
-        continue;
-      }
+      if (!result) continue; // only when no workday found in 30 days
 
       const dateStr = format(result.date, "yyyy-MM-dd");
       const periodLabel = `${input.contractName} – ${format(result.date, "MMM d, yyyy")}`;
@@ -214,6 +215,10 @@ export function generateSchedule(
         created_by_user_id: input.userId,
         notes: null,
       });
+      meta.push({
+        team_day_count: result.count,
+        is_heavy_day: result.count > TEAM_DAY_WARNING_THRESHOLD,
+      });
     }
 
     // Advance to next period
@@ -225,5 +230,5 @@ export function generateSchedule(
     if (visits.length >= 500) break;
   }
 
-  return { visits, zoneDateMap, skipped };
+  return { visits, meta, zoneDateMap };
 }
