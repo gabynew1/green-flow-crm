@@ -1,9 +1,11 @@
 /**
  * Single source of truth for scheduling capacity + time-slot ladder.
- * Both the auto-generator (schedule-engine) and manual creation UIs
- * must import from here — never redefine locally.
+ * Capacity is a SOFT WARNING (never blocks). If a team exceeds
+ * TEAM_DAY_WARNING_THRESHOLD on a given day, surfaces should highlight
+ * it (orange in the calendar, "heavy day" flag in the horizon preview,
+ * yellow toast on reschedule) but always allow the action.
  */
-export const MAX_VISITS_PER_TEAM_PER_DAY = 5;
+export const TEAM_DAY_WARNING_THRESHOLD = 4;
 
 export const TIME_SLOTS = [
   { value: "08:00", label: "08:00 – 10:00" },

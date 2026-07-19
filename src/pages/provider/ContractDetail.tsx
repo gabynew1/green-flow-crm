@@ -17,7 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2, CalendarPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +28,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
+import { GenerateNext30Dialog } from "@/components/provider/GenerateNext30Dialog";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
@@ -54,6 +55,7 @@ export default function ContractDetail() {
   const [addFormQty, setAddFormQty] = useState("1");
   const [addFormUnit, setAddFormUnit] = useState("visit");
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
   const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
   const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
   const [addFormTimesPerFreq, setAddFormTimesPerFreq] = useState("1");
@@ -154,117 +156,37 @@ export default function ContractDetail() {
     setActivating(true);
 
     try {
-      // Idempotency guard: if this contract already has visits, do not regenerate.
-      // Prevents duplicate visit sets from repeated Activate clicks or status
-      // round-trips (DRAFT -> ACTIVE -> DRAFT -> ACTIVE).
-      const { count: existingContractVisits } = await supabase
+      // Flip to ACTIVE first — always safe (idempotent).
+      await supabase.from("contracts").update({ status: "ACTIVE", rejection_comment: null } as any).eq("id", contractId!);
+
+      // Idempotency: if this contract already has any future visit, do not
+      // seed a new one. This avoids duplicates from DRAFT → ACTIVE → DRAFT →
+      // ACTIVE round-trips.
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const { count: futureCount } = await supabase
         .from("service_orders")
         .select("id", { count: "exact", head: true })
-        .eq("contract_id", contractId!);
+        .eq("contract_id", contractId!)
+        .gte("scheduled_date", todayStr);
 
-      if ((existingContractVisits ?? 0) > 0) {
-        await supabase.from("contracts").update({ status: "ACTIVE", rejection_comment: null } as any).eq("id", contractId!);
-        toast.success(`Contract activated (visits already scheduled: ${existingContractVisits})`);
+      if ((futureCount ?? 0) > 0) {
+        toast.success("Contract activated");
         load();
         return;
       }
-
-      // Update status to ACTIVE
-      await supabase.from("contracts").update({ status: "ACTIVE", rejection_comment: null } as any).eq("id", contractId!);
 
       const freqCount = contract.visit_frequency_count || 0;
       const freqType = contract.visit_frequency_type || "WEEK";
 
       if (freqCount > 0 && lineItems.length > 0 && selectedTeamId) {
-        // Build existing visit occupancy map for the team
-        const { data: existingOrders } = await supabase
-          .from("service_orders")
-          .select("scheduled_date, team_id")
-          .eq("team_id", selectedTeamId)
-          .not("scheduled_date", "is", null);
-
-        const occupancy: ExistingVisitMap = {};
-        for (const o of existingOrders ?? []) {
-          const key = `${o.scheduled_date}_${o.team_id}`;
-          occupancy[key] = (occupancy[key] || 0) + 1;
-        }
-
-        const itemsForSchedule = lineItems.map(li => ({
-          id: li.id,
-          service_catalog_id: li.service_catalog_id,
-          name: li.custom_name || (li.service_catalog as any)?.name || "Service",
-          quantity: li.quantity,
-          unit: li.unit,
-        }));
-
-        const propertyZoneId = ((contract.properties as any)?.zone_id ?? null) as string | null;
-        const { visits, skipped } = generateSchedule(
-          {
-            startDate: contract.start_date,
-            endDate: contract.end_date,
-            frequencyCount: freqCount,
-            frequencyType: freqType,
-            teamId: selectedTeamId,
-            contractId: contractId!,
-            propertyId: (contract.properties as any).id,
-            userId: user.id,
-            contractName: contract.contract_name,
-            lineItems: itemsForSchedule,
-            zoneId: propertyZoneId,
-          },
-          { isWorkday },
-          occupancy,
-          zoneDateMap,
-        );
-        if (skipped.length > 0) {
-          toast.warning(
-            `${skipped.length} visit${skipped.length > 1 ? "s" : ""} could not be scheduled`,
-            {
-              description:
-                "Team is at capacity around these dates: " +
-                skipped.slice(0, 5).map((s) => s.targetDate).join(", ") +
-                (skipped.length > 5 ? `, …and ${skipped.length - 5} more` : ""),
-            },
-          );
-        }
-
-        if (visits.length > 0) {
-          // Add tenant_id to each visit
-          const visitsWithTenant = visits.map(v => ({ ...v, tenant_id: tenantId }));
-          // Batch insert service orders
-          const { data: createdOrders, error: soError } = await supabase
-            .from("service_orders")
-            .insert(visitsWithTenant)
-            .select("id");
-
-          if (soError) throw soError;
-
-          // Create service order items for each visit
-          const allItems = (createdOrders ?? []).flatMap(so =>
-            itemsForSchedule.map(li => ({
-              service_order_id: so.id,
-              contract_line_item_id: li.id,
-              service_catalog_id: li.service_catalog_id,
-              name: li.name,
-              quantity: li.quantity,
-              unit: li.unit,
-              source: "CONTRACT" as const,
-              tenant_id: tenantId,
-            }))
-          );
-
-          if (allItems.length > 0) {
-            await supabase.from("service_order_items").insert(allItems);
-          }
-
-          // Refresh the in-memory zone occupancy cache so subsequent activations
-          // in the same session see the new bookings.
-          queryClient.invalidateQueries({ queryKey: ["zone-date-map"] });
-
+        // Seed a SINGLE next visit — the rest is provider-driven via
+        // "Generate next 30 days".
+        const singleVisit = await createContractVisits(1);
+        if (singleVisit > 0) {
           const teamName = teams.find(t => t.id === selectedTeamId)?.name || "Team";
-          toast.success(`Contract activated! ${visits.length} visits scheduled for ${teamName}`);
+          toast.success(`Contract activated — next visit scheduled for ${teamName}`);
         } else {
-          toast.success("Contract activated (no visits could be scheduled)");
+          toast.success("Contract activated (no visit could be scheduled — try Generate next 30 days)");
         }
       } else {
         toast.success("Contract activated");
@@ -276,6 +198,99 @@ export default function ContractDetail() {
     } finally {
       setActivating(false);
     }
+  };
+
+  /**
+   * Creates visits for this contract from today across the given horizon
+   * (in days). Returns the number of visits actually inserted.
+   * Idempotent per (contract, date, team) thanks to the existing
+   * service_orders_contract_date_team_unique index.
+   */
+  const createContractVisits = async (horizonDays: number): Promise<number> => {
+    if (!contract || !user || !selectedTeamId || lineItems.length === 0) return 0;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const horizonEnd = new Date(Date.now() + horizonDays * 86400000).toISOString().slice(0, 10);
+
+    // Existing visit occupancy for the team
+    const { data: existingOrders } = await supabase
+      .from("service_orders")
+      .select("scheduled_date, team_id")
+      .eq("team_id", selectedTeamId)
+      .not("scheduled_date", "is", null);
+
+    const occupancy: ExistingVisitMap = {};
+    for (const o of existingOrders ?? []) {
+      const key = `${o.scheduled_date}_${o.team_id}`;
+      occupancy[key] = (occupancy[key] || 0) + 1;
+    }
+
+    // Dates already covered for this contract (skip to keep idempotent)
+    const { data: contractOrders } = await supabase
+      .from("service_orders")
+      .select("scheduled_date")
+      .eq("contract_id", contractId!);
+    const existingDates = new Set((contractOrders ?? []).map((o: any) => o.scheduled_date));
+
+    const itemsForSchedule = lineItems.map(li => ({
+      id: li.id,
+      service_catalog_id: li.service_catalog_id,
+      name: li.custom_name || (li.service_catalog as any)?.name || "Service",
+      quantity: li.quantity,
+      unit: li.unit,
+    }));
+
+    const propertyZoneId = ((contract.properties as any)?.zone_id ?? null) as string | null;
+    const anchorStart = contract.start_date < todayStr ? todayStr : contract.start_date;
+    const contractEnd = contract.end_date && contract.end_date < horizonEnd ? contract.end_date : horizonEnd;
+
+    const { visits } = generateSchedule(
+      {
+        startDate: anchorStart,
+        endDate: contractEnd,
+        frequencyCount: contract.visit_frequency_count || 1,
+        frequencyType: contract.visit_frequency_type || "WEEK",
+        teamId: selectedTeamId,
+        contractId: contractId!,
+        propertyId: (contract.properties as any).id,
+        userId: user.id,
+        contractName: contract.contract_name,
+        lineItems: itemsForSchedule,
+        zoneId: propertyZoneId,
+      },
+      { isWorkday },
+      occupancy,
+      zoneDateMap,
+    );
+
+    const fresh = visits.filter(v => !existingDates.has(v.scheduled_date));
+    if (fresh.length === 0) return 0;
+
+    const withTenant = fresh.map(v => ({ ...v, tenant_id: tenantId }));
+    const { data: created, error } = await supabase
+      .from("service_orders")
+      .insert(withTenant)
+      .select("id");
+    if (error) throw error;
+
+    const allItems = (created ?? []).flatMap(so =>
+      itemsForSchedule.map(li => ({
+        service_order_id: so.id,
+        contract_line_item_id: li.id,
+        service_catalog_id: li.service_catalog_id,
+        name: li.name,
+        quantity: li.quantity,
+        unit: li.unit,
+        source: "CONTRACT" as const,
+        tenant_id: tenantId,
+      }))
+    );
+    if (allItems.length > 0) {
+      await supabase.from("service_order_items").insert(allItems);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ["zone-date-map"] });
+    return created?.length ?? 0;
   };
 
   const loadInventoryItems = async () => {
@@ -462,7 +477,29 @@ export default function ContractDetail() {
               </Button>
             )}
             {contract.status === "ACTIVE" && (
-              <Button size="sm" variant="destructive" onClick={() => setCloseDialogOpen(true)}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
+              <>
+                {teams.length > 0 && (
+                  <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue placeholder="Team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.map(t => (
+                        <SelectItem key={t.id} value={t.id}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: t.color }} />
+                            {t.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setGenerateOpen(true)} disabled={!selectedTeamId || lineItems.length === 0}>
+                  <CalendarPlus className="h-3 w-3 mr-1" /> Generate next 30 days
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => setCloseDialogOpen(true)}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
+              </>
             )}
           </div>
         </CardContent>
@@ -475,6 +512,22 @@ export default function ContractDetail() {
         onOpenChange={setCloseDialogOpen}
         onClosed={load}
       />
+
+      {contract && selectedTeamId && (
+        <GenerateNext30Dialog
+          open={generateOpen}
+          onOpenChange={setGenerateOpen}
+          contract={contract}
+          lineItems={lineItems}
+          teamId={selectedTeamId}
+          teamName={teams.find(t => t.id === selectedTeamId)?.name || "Team"}
+          tenantId={tenantId ?? null}
+          userId={user?.id ?? ""}
+          isWorkday={isWorkday}
+          zoneDateMap={zoneDateMap}
+          onGenerated={() => { load(); queryClient.invalidateQueries({ queryKey: ["zone-date-map"] }); }}
+        />
+      )}
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">

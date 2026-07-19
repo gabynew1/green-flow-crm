@@ -33,7 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
+import { TEAM_DAY_WARNING_THRESHOLD } from "@/lib/scheduling-constants";
 
 interface Props {
   open: boolean;
@@ -239,7 +239,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const isContractSource = selectedSource !== "ad_hoc";
   const activeContract = propertyContracts.find((c) => c.id === selectedSource);
-  const capacityFull = daySlotCount >= MAX_VISITS_PER_TEAM_PER_DAY;
+  const isHeavyDay = daySlotCount >= TEAM_DAY_WARNING_THRESHOLD;
 
   const getSlotEnd = (start: string) => {
     const [h, m] = start.split(":").map(Number);
@@ -257,9 +257,9 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
         return;
       }
     }
-    if (capacityFull) {
-      toast.error(`This team has reached max capacity (${MAX_VISITS_PER_TEAM_PER_DAY} visits) for this day`);
-      return;
+    // Capacity is a soft advisory only — never block creation.
+    if (isHeavyDay) {
+      toast.warning(`Heavy day: this team already has ${daySlotCount} visits scheduled`);
     }
 
     setSaving(true);
@@ -512,12 +512,11 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
                   />
                 </div>
               )}
-              {capacityFull && (
-                <p className="text-xs text-destructive">Team at max capacity ({MAX_VISITS_PER_TEAM_PER_DAY}/{MAX_VISITS_PER_TEAM_PER_DAY} slots) for this day</p>
-              )}
-              {!capacityFull && daySlotCount > 0 && (
-                <p className="text-xs text-muted-foreground">{daySlotCount}/{MAX_VISITS_PER_TEAM_PER_DAY} slots used for this team</p>
-              )}
+              {isHeavyDay ? (
+                <p className="text-xs text-warning">Heavy day: this team already has {daySlotCount} visits scheduled</p>
+              ) : daySlotCount > 0 ? (
+                <p className="text-xs text-muted-foreground">{daySlotCount} visit{daySlotCount === 1 ? "" : "s"} already on this team for this day</p>
+              ) : null}
             </div>
           </div>
 
@@ -625,7 +624,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
             />
           </div>
 
-          <Button className="w-full" onClick={handleCreate} disabled={saving || capacityFull}>
+          <Button className="w-full" onClick={handleCreate} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating…

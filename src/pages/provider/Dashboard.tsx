@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTenantQuery } from "@/lib/supabase-tenant";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight, Shovel, ShieldAlert } from "lucide-react";
+import { Users, FileText, ClipboardList, Star, CalendarDays, Clock, AlertTriangle, ClipboardCheck, FileOutput, ArrowRight, Shovel, ShieldAlert, CalendarPlus } from "lucide-react";
 import { format, differenceInDays, subDays } from "date-fns";
 import { Link } from "react-router-dom";
 import { getOverScopeCount } from "@/lib/contract-consumption";
 import { Button } from "@/components/ui/button";
+import { useContractsNeedingScheduling } from "@/hooks/useContractsNeedingScheduling";
 
 interface KPIs {
   activeCustomers: number;
@@ -22,6 +23,7 @@ interface KPIs {
 
 export default function Dashboard() {
   const tq = useTenantQuery();
+  const { rows: needsScheduling } = useContractsNeedingScheduling();
   const [kpis, setKpis] = useState<KPIs>({ activeCustomers: 0, activeContracts: 0, visitsDelivered: 0, offersSent: 0, avgRating: 0, feedbackCount: 0, draftInspections: 0, staleInspections: 0 });
   const [pipelineCounts, setPipelineCounts] = useState({ inspections: 0, offers: 0, contracts: 0, visits: 0 });
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
@@ -165,6 +167,41 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Needs scheduling soon */}
+        <Card className={needsScheduling.length > 0 ? "border-warning/40 bg-warning/5" : ""}>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarPlus className="h-4 w-4" /> Needs scheduling soon
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {needsScheduling.length === 0 ? (
+              <p className="text-sm text-muted-foreground">All active contracts have upcoming visits ✓</p>
+            ) : (
+              <ul className="space-y-3">
+                {needsScheduling.slice(0, 6).map(c => (
+                  <li key={c.id}>
+                    <Link to={`/provider/contracts/${c.id}`} className="flex items-center justify-between text-sm hover:text-primary transition-colors">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{c.contract_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {c.property_name}{c.customer_name ? ` · ${c.customer_name}` : ""}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] border-warning text-warning shrink-0 ml-2">
+                        {c.last_scheduled_date ? `last ${c.last_scheduled_date}` : "no visits"}
+                      </Badge>
+                    </Link>
+                  </li>
+                ))}
+                {needsScheduling.length > 6 && (
+                  <p className="text-xs text-muted-foreground">…and {needsScheduling.length - 6} more</p>
+                )}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* SLA Alerts */}
         {overScopeCount > 0 && (
           <Card className="border-warning/30 bg-warning/5">

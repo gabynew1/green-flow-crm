@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { visitStatusColor as statusColor, visitStatusLabel as statusLabelFn } from "@/lib/visit-status";
-import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
+import { TEAM_DAY_WARNING_THRESHOLD } from "@/lib/scheduling-constants";
 
 interface Team {
   id: string;
@@ -124,6 +124,18 @@ export default function ServiceVisits() {
       if (o.team_id) teamSlots[o.team_id] = (teamSlots[o.team_id] || 0) + 1;
     });
     return teamSlots;
+  };
+
+  // A day is "overloaded" when ANY team on it exceeds the warning threshold.
+  const isDayOverloaded = (date: Date): { overloaded: boolean; label: string } => {
+    const slots = getDaySlotInfo(date);
+    const heavy = Object.entries(slots).filter(([, c]) => c > TEAM_DAY_WARNING_THRESHOLD);
+    if (heavy.length === 0) return { overloaded: false, label: "" };
+    const label = heavy.map(([tid, c]) => {
+      const t = teams.find(tm => tm.id === tid);
+      return `${t?.name || "Team"}: ${c}`;
+    }).join(" · ");
+    return { overloaded: true, label };
   };
 
   const formatTimeSlot = (start: string | null, end: string | null) => {
@@ -274,7 +286,7 @@ export default function ServiceVisits() {
                         return (
                           <Badge key={tid} variant="outline" className="text-[10px]">
                             <span className="inline-block h-2 w-2 rounded-full mr-1" style={{ backgroundColor: team?.color || "#888" }} />
-                            {team?.name}: {count}/{MAX_VISITS_PER_TEAM_PER_DAY} slots
+                            {team?.name}: {count} visit{count === 1 ? "" : "s"}{count > TEAM_DAY_WARNING_THRESHOLD ? " · heavy" : ""}
                           </Badge>
                         );
                       });
@@ -371,17 +383,23 @@ export default function ServiceVisits() {
                   const selected = isSameDay(day, selectedDate);
                   const workday = isWorkday(day);
                   const nonWorkLabel = getNonWorkdayLabel(day);
+                  const overload = isDayOverloaded(day);
                   return (
                     <div
                       key={day.toISOString()}
+                      title={overload.overloaded ? overload.label : undefined}
                       className={`rounded-lg border p-2 cursor-pointer transition-colors ${
-                        selected ? "border-primary bg-primary/5" : today ? "border-primary/40 bg-primary/[0.02]" : !workday ? "border-border bg-muted/40" : "border-border"
+                        overload.overloaded
+                          ? "border-l-4 border-l-orange-500 border-orange-500/40 bg-orange-500/10"
+                          : selected ? "border-primary bg-primary/5" : today ? "border-primary/40 bg-primary/[0.02]" : !workday ? "border-border bg-muted/40" : "border-border"
                       }`}
                       onClick={() => setSelectedDate(day)}
                     >
                       <div className="text-center mb-2">
                         <p className="text-xs text-muted-foreground">{format(day, "EEE")}</p>
-                        <p className={`text-sm font-semibold ${today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>{format(day, "d")}</p>
+                        <p className={`text-sm font-semibold ${overload.overloaded ? "text-orange-600" : today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>
+                          {format(day, "d")}{overload.overloaded ? " •" : ""}
+                        </p>
                         {nonWorkLabel && <p className="text-[9px] text-destructive/70 truncate">{nonWorkLabel}</p>}
                       </div>
                     <div className="space-y-1">
@@ -424,16 +442,22 @@ export default function ServiceVisits() {
                   const inMonth = isSameMonth(day, selectedDate);
                   const workday = isWorkday(day);
                   const nonWorkLabel = getNonWorkdayLabel(day);
+                  const overload = isDayOverloaded(day);
                   return (
                     <div
                       key={day.toISOString()}
+                      title={overload.overloaded ? overload.label : undefined}
                       className={`min-h-[88px] rounded-md border p-1.5 cursor-pointer transition-colors ${
-                        today ? "border-primary/40 bg-primary/[0.04]" : !workday ? "border-border bg-muted/40" : "border-border"
+                        overload.overloaded
+                          ? "border-l-4 border-l-orange-500 border-orange-500/40 bg-orange-500/10"
+                          : today ? "border-primary/40 bg-primary/[0.04]" : !workday ? "border-border bg-muted/40" : "border-border"
                       } ${!inMonth ? "opacity-40" : ""}`}
                       onClick={() => { setSelectedDate(day); setCameFromMonth(true); setCalendarView("day"); }}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-semibold ${today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>{format(day, "d")}</span>
+                        <span className={`text-xs font-semibold ${overload.overloaded ? "text-orange-600" : today ? "text-primary" : !workday ? "text-muted-foreground" : ""}`}>
+                          {format(day, "d")}{overload.overloaded ? " •" : ""}
+                        </span>
                         {nonWorkLabel && <span className="text-[8px] text-destructive/70 truncate ml-1">{nonWorkLabel}</span>}
                       </div>
                       <div className="space-y-0.5">
