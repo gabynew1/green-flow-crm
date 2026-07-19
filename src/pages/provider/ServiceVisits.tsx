@@ -567,6 +567,10 @@ export default function ServiceVisits() {
                             ) : (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0">Manual</Badge>
                             )}
+                            <ZoneChip
+                              name={(o.properties as any)?.service_zones?.name}
+                              color={(o.properties as any)?.service_zones?.color}
+                            />
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {(o.properties as any)?.customers?.name}
