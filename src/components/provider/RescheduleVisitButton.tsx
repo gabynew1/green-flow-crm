@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,33 +19,40 @@ export default function RescheduleVisitButton({ visitId, currentDate, onReschedu
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(currentDate ? parseISO(currentDate) : undefined);
   const [saving, setSaving] = useState(false);
+  const [pendingConflicts, setPendingConflicts] = useState<any[] | null>(null);
   const queryClient = useQueryClient();
+
+  const commitReschedule = async (iso: string) => {
+    setSaving(true);
+    const { error } = await supabase.from("service_orders").update({ scheduled_date: iso }).eq("id", visitId);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to reschedule: " + error.message);
+      return;
+    }
+    toast.success(`Rescheduled to ${format(parseISO(iso), "MMM d, yyyy")}`);
+    setOpen(false);
+    setPendingConflicts(null);
+    queryClient.invalidateQueries({ queryKey: ["zone-date-map"] });
+    await onRescheduled();
+  };
 
   const handleConfirm = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!date) return;
-    setSaving(true);
     const iso = format(date, "yyyy-MM-dd");
 
-    // Look up this visit's tenant/property/team for conflict scoping.
+    setSaving(true);
+    // Scope check: same team, same date, non-canceled visits.
     const { data: current } = await supabase
       .from("service_orders")
       .select("property_id, team_id")
       .eq("id", visitId)
       .maybeSingle();
 
-    const { error } = await supabase.from("service_orders").update({ scheduled_date: iso }).eq("id", visitId);
-    if (error) {
-      setSaving(false);
-      toast.error("Failed to reschedule: " + error.message);
-      return;
-    }
-
-    // Non-blocking conflict notice: any other non-canceled visit on same
-    // team/property/date.
     let conflicts: any[] = [];
-    if (current?.team_id && current?.property_id) {
+    if (current?.team_id) {
       const { data } = await supabase
         .from("service_orders")
         .select("id, period_label, properties(name), teams(name)")
@@ -55,27 +62,15 @@ export default function RescheduleVisitButton({ visitId, currentDate, onReschedu
         .not("status", "in", "(CANCELED)");
       conflicts = data ?? [];
     }
-
     setSaving(false);
-    setOpen(false);
 
-    const prettyDate = format(date, "MMM d, yyyy");
     if (conflicts.length > 0) {
-      const teamName = (conflicts[0] as any)?.teams?.name ?? "aceeași echipă";
-      const descLines = conflicts
-        .slice(0, 4)
-        .map((c: any) => `• ${c.period_label || c.properties?.name || c.id}`)
-        .join("\n");
-      const more = conflicts.length > 4 ? `\n…și încă ${conflicts.length - 4}` : "";
-      toast.warning(`Vizită reprogramată pe ${prettyDate}`, {
-        description: `Atenție: mai există ${conflicts.length} vizită(e) programate pentru ${teamName} în acea zi.\n${descLines}${more}`,
-      });
-    } else {
-      toast.success(`Vizită reprogramată pe ${prettyDate}`);
+      // Block; require explicit confirm.
+      setPendingConflicts(conflicts);
+      return;
     }
 
-    queryClient.invalidateQueries({ queryKey: ["zone-date-map"] });
-    await onRescheduled();
+    await commitReschedule(iso);
   };
 
   return (
@@ -83,7 +78,7 @@ export default function RescheduleVisitButton({ visitId, currentDate, onReschedu
       className="px-1"
       onClick={(e) => e.stopPropagation()}
     >
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setPendingConflicts(null); }}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -97,16 +92,51 @@ export default function RescheduleVisitButton({ visitId, currentDate, onReschedu
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="end" onClick={(e) => e.stopPropagation()}>
-        <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className="p-3 pointer-events-auto" />
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={(d) => { setDate(d); setPendingConflicts(null); }}
+          initialFocus
+          className="p-3 pointer-events-auto"
+        />
+        {pendingConflicts && pendingConflicts.length > 0 && (
+          <div className="border-t bg-warning/5 p-3 space-y-2 max-w-[280px]">
+            <div className="flex items-center gap-2 text-warning">
+              <AlertTriangle className="h-4 w-4" />
+              <p className="text-xs font-semibold">Slot conflict</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {(pendingConflicts[0] as any)?.teams?.name || "This team"} already has{" "}
+              {pendingConflicts.length} visit{pendingConflicts.length > 1 ? "s" : ""} on this date:
+            </p>
+            <ul className="text-[11px] text-muted-foreground space-y-0.5">
+              {pendingConflicts.slice(0, 4).map((c: any) => (
+                <li key={c.id}>• {c.period_label || c.properties?.name || c.id}</li>
+              ))}
+              {pendingConflicts.length > 4 && <li>• …and {pendingConflicts.length - 4} more</li>}
+            </ul>
+          </div>
+        )}
         <div className="flex justify-end gap-2 p-2 border-t">
           <Button
             variant="ghost"
             size="sm"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); setPendingConflicts(null); }}
           >
             Cancel
           </Button>
-          <Button size="sm" onClick={handleConfirm} disabled={!date || saving}>OK</Button>
+          {pendingConflicts && pendingConflicts.length > 0 ? (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (date) commitReschedule(format(date, "yyyy-MM-dd")); }}
+              disabled={!date || saving}
+            >
+              Reschedule anyway
+            </Button>
+          ) : (
+            <Button size="sm" onClick={handleConfirm} disabled={!date || saving}>OK</Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>
