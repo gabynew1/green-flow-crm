@@ -20,6 +20,9 @@ import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHistoryTab";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
   if (!endDate) return null;
