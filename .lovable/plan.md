@@ -1,44 +1,43 @@
-## Problem
+# Stop automatic visit duplication on contract activation
 
-When rescheduling a visit from Jun 24 → Jun 20 in `providers/visits`, the visit appears to duplicate instead of moving.
+## Problem (confirmed)
+For contract `9b0d…184`, the DB shows two complete sets of visits generated ~10 seconds apart at activation time. Every scheduled date already has a hidden twin, which is what surfaced during rescheduling. The manual-reschedule fix I just shipped does **not** address this — it only warns when a user moves a visit onto an occupied slot.
 
-## Diagnosis (unconfirmed — needs live repro)
+The duplication happens server-side during contract activation / visit generation, so the fix belongs there.
 
-`RescheduleVisitButton` runs a single `UPDATE service_orders SET scheduled_date = ?` then reloads. No INSERT path, no DB trigger on `service_orders` regenerates visits — so a real duplicate row is unlikely.
+## Investigation needed before coding (Step 0)
+I need to confirm the exact trigger path before writing the fix. Candidates to inspect:
+- `schedule-engine.ts` (visit generation entry point)
+- Any Edge Function or DB trigger that fires on `contracts.status` transition to `ACTIVE`
+- `ContractDetail.tsx` activation handler (possible double-invocation from the client)
+- Any cron/queue worker that could re-run generation for the same contract
 
-Two plausible causes for the *appearance* of a duplicate:
+Deliverable of Step 0: identify whether the second run comes from (a) client double-click / double-request, (b) trigger + explicit call both firing, or (c) retry logic without idempotency.
 
-1. **Timezone drift in the date picker.** `new Date("2026-06-24")` parses as UTC midnight; local rendering can shift the day by ±1 depending on the timezone.
-2. **A visit already exists on the target date** for the same property/team. Moving Jun 24 → Jun 20 leaves both the pre-existing Jun 20 visit and the moved one on Jun 20, which reads as a "new" visit.
+## Fix strategy (applied based on Step 0 findings)
 
-## Plan
+1. **Idempotency guard at generation time**
+   Before inserting generated visits for a contract, check whether visits already exist for that `contract_id` in the target window. If yes, skip generation and log a warning to `activity_log` instead of inserting again.
 
-1. **Verify against the real data** with a read-only query on `service_orders` around Jun 20–24 for the affected property to confirm whether a second row was inserted or an existing row was already there.
+2. **DB-level safety net**
+   Add a partial unique index to make a true duplicate physically impossible:
+   ```
+   UNIQUE (contract_id, scheduled_date, team_id) WHERE status <> 'CANCELLED'
+   ```
+   (Exact columns finalized after Step 0 — may include service_catalog_id if a contract legitimately has multiple visits same day.)
 
-2. **Fix timezone handling** in both reschedule components (`src/components/provider/RescheduleVisitButton.tsx` and the inline copy in `src/pages/provider/CustomerDetail.tsx`):
-   - Parse `currentDate` with `parseISO` from `date-fns` instead of `new Date(...)`.
-   - Keep `format(date, "yyyy-MM-dd")` on save.
+3. **Activation handler hardening**
+   - Disable the "Activate" button while the request is in flight.
+   - Make the activation RPC/Edge Function idempotent: if contract is already `ACTIVE`, return success without regenerating visits.
 
-3. **Consolidate** the duplicated `RescheduleVisitButton` in `CustomerDetail.tsx` — delete the inline copy, import the shared component.
+4. **One-time cleanup of existing duplicates**
+   Backfill script: for each `(contract_id, scheduled_date, team_id)` group with >1 non-cancelled visit, keep the earliest `created_at` and soft-cancel the rest (status = `CANCELLED`, note = "duplicate cleanup"). Dry-run report first, then execute after review.
 
-4. **Slot-conflict notice (allow, don't block)** — per your instruction:
-   - Before saving, query `service_orders` for other visits on the same `property_id` + `team_id` + target `scheduled_date` (exclude current visit, exclude `CANCELED`).
-   - **Always save the reschedule**, then surface the result:
-     - No conflict → `toast.success("Vizită reprogramată pe {date}")`.
-     - Conflict found → `toast.warning("Vizită reprogramată pe {date}. Atenție: mai există {N} vizită(e) programate pentru echipa {team} în acea zi.")` with the list of conflicting property/period labels in the description.
-   - Never prevent the save; the toast is informational only.
-
-5. **Cache invalidation**: after the update, call `queryClient.invalidateQueries({ queryKey: ["zone-date-map"] })` in addition to `onRescheduled()` so the calendar's occupancy heatmap refreshes.
-
-6. **Test in preview (Playwright)**:
-   - Log in as the provider, open `/provider/visits`, pick a visit, reschedule it onto a date that already has a visit for the same team.
-   - Assert: the row moves in the DB (single UPDATE, no INSERT), the calendar shows both visits on the target day, and a warning toast appears naming the conflict.
-   - Repeat with a free date to confirm the success toast path.
-   - Screenshot both outcomes for verification.
+## Out of scope
+- Manual reschedule flow (already fixed).
+- Changing how flat-fee pricing displays on visits.
 
 ## Technical notes
-
-- Files touched: `src/components/provider/RescheduleVisitButton.tsx`, `src/pages/provider/CustomerDetail.tsx`. No DB migration, no edge functions.
-- Conflict query is scoped by tenant via existing RLS.
-- `sonner` `toast.warning(...)` is used for the conflict notice (already the project's toast library).
-- Playwright test lives under `/tmp/browser/reschedule-conflict/` and runs against `http://localhost:8080` with the injected Supabase session.
+- New unique index must be created `CONCURRENTLY` and only after cleanup, otherwise creation will fail on existing duplicates.
+- Cleanup must run as a migration with a printed count so we can audit affected contracts.
+- If Step 0 reveals a DB trigger firing generation, prefer removing the redundant call site over adding more guards.
