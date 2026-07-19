@@ -198,7 +198,7 @@ export default function ContractDetail() {
         }));
 
         const propertyZoneId = ((contract.properties as any)?.zone_id ?? null) as string | null;
-        const { visits } = generateSchedule(
+        const { visits, skipped } = generateSchedule(
           {
             startDate: contract.start_date,
             endDate: contract.end_date,
@@ -216,6 +216,17 @@ export default function ContractDetail() {
           occupancy,
           zoneDateMap,
         );
+        if (skipped.length > 0) {
+          toast.warning(
+            `${skipped.length} visit${skipped.length > 1 ? "s" : ""} could not be scheduled`,
+            {
+              description:
+                "Team is at capacity around these dates: " +
+                skipped.slice(0, 5).map((s) => s.targetDate).join(", ") +
+                (skipped.length > 5 ? `, …and ${skipped.length - 5} more` : ""),
+            },
+          );
+        }
 
         if (visits.length > 0) {
           // Add tenant_id to each visit
@@ -367,43 +378,6 @@ export default function ContractDetail() {
     load();
   };
 
-  const generateVisit = async () => {
-    if (!contract || lineItems.length === 0) { toast.error("No line items to generate from"); return; }
-    const now = new Date();
-    const periodLabel = contract.billing_cycle === "YEARLY"
-      ? format(now, "yyyy")
-      : format(now, "yyyy-MM");
-    const periodType = contract.billing_cycle === "ONE_TIME" ? "ONE_TIME" : "MONTH";
-
-    const { data: so, error } = await supabase.from("service_orders").insert({
-      property_id: (contract.properties as any).id,
-      contract_id: contractId!,
-      scheduled_date: format(now, "yyyy-MM-dd"),
-      period_type: periodType,
-      period_label: periodLabel,
-      status: "SCHEDULED",
-      created_by_user_id: user?.id,
-      team_id: selectedTeamId || null,
-      tenant_id: tenantId,
-    }).select().single();
-
-    if (error) { toast.error(error.message); return; }
-
-    const items = lineItems.map(li => ({
-      service_order_id: so.id,
-      contract_line_item_id: li.id,
-      service_catalog_id: li.service_catalog_id,
-      name: li.custom_name || (li.service_catalog as any)?.name || "Service",
-      quantity: li.quantity,
-      unit: li.unit,
-      source: "CONTRACT" as const,
-      tenant_id: tenantId,
-    }));
-
-    await supabase.from("service_order_items").insert(items);
-    toast.success("Service visit generated!");
-  };
-
   if (!contract) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
   const editable = !["CLOSED", "REJECTED"].includes(contract.status);
@@ -489,9 +463,6 @@ export default function ContractDetail() {
             )}
             {contract.status === "ACTIVE" && (
               <Button size="sm" variant="destructive" onClick={() => setCloseDialogOpen(true)}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
-            )}
-            {contract.status === "ACTIVE" && (
-              <Button size="sm" onClick={generateVisit}>Generate Visit</Button>
             )}
           </div>
         </CardContent>
