@@ -32,6 +32,7 @@ import OfferDetail from "./pages/provider/OfferDetail";
 import SalesPipeline from "./pages/provider/SalesPipeline";
 import ProviderSettings from "./pages/provider/Settings";
 import AIAssistant from "./pages/provider/AIAssistant";
+import Billing from "./pages/provider/Billing";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
@@ -45,6 +46,7 @@ import ClientOfferDetail from "./pages/client/ClientOfferDetail";
 import ClientProfile from "./pages/client/ClientProfile";
 import ClientConnect from "./pages/client/ClientConnect";
 import ClientProviders from "./pages/client/ClientProviders";
+import ClientBilling from "./pages/client/ClientBilling";
 
 import AdminInvites from "./pages/admin/AdminInvites";
 import AdminOnboard from "./pages/admin/AdminOnboard";
@@ -173,6 +175,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits" element={<ServiceVisits />} />
         <Route path="visits/:visitId" element={<VisitDetail />} />
         <Route path="visit-requests" element={<VisitRequests />} />
+        <Route path="billing" element={<Billing />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="settings" element={<ProviderSettings />} />
         <Route path="ai" element={<AIAssistant />} />
@@ -197,6 +200,7 @@ function AppRoutes(): JSX.Element {
         <Route path="profile" element={<ClientProfile />} />
         <Route path="connect" element={<ClientConnect />} />
         <Route path="providers" element={<ClientProviders />} />
+        <Route path="billing" element={<ClientBilling />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="emails" element={<ClientEmailHistory />} />
       </Route>
