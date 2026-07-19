@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { useRealtimeRefresh } from "@/hooks/useRealtimeRefresh";
 import { visitStatusColor as statusColor, visitStatusLabel as statusLabelFn } from "@/lib/visit-status";
-import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
+import { TEAM_DAY_WARNING_THRESHOLD } from "@/lib/scheduling-constants";
 
 interface Team {
   id: string;
@@ -124,6 +124,18 @@ export default function ServiceVisits() {
       if (o.team_id) teamSlots[o.team_id] = (teamSlots[o.team_id] || 0) + 1;
     });
     return teamSlots;
+  };
+
+  // A day is "overloaded" when ANY team on it exceeds the warning threshold.
+  const isDayOverloaded = (date: Date): { overloaded: boolean; label: string } => {
+    const slots = getDaySlotInfo(date);
+    const heavy = Object.entries(slots).filter(([, c]) => c > TEAM_DAY_WARNING_THRESHOLD);
+    if (heavy.length === 0) return { overloaded: false, label: "" };
+    const label = heavy.map(([tid, c]) => {
+      const t = teams.find(tm => tm.id === tid);
+      return `${t?.name || "Team"}: ${c}`;
+    }).join(" · ");
+    return { overloaded: true, label };
   };
 
   const formatTimeSlot = (start: string | null, end: string | null) => {
