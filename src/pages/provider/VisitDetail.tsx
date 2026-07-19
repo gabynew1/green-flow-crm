@@ -294,6 +294,14 @@ export default function VisitDetail() {
           <p className="text-sm text-muted-foreground">
             {(order.properties as any)?.name} · {(order.properties as any)?.customers?.name}
           </p>
+          {(order.properties as any)?.service_zones?.name && (
+            <div className="mt-1">
+              <ZoneChip
+                name={(order.properties as any).service_zones.name}
+                color={(order.properties as any).service_zones.color}
+              />
+            </div>
+          )}
         </div>
         {/* Status dropdown — COMPLETED is final */}
         <Select
