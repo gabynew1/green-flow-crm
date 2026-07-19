@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
-import { CalendarPlus, X, Inbox } from "lucide-react";
+import { CalendarPlus, X, Inbox, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import CreateAdHocVisitDialog from "@/components/provider/CreateAdHocVisitDialog";
 
 type Row = any;
@@ -68,14 +69,19 @@ export default function VisitRequests() {
 
   const onVisitCreated = async () => {
     if (!convertTarget) return;
-    // Mark request as converted (best-effort — link to the actual created visit is
-    // done via provider follow-up; we don't have the new visit id here).
-    await supabase
-      .from("visit_requests")
-      .update({ status: "converted" })
-      .eq("id", convertTarget.id);
     setConvertTarget(null);
     load();
+  };
+
+  const handleCreated = async (createdServiceOrderId?: string) => {
+    if (!convertTarget) return;
+    await supabase
+      .from("visit_requests")
+      .update({
+        status: "converted",
+        converted_service_order_id: createdServiceOrderId ?? null,
+      })
+      .eq("id", convertTarget.id);
   };
 
   return (
@@ -125,6 +131,14 @@ export default function VisitRequests() {
                     {r.provider_note && (
                       <p className="text-xs text-muted-foreground mt-2 italic">Note: {r.provider_note}</p>
                     )}
+                    {r.status === "converted" && r.converted_service_order_id && (
+                      <Link
+                        to={`/provider/visits/${r.converted_service_order_id}`}
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" /> View scheduled visit
+                      </Link>
+                    )}
                   </div>
                   {r.status === "pending" && (
                     <div className="flex gap-2 shrink-0">
@@ -163,7 +177,10 @@ export default function VisitRequests() {
       <CreateAdHocVisitDialog
         open={dialogOpen}
         onOpenChange={(v) => { setDialogOpen(v); if (!v) setConvertTarget(null); }}
-        onCreated={onVisitCreated}
+        onCreated={async (id) => {
+          await handleCreated(id);
+          await onVisitCreated();
+        }}
         defaultCustomerId={convertTarget?.customer_id}
         defaultPropertyId={convertTarget?.property_id}
       />

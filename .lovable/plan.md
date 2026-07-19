@@ -1,104 +1,97 @@
-# Simplify Visits & Scheduling — Review + Improvement Plan
+## Goal
 
-## What makes it complex today (findings)
+Close the biggest gap in the new Visit Requests flow: providers currently have no signal when a client submits a request, and once a request is converted there's no back-link to the actual visit. This plan adds notifications, a live pending-count badge, and a bidirectional link between `visit_requests` and `service_orders`.
 
-1. **Three overlapping "task-like" concepts.** `service_orders` (the actual "visit"), `tasks` (generic checklist, some FK'd to a visit), and `action_tasks` (approval workflow). None share naming, FKs, or status vocabulary. Debugging requires knowing that "visit" in the UI = `service_orders` in the DB.
-2. **Two parallel "line item" concepts.** `contract_line_items` (what was sold) vs. `service_order_items` (what gets done on a visit), with a partial FK between them and independent `frequency_type` enums that don't match.
-3. **Four independent ways to create a visit**, each with its own defaults and validation:
-   - Contract activation (`ContractDetail.tsx:152`) — full engine
-   - Manual "Generate Visit" button (`ContractDetail.tsx:370+`) — hand-rolled, bypasses engine
-   - Ad-hoc dialog (`CreateAdHocVisitDialog.tsx:278`) — its own capacity rules
-   - Client feedback "request" (`ClientFeedback.tsx:38`) — inserts with **no `team_id`, no `tenant_id`, no `contract_id`**
-4. **Capacity constant disagrees with itself.** Engine allows 5/day (`schedule-engine.ts:4`), ad-hoc dialog blocks at 4/day (`CreateAdHocVisitDialog.tsx:241`). Users see contradictory availability depending on entry point.
-5. **7-value visit status enum**, migrated once from 4 values via a lossy `CASE` remap. Client UI only maps 4 of the 7 (`ClientVisitDetail.tsx:13-27`) — unmapped statuses render as raw enum text.
-6. **Status label/color maps copy-pasted three times** (`ServiceVisits.tsx`, `VisitDetail.tsx`, `ClientVisitDetail.tsx`) and have already drifted.
-7. **Silent failures in the engine.**
-   - `findAvailableSlot` returning `null` → visit silently dropped (`schedule-engine.ts:191`).
-   - Hardcoded `visits.length >= 500` cap → silent truncation (line 217).
-   - Success toast only reports final count, never which target dates were skipped.
-8. **Reschedule "conflict check" is post-hoc.** The `UPDATE` runs first, then a warning toast appears — the collision is never actually prevented (`RescheduleVisitButton.tsx:38 → 63`).
-9. **Two frequency vocabularies.** Contract-level `WEEK/MONTH` vs. line-item `PER_VISIT/PER_WEEK/PER_MONTH/ONE_TIME`. Nothing enforces they agree.
-10. **Two holiday sources + Sunday hardcoded.** `global_holidays` + `tenant_non_workdays`, combined only in the SQL `is_workday()`. Client-side scheduling uses an injected `WorkdayChecker` that could drift from SQL. Engine additionally hardcodes Mon–Sat weekly framing (`schedule-engine.ts:175`), silently excluding Saturday work in some flows.
-11. **Naming drift end-to-end.** DB says `service_orders`, UI says "Visit", tasks/action_tasks add "task" — three vocabularies for adjacent concepts.
-12. **Cross-cutting mutation paths.** Lifecycle cron and `client_delink_property` bulk-cancel or hard-delete visits as side effects, invisible from scheduling UI code.
-13. **Large files.** `VisitDetail.tsx` 822, `ContractDetail.tsx` 762, `TasksPage.tsx` 748, `CreateAdHocVisitDialog.tsx` 640, `ServiceVisits.tsx` 548.
+## Scope
 
----
+**In scope**
+1. Notify provider admins when a client submits a new visit request (in-app + email).
+2. Show a live pending count on the sidebar "Visit Requests" item.
+3. Link a converted request to the visit it produced, and surface that link on both sides.
+4. Small client-side confirmation copy improvement showing the request was received.
 
-## Improvement plan — grouped by impact vs. effort
+**Out of scope (queued for later)**
+- Retiring legacy visit-status enum values.
+- Extending reschedule conflict detail / zone-awareness.
+- Auto-decline of stale requests.
+- i18n of the Visit Requests page strings.
 
-### Tier A — High CX impact, low risk (do first)
+## What changes
 
-**A1. Single source of truth for visit status.**
-Extract `statusColor`, `statusLabels`, and `getVisitScopeStatus` into `src/lib/visit-status.ts`. Delete the three copy-pasted maps. Add a fallback that maps unmapped statuses to a safe generic label + neutral color so clients never see raw `PENDING_APPROVAL` strings.
-_Loses:_ nothing.
+### 1. Notifications on new request
+- Add a DB trigger `visit_requests_after_insert` that:
+  - Inserts a `user_notifications` row for every `PROVIDER_ADMIN` / `full_admin` in the request's tenant, with a link to `/provider/visit-requests`.
+  - Emits an email via the existing Resend queue using a new `visit-request-created` template (RO default, EN fallback), respecting `user_email_preferences`.
+- Reuse existing helpers — do not add new email tooling.
 
-**A2. Collapse the visit status enum from 7 → 4 (client-visible).**
-Keep 4 provider-facing statuses: `Scheduled`, `In Progress`, `Completed`, `Canceled`. Move `PENDING_APPROVAL / APPROVED / SENT_TO_CLIENT` behind a single derived flag `needs_client_action` (boolean, computed). Migrate existing rows: map the 3 approval statuses to `Scheduled` + `needs_client_action=true`.
-_Loses:_ granular approval-state visibility in the raw enum (still available via the flag + a dedicated "Awaiting client approval" filter).
+### 2. Sidebar pending badge
+- Add a lightweight tenant-scoped query hook `usePendingVisitRequestCount()` that subscribes to `visit_requests` realtime `INSERT`/`UPDATE` and counts `status = 'pending'`.
+- Render the count as a badge next to the "Visit Requests" nav item in `ProviderSidebar.tsx`, matching the existing notification badge styling.
 
-**A3. Unify capacity to one constant.**
-Move `MAX_VISITS_PER_TEAM_PER_DAY` into `src/lib/scheduling-constants.ts`, import it in both the engine and the ad-hoc dialog. Pick one number (recommend 5 — matches engine) and update UI copy.
-_Loses:_ nothing.
+### 3. Convert → link back
+- Add `service_order_id uuid null` on `visit_requests` (FK → `service_orders(id)` on delete set null).
+- Update `CreateAdHocVisitDialog` to accept an optional `onCreated(visitId)` callback that returns the new visit id.
+- In `VisitRequests.tsx`, when a request is converted, store the returned `service_order_id` alongside setting `status = 'converted'`.
+- Show a "Converted → View visit" link on converted rows.
+- On the provider `VisitDetail.tsx`, when the visit came from a request, show a "Created from client request" pill linking back to the request.
 
-**A4. Make reschedule conflicts blocking by default, with an explicit "reschedule anyway" confirm.**
-Reorder `RescheduleVisitButton.tsx`: run the conflict query first, show a confirm dialog if collisions exist, then update. Removes the current "already moved — here's a warning" surprise.
-_Loses:_ one-click reschedule for the rare intentional double-book (adds one confirm click).
+### 4. Client-side copy
+- After `ClientFeedback.tsx` submits, keep the current toast, and additionally add a small "Recent requests" list on the client dashboard showing status (pending/converted/declined) so clients aren't left wondering.
 
-**A5. Kill silent visit drops.**
-When `findAvailableSlot` returns `null` or the 500 cap triggers, collect the skipped target dates and return them from `generateSchedule`. `ContractDetail.handleActivate` shows: "Scheduled 22 of 24 visits. 2 skipped: 2026-07-04 (holiday), 2026-08-15 (team full)."
-_Loses:_ nothing.
+## Technical notes
 
-**A6. Consolidate the three "visit list/detail" duplicated status maps.**
-Covered by A1 mechanically, but also extract `<VisitStatusBadge />` and `<VisitStatusFilter />` shared components; delete inline JSX in the three pages.
-_Loses:_ nothing.
+**Migration outline**
+```sql
+alter table public.visit_requests
+  add column service_order_id uuid null references public.service_orders(id) on delete set null;
 
-### Tier B — Structural simplification (medium effort, high long-term value)
+create index visit_requests_service_order_id_idx on public.visit_requests(service_order_id);
 
-**B1. Delete the "Manual Generate Visit" button path.**
-It's a second visit-insert code path in the same file as activation, hand-rolls period logic, and skips the engine. Replace it with the existing ad-hoc dialog (which is more featureful anyway). One less path to reason about.
-_Loses:_ the one-click "generate one more visit for this contract" shortcut. Replaced by ad-hoc dialog pre-filled with the contract's property/team.
+create or replace function public.fn_notify_new_visit_request()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.user_notifications (user_id, tenant_id, kind, title, body, link, created_at)
+  select ur.user_id, new.tenant_id, 'visit_request_new',
+         'New visit request',
+         'A client submitted a new visit request.',
+         '/provider/visit-requests',
+         now()
+  from public.user_roles ur
+  where ur.tenant_id = new.tenant_id
+    and ur.role in ('PROVIDER_ADMIN','full_admin');
 
-**B2. Route the client "request a visit" path through the ad-hoc creation code.**
-Currently `ClientFeedback.tsx:38` inserts a `service_orders` row missing `tenant_id`, `team_id`, `contract_id`. Change it to write to a new `visit_requests` table (or reuse `action_tasks` with `type='visit_request'`) and let the provider convert it into a real visit via the normal ad-hoc flow. Eliminates the "orphan visit" class of bug.
-_Loses:_ instant appearance of client-requested visits on the schedule (now requires provider triage — arguably a feature, since currently clients can silently pollute the calendar).
+  -- enqueue email via existing email_send_state / process-email-queue path
+  perform public.enqueue_transactional_email(
+    'visit-request-created',
+    new.tenant_id,
+    jsonb_build_object('visit_request_id', new.id)
+  );
+  return new;
+end $$;
 
-**B3. Rename `service_orders` → `visits` in DB.**
-One migration: `ALTER TABLE service_orders RENAME TO visits`, update all code references. This is the single biggest daily friction removal for anyone debugging via the DB.
-_Loses:_ short-term churn in code review. Long-term: nothing.
+create trigger visit_requests_after_insert
+after insert on public.visit_requests
+for each row execute function public.fn_notify_new_visit_request();
+```
+(Exact column names for `user_notifications` and the email-enqueue helper will be confirmed by reading the current schema before writing the migration; the trigger will match whatever helpers already exist.)
 
-**B4. Merge `tasks` into `action_tasks` (or delete `tasks` if unused).**
-Audit `tasks` usage. If it's a leftover from an earlier feature, drop it. If it's live, migrate rows into `action_tasks` with `type='generic_task'`. Removes the third "task-like" concept.
-_Loses:_ depends on audit. If `tasks` is actively used by a live UI, cost is higher — plan a discovery step first.
+**Frontend touch list**
+- `src/components/provider/ProviderSidebar.tsx` — badge on Inbox item.
+- `src/hooks/usePendingVisitRequestCount.ts` — new hook (realtime).
+- `src/pages/provider/VisitRequests.tsx` — persist `service_order_id`, render "View visit" link on converted rows.
+- `src/components/provider/CreateAdHocVisitDialog.tsx` — `onCreated` returns the created id.
+- `src/pages/provider/VisitDetail.tsx` — "Created from client request" pill when a matching `visit_requests` row exists.
+- `src/pages/client/ClientDashboard.tsx` (or the client home) — recent requests panel.
+- `supabase/functions/_shared/email-templates/visit-request-created/` — new RO/EN template.
 
-**B5. Move capacity enforcement into the DB.**
-Add a partial unique constraint or a trigger enforcing `count(*) <= MAX_VISITS_PER_TEAM_PER_DAY` per `(team_id, scheduled_date)` for non-canceled visits. Complements the recent `(contract_id, scheduled_date, team_id)` unique index and closes the race between the ad-hoc dialog and contract activation.
-_Loses:_ nothing (assuming A3 picks a single number first).
+## Verification
 
-### Tier C — Nice-to-have (defer unless friction is high)
-
-**C1. Unify the two frequency enums.** Pick one vocabulary (recommend `PER_WEEK` / `PER_MONTH` / `ONE_TIME`) and migrate the other. Long-term cleanup, not user-visible.
-
-**C2. Centralize workday logic.** Have the client hook call the SQL `is_workday()` via RPC instead of reimplementing it in JS. Eliminates drift risk. Slight perf cost (one RPC per scheduling operation).
-
-**C3. Explicit timezone anchoring.** Store visit dates as `date` + `tenant timezone`, format everywhere through a single helper. Only worth doing if you plan to expand outside Romania.
-
-**C4. Split the giant files.** `VisitDetail.tsx` (822) and `ContractDetail.tsx` (762) should each be broken into 3-4 focused components. Purely maintainability.
-
----
-
-## Recommended sequence
-
-1. **Now:** A1, A3, A4, A5 — all small, all directly reduce user-visible errors and surprises. One PR each.
-2. **Next:** A2, A6, B5 — status vocabulary simplification + DB-level capacity guard. Requires a migration and coordinated UI change; ship together.
-3. **Then:** B1, B2 — collapse the redundant visit-creation paths. Ship after A2 lands to avoid double-migrating status.
-4. **Later:** B3 (rename), B4 (tasks audit), C-tier.
-
-## Trade-offs the user should confirm before I implement
-
-- **A2**: are you OK collapsing the 7-value status enum down to 4 + a `needs_client_action` flag? This is the biggest CX win but is a semi-destructive migration.
-- **A4**: block reschedule conflicts by default (extra confirm click) — OK?
-- **B1**: remove the "Generate Visit" button on contract detail in favor of the ad-hoc dialog — OK?
-- **B2**: client "request a visit" becomes a request that providers accept, not an auto-scheduled visit — OK?
-
-Confirm which of A1–A6, B1–B5 you want in scope, and I'll implement in that order.
+1. As a client, submit a request → expect a toast, a new row in `visit_requests`, a `user_notifications` row for each provider admin, and one queued email in `email_send_state`.
+2. Sidebar badge reflects the new pending count without a manual refresh (realtime).
+3. Convert the request → `visit_requests.status = 'converted'`, `service_order_id` populated, "View visit" link works both ways.
+4. Decline the request → no visit created, status becomes `declined`, badge decrements.
+5. Client dashboard shows the request with its updated status.
