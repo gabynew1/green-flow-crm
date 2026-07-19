@@ -964,6 +964,186 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          contract_line_item_id: string | null
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          line_total: number
+          quantity: number
+          service_order_id: string | null
+          service_order_item_id: string | null
+          tenant_id: string
+          unit_price: number
+        }
+        Insert: {
+          contract_line_item_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          line_total?: number
+          quantity?: number
+          service_order_id?: string | null
+          service_order_item_id?: string | null
+          tenant_id: string
+          unit_price?: number
+        }
+        Update: {
+          contract_line_item_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number
+          quantity?: number
+          service_order_id?: string | null
+          service_order_item_id?: string | null
+          tenant_id?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_upcoming_charges"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          notes: string | null
+          paid_at: string
+          recorded_by_user_id: string | null
+          reference: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          recorded_by_user_id?: string | null
+          reference?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          notes?: string | null
+          paid_at?: string
+          recorded_by_user_id?: string | null
+          reference?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_upcoming_charges"
+            referencedColumns: ["invoice_id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          created_by_user_id: string | null
+          currency: string
+          customer_id: string
+          due_date: string
+          id: string
+          invoice_number: string | null
+          issue_date: string
+          notes: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          property_id: string | null
+          source: Database["public"]["Enums"]["invoice_source"]
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency?: string
+          customer_id: string
+          due_date?: string
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          property_id?: string | null
+          source?: Database["public"]["Enums"]["invoice_source"]
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          currency?: string
+          customer_id?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string | null
+          issue_date?: string
+          notes?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          property_id?: string | null
+          source?: Database["public"]["Enums"]["invoice_source"]
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lifecycle_deletion_audit: {
         Row: {
           deleted_at: string
@@ -2518,7 +2698,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_client_upcoming_charges: {
+        Row: {
+          contract_id: string | null
+          currency: string | null
+          customer_id: string | null
+          due_date: string | null
+          invoice_id: string | null
+          invoice_number: string | null
+          kind: string | null
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          tenant_id: string | null
+          total: number | null
+        }
+        Insert: {
+          contract_id?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          invoice_id?: string | null
+          invoice_number?: string | null
+          kind?: never
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          tenant_id?: string | null
+          total?: number | null
+        }
+        Update: {
+          contract_id?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          due_date?: string | null
+          invoice_id?: string | null
+          invoice_number?: string | null
+          kind?: never
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          tenant_id?: string | null
+          total?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _apply_task_side_effects: {
@@ -2714,6 +2932,10 @@ export type Database = {
         Returns: undefined
       }
       fn_expire_trials: { Args: never; Returns: number }
+      fn_generate_invoice_for_contract_cycle: {
+        Args: { _contract_id: string; _period_start: string }
+        Returns: string
+      }
       fn_get_tenant_entitlements: {
         Args: { p_tenant_id: string }
         Returns: Json
@@ -2724,6 +2946,10 @@ export type Database = {
       }
       fn_init_provider_tenant: {
         Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      fn_recompute_invoice_status: {
+        Args: { _invoice_id: string }
         Returns: undefined
       }
       fn_record_trial_identities: {
@@ -2940,6 +3166,8 @@ export type Database = {
         | "LIGHTING"
         | "FENCE"
       inventory_source: "MANUAL" | "AI_ASSISTED"
+      invoice_source: "CONTRACT_CYCLE" | "ADHOC" | "MANUAL"
+      invoice_status: "DRAFT" | "ISSUED" | "PAID" | "OVERDUE" | "CANCELED"
       lifecycle_step: "day_0" | "day_2" | "day_7"
       notification_kind:
         | "task_created"
@@ -2972,6 +3200,7 @@ export type Database = {
         | "REJECTED"
         | "EXPIRED"
         | "CANCELED"
+      payment_method: "CASH" | "TRANSFER" | "CARD" | "OTHER"
       period_type: "WEEK" | "MONTH" | "ONE_TIME"
       property_status: "active" | "inactive"
       service_order_item_source: "CONTRACT" | "AD_HOC"
@@ -3167,6 +3396,8 @@ export const Constants = {
         "FENCE",
       ],
       inventory_source: ["MANUAL", "AI_ASSISTED"],
+      invoice_source: ["CONTRACT_CYCLE", "ADHOC", "MANUAL"],
+      invoice_status: ["DRAFT", "ISSUED", "PAID", "OVERDUE", "CANCELED"],
       lifecycle_step: ["day_0", "day_2", "day_7"],
       notification_kind: [
         "task_created",
@@ -3201,6 +3432,7 @@ export const Constants = {
         "EXPIRED",
         "CANCELED",
       ],
+      payment_method: ["CASH", "TRANSFER", "CARD", "OTHER"],
       period_type: ["WEEK", "MONTH", "ONE_TIME"],
       property_status: ["active", "inactive"],
       service_order_item_source: ["CONTRACT", "AD_HOC"],
