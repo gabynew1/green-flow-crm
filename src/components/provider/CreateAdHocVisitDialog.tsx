@@ -33,7 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
-import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
+import { TEAM_DAY_WARNING_THRESHOLD } from "@/lib/scheduling-constants";
 
 interface Props {
   open: boolean;
@@ -239,7 +239,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const isContractSource = selectedSource !== "ad_hoc";
   const activeContract = propertyContracts.find((c) => c.id === selectedSource);
-  const capacityFull = daySlotCount >= MAX_VISITS_PER_TEAM_PER_DAY;
+  const isHeavyDay = daySlotCount >= TEAM_DAY_WARNING_THRESHOLD;
 
   const getSlotEnd = (start: string) => {
     const [h, m] = start.split(":").map(Number);
@@ -257,9 +257,9 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
         return;
       }
     }
-    if (capacityFull) {
-      toast.error(`This team has reached max capacity (${MAX_VISITS_PER_TEAM_PER_DAY} visits) for this day`);
-      return;
+    // Capacity is a soft advisory only — never block creation.
+    if (isHeavyDay) {
+      toast.warning(`Heavy day: this team already has ${daySlotCount} visits scheduled`);
     }
 
     setSaving(true);
