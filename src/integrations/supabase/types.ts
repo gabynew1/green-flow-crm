@@ -2672,6 +2672,39 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_change_subscription_tier: {
+        Args: { p_new_tier: string; p_tenant_id: string }
+        Returns: {
+          ai_tier: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          feature_flags: Json
+          flagged_for_deletion_at: string | null
+          id: string
+          last_admin_login_at: string | null
+          locked_at: string | null
+          locked_by: string | null
+          locked_reason: string | null
+          max_client_seats: number
+          max_provider_seats: number
+          max_teams: number
+          name: string
+          scheduled_delete_at: string | null
+          status: string
+          subscription_tier: string
+          timezone: string
+          trial_expires_at: string | null
+          unique_tenant_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tenants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fn_check_trial_eligibility: {
         Args: { p_tenant_id: string }
         Returns: Json
