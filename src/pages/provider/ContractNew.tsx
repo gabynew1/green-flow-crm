@@ -64,6 +64,19 @@ export default function ContractNew() {
     setFlatFee("");
   }, [selectedCategory]);
 
+  // In flat-fee mode, auto-include all services of that category
+  useEffect(() => {
+    if (!isFlatFeeMode) return;
+    const catIds = services.filter((s) => s.code === selectedCategory).map((s) => s.id);
+    if (catIds.length === 0) return;
+    setSelectedServiceIds(catIds);
+    setServiceConfig((cfg) => {
+      const next = { ...cfg };
+      for (const id of catIds) if (!next[id]) next[id] = defaultCfg();
+      return next;
+    });
+  }, [isFlatFeeMode, selectedCategory, services]);
+
   // Live total preview (right of category selector)
   const servicesTotal = useMemo(() => {
     if (isFlatFeeMode) return Number(flatFee) || 0;
@@ -475,7 +488,7 @@ export default function ContractNew() {
                 )}
               </div>
 
-              {selectedCategory && (
+              {selectedCategory && !isFlatFeeMode && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <Label>Catalog services</Label>
@@ -631,6 +644,7 @@ export default function ContractNew() {
                                 <SelectItem value="PER_WEEK">Per Week</SelectItem>
                                 <SelectItem value="PER_MONTH">Per Month</SelectItem>
                                 <SelectItem value="PER_YEAR">Per Year</SelectItem>
+                                <SelectItem value="PER_CONTRACT">Per Contract</SelectItem>
                                 <SelectItem value="ONE_TIME">One-time</SelectItem>
                               </SelectContent>
                             </Select>
