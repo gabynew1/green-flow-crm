@@ -38,7 +38,7 @@ import { MAX_VISITS_PER_TEAM_PER_DAY } from "@/lib/scheduling-constants";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated?: () => void;
+  onCreated?: (createdServiceOrderId?: string) => void;
   defaultCustomerId?: string;
   defaultPropertyId?: string;
 }
@@ -319,7 +319,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
       toast.success("Visit created!");
       resetForm();
       onOpenChange(false);
-      onCreated?.();
+      onCreated?.(order.id);
       navigate(`/provider/visits/${order.id}`);
     } catch (err: any) {
       toast.error(err.message);
