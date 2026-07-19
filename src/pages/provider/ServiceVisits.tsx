@@ -85,7 +85,9 @@ export default function ServiceVisits() {
 
   // List view filtering
   const filtered = teamFiltered.filter(o => {
-    if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
+    if (statusFilter === "NEEDS_REVIEW") {
+      if (!o.needs_client_action) return false;
+    } else if (statusFilter !== "ALL" && o.status !== statusFilter) return false;
     const q = search.toLowerCase();
     return (o.properties as any)?.name?.toLowerCase().includes(q) ||
       (o.properties as any)?.customers?.name?.toLowerCase().includes(q) ||
