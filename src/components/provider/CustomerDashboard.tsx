@@ -23,6 +23,8 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const [allLineItems, setAllLineItems] = useState<any[]>([]);
   const [consumptionData, setConsumptionData] = useState<Map<string, LineItemConsumption[]>>(new Map());
   const [tenantCurrency, setTenantCurrency] = useState<CurrencyCode>("RON");
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
 
   const activeContracts = useMemo(
     () => contracts.filter(c => c.status === "ACTIVE" || c.status === "SIGNED"),
@@ -32,6 +34,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   useEffect(() => {
     loadData();
     loadCurrency();
+    loadInvoices();
   }, [contracts]);
 
   const loadData = async () => {
@@ -69,6 +72,27 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
       if (tenant && (tenant as any).currency) {
         setTenantCurrency((tenant as any).currency as CurrencyCode);
       }
+    }
+  };
+
+  const loadInvoices = async () => {
+    if (!customerId) return;
+    const yearStartIso = format(startOfYear(new Date()), "yyyy-MM-dd");
+    const { data: invs } = await supabase
+      .from("invoices")
+      .select("id, total, status, source, contract_id, issue_date, paid_at")
+      .eq("customer_id", customerId)
+      .gte("issue_date", yearStartIso);
+    setInvoices((invs as any) ?? []);
+    const ids = ((invs as any) ?? []).map((i: any) => i.id);
+    if (ids.length > 0) {
+      const { data: pays } = await supabase
+        .from("invoice_payments")
+        .select("invoice_id, amount, paid_at")
+        .in("invoice_id", ids);
+      setPayments((pays as any) ?? []);
+    } else {
+      setPayments([]);
     }
   };
 
@@ -208,6 +232,33 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   // Format currency using tenant setting
   const fmt = (n: number) => formatCurrency(n, tenantCurrency);
 
+  // ── Real invoice-based metrics ──
+  const isBillable = (s: string) => s === "ISSUED" || s === "PAID" || s === "OVERDUE";
+  const inMonth = (d: string | null | undefined) =>
+    !!d && isWithinInterval(parseISO(d), { start: monthStart, end: monthEnd });
+  const inYear = (d: string | null | undefined) =>
+    !!d && isWithinInterval(parseISO(d), { start: yearStart, end: yearEnd });
+
+  const monthInvoices = invoices.filter((i) => isBillable(i.status) && inMonth(i.issue_date));
+  const monthContract = monthInvoices
+    .filter((i) => i.source === "CONTRACT_CYCLE")
+    .reduce((s, i) => s + Number(i.total || 0), 0);
+  const monthAdHoc = monthInvoices
+    .filter((i) => i.source !== "CONTRACT_CYCLE")
+    .reduce((s, i) => s + Number(i.total || 0), 0);
+  const monthTotal = monthContract + monthAdHoc;
+
+  const ytdBillable = invoices.filter((i) => isBillable(i.status) && inYear(i.issue_date));
+  const ytdInvoiced = ytdBillable.reduce((s, i) => s + Number(i.total || 0), 0);
+  const ytdContract = ytdBillable
+    .filter((i) => i.source === "CONTRACT_CYCLE")
+    .reduce((s, i) => s + Number(i.total || 0), 0);
+  const ytdAdHoc = ytdInvoiced - ytdContract;
+  const ytdCollected = payments
+    .filter((p) => inYear(p.paid_at))
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  const hasInvoices = invoices.length > 0;
+
   if (activeContracts.length === 0 && visits.length === 0) return null;
 
   return (
@@ -315,35 +366,45 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
             {/* Monthly Billing */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Monthly Billing</p>
-              <p className="text-xl font-bold mt-1">{fmt(monthlyContractValue)}</p>
+              <p className="text-xl font-bold mt-1">{fmt(monthTotal)}</p>
               <div className="flex gap-3 mt-1.5">
                 <span className="flex items-center gap-1 text-[10px]">
                   <span className="h-2 w-2 rounded-full bg-primary inline-block" />
-                  Contract {fmt(monthlyContractValue)}
+                  Contract {fmt(monthContract)}
                 </span>
                 <span className="flex items-center gap-1 text-[10px]">
                   <span className="h-2 w-2 rounded-full bg-warning inline-block" />
-                  Ad-hoc {fmt(0)}
+                  Ad-hoc {fmt(monthAdHoc)}
                 </span>
               </div>
+              {!hasInvoices && (
+                <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
+              )}
             </div>
 
             {/* YTD Revenue */}
             <div className="rounded-lg border p-3 col-span-2 sm:col-span-1">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">YTD Revenue</p>
               <div className="flex items-baseline gap-2 mt-1">
-                <p className="text-xl font-bold">{fmt(monthlyContractValue * now.getMonth())}</p>
+                <p className="text-xl font-bold">{fmt(ytdCollected)}</p>
+                <span className="text-[10px] text-muted-foreground">collected</span>
               </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Invoiced {fmt(ytdInvoiced)}
+              </p>
               <div className="flex gap-3 mt-1.5">
                 <span className="flex items-center gap-1 text-[10px]">
                   <span className="h-2 w-2 rounded-full bg-primary inline-block" />
-                  Contract
+                  Contract {fmt(ytdContract)}
                 </span>
                 <span className="flex items-center gap-1 text-[10px]">
                   <span className="h-2 w-2 rounded-full bg-warning inline-block" />
-                  Ad-hoc
+                  Ad-hoc {fmt(ytdAdHoc)}
                 </span>
               </div>
+              {!hasInvoices && (
+                <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
+              )}
             </div>
           </div>
         </CardContent>

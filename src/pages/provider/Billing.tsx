@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
@@ -44,6 +44,7 @@ const STATUS_STYLE: Record<Invoice["status"], string> = {
 export default function Billing() {
   const { tenantId } = useAuth();
   const currency = useTenantCurrency();
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -174,16 +175,20 @@ export default function Billing() {
                   const overdue = inv.status === "ISSUED" && new Date(inv.due_date) < new Date();
                   const displayStatus = overdue ? "OVERDUE" : inv.status;
                   return (
-                    <TableRow key={inv.id}>
-                      <TableCell className="font-mono text-xs">{inv.invoice_number || "—"}</TableCell>
+                    <TableRow key={inv.id} className="cursor-pointer" onClick={() => navigate(`/provider/invoices/${inv.id}`)}>
+                      <TableCell className="font-mono text-xs">
+                        <Link to={`/provider/invoices/${inv.id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
+                          {inv.invoice_number || "Draft"}
+                        </Link>
+                      </TableCell>
                       <TableCell>
-                        <Link to={`/provider/customers/${inv.customer_id}`} className="hover:underline">
+                        <Link to={`/provider/customers/${inv.customer_id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
                           {inv.customers?.company_name || inv.customers?.name || "—"}
                         </Link>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {inv.contract_id ? (
-                          <Link to={`/provider/contracts/${inv.contract_id}`} className="hover:underline">
+                          <Link to={`/provider/contracts/${inv.contract_id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
                             {inv.contracts?.contract_name || "Contract"}
                           </Link>
                         ) : "—"}
@@ -191,7 +196,7 @@ export default function Billing() {
                       <TableCell className="text-sm">{format(new Date(inv.due_date), "dd MMM yyyy")}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(Number(inv.total), (inv.currency as any) || currency)}</TableCell>
                       <TableCell><Badge className={STATUS_STYLE[displayStatus as Invoice["status"]]} variant="outline">{displayStatus}</Badge></TableCell>
-                      <TableCell className="text-right space-x-2">
+                      <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
                         {inv.status === "DRAFT" && (
                           <Button size="sm" variant="outline" onClick={() => issueInvoice(inv)}>
                             <Send className="mr-1 h-3 w-3" /> Emite
