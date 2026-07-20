@@ -418,7 +418,11 @@ export default function ContractNew() {
                 <div className="space-y-2">
                   <Label>Visit frequency</Label>
                   <div className="flex gap-2">
-                    <Select value={String(visitCount)} onValueChange={(v) => setVisitCount(Number(v))}>
+                    <Select
+                      value={String(visitCount)}
+                      onValueChange={(v) => setVisitCount(Number(v))}
+                      disabled={visitType === "CONTRACT"}
+                    >
                       <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
@@ -426,12 +430,19 @@ export default function ContractNew() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Select value={visitType} onValueChange={setVisitType}>
+                    <Select
+                      value={visitType}
+                      onValueChange={(v) => {
+                        setVisitType(v);
+                        if (v === "CONTRACT") setVisitCount(1);
+                      }}
+                    >
                       <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="WEEK">per Week</SelectItem>
                         <SelectItem value="MONTH">per Month</SelectItem>
                         <SelectItem value="YEAR">per Year</SelectItem>
+                        <SelectItem value="CONTRACT">per Contract</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
