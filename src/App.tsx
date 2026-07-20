@@ -33,6 +33,7 @@ import SalesPipeline from "./pages/provider/SalesPipeline";
 import ProviderSettings from "./pages/provider/Settings";
 import AIAssistant from "./pages/provider/AIAssistant";
 import Billing from "./pages/provider/Billing";
+import InvoiceDetail from "./pages/provider/InvoiceDetail";
 
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientPropertyDetail from "./pages/client/ClientPropertyDetail";
@@ -176,6 +177,7 @@ function AppRoutes(): JSX.Element {
         <Route path="visits/:visitId" element={<VisitDetail />} />
         <Route path="visit-requests" element={<VisitRequests />} />
         <Route path="billing" element={<Billing />} />
+        <Route path="invoices/:invoiceId" element={<InvoiceDetail />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="settings" element={<ProviderSettings />} />
         <Route path="ai" element={<AIAssistant />} />
