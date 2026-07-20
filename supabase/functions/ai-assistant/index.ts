@@ -159,7 +159,8 @@ function getSystemPrompt(
 async function executeToolCall(
   fnName: string,
   args: Record<string, unknown>,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: ReturnType<typeof createClient>,
+  caller: { role: "provider" | "client"; userId: string; tenantId: string | null; customerId: string | null }
 ): Promise<string> {
   try {
     switch (fnName) {
@@ -168,6 +169,21 @@ async function executeToolCall(
           propertyId: string;
           items: { category: string; name: string; quantity: number; unit: string; notes?: string }[];
         };
+
+        if (caller.role !== "provider" || !caller.tenantId) {
+          return "Error: not authorized to modify inventory.";
+        }
+        // Ownership: property must belong to caller's tenant
+        {
+          const { data: prop } = await supabaseAdmin
+            .from("properties")
+            .select("id, tenant_id")
+            .eq("id", propertyId)
+            .maybeSingle();
+          if (!prop || prop.tenant_id !== caller.tenantId) {
+            return "Error: property not found or not in your workspace.";
+          }
+        }
 
         // Get inventory id for property
         const { data: inv, error: invErr } = await supabaseAdmin
@@ -203,6 +219,20 @@ async function executeToolCall(
 
       case "summarize_visit": {
         const { visitId } = args as { visitId: string };
+
+        if (caller.role !== "provider" || !caller.tenantId) {
+          return "Error: not authorized to summarize visits.";
+        }
+        {
+          const { data: check } = await supabaseAdmin
+            .from("service_orders")
+            .select("id, tenant_id")
+            .eq("id", visitId)
+            .maybeSingle();
+          if (!check || (check as any).tenant_id !== caller.tenantId) {
+            return "Error: visit not found or not in your workspace.";
+          }
+        }
 
         const { data: visit } = await supabaseAdmin
           .from("service_orders")
@@ -258,6 +288,26 @@ async function executeToolCall(
           items: { name: string; quantity: number; unit: string }[];
         };
 
+        // Ownership: client may only create requests on their own customer's property;
+        // provider may only create requests on their tenant's property.
+        {
+          const { data: prop } = await supabaseAdmin
+            .from("properties")
+            .select("id, tenant_id, customer_id")
+            .eq("id", propertyId)
+            .maybeSingle();
+          if (!prop) return "Error: property not found.";
+          if (caller.role === "provider") {
+            if (!caller.tenantId || (prop as any).tenant_id !== caller.tenantId) {
+              return "Error: property not in your workspace.";
+            }
+          } else {
+            if (!caller.customerId || (prop as any).customer_id !== caller.customerId) {
+              return "Error: property does not belong to your account.";
+            }
+          }
+        }
+
         const { data: order, error: orderErr } = await supabaseAdmin
           .from("service_orders")
           .insert([{
@@ -289,6 +339,20 @@ async function executeToolCall(
 
       case "confirm_tasks_done": {
         const { visitId, itemIds } = args as { visitId: string; itemIds?: string[] };
+
+        if (caller.role !== "provider" || !caller.tenantId) {
+          return "Error: not authorized to complete tasks.";
+        }
+        {
+          const { data: check } = await supabaseAdmin
+            .from("service_orders")
+            .select("id, tenant_id")
+            .eq("id", visitId)
+            .maybeSingle();
+          if (!check || (check as any).tenant_id !== caller.tenantId) {
+            return "Error: visit not found or not in your workspace.";
+          }
+        }
 
         if (itemIds && itemIds.length > 0) {
           const { error } = await supabaseAdmin
@@ -323,15 +387,67 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate caller — do NOT trust client-supplied role.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: claimsData, error: claimsErr } = await authClient.auth.getClaims(
+      authHeader.replace("Bearer ", "")
+    );
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = claimsData.claims.sub as string;
+
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Resolve real role + tenant/customer scope from user_roles + profiles
+    const [{ data: roleRows }, { data: profileRow }] = await Promise.all([
+      supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
+      supabaseAdmin
+        .from("profiles")
+        .select("tenant_id, customer_id")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
+    const roles = (roleRows ?? []).map((r: any) => r.role as string);
+    const isProvider = roles.includes("PROVIDER_ADMIN") || roles.includes("PROVIDER_STAFF");
+    const isClient = roles.includes("CLIENT_USER");
+    if (!isProvider && !isClient) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const caller = {
+      role: (isProvider ? "provider" : "client") as "provider" | "client",
+      userId,
+      tenantId: (profileRow as any)?.tenant_id ?? null,
+      customerId: (profileRow as any)?.customer_id ?? null,
+    };
+
     const { messages, context, user, properties } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const role = context?.role || "provider";
+    // Role is resolved server-side from user_roles; client-supplied context.role is ignored.
+    const role = caller.role;
     const systemPrompt = getSystemPrompt(role, context || {}, user, properties);
 
     // Filter tools based on role
@@ -391,7 +507,7 @@ serve(async (req) => {
       for (const tc of assistantMessage.tool_calls) {
         const fnName = tc.function.name;
         const fnArgs = JSON.parse(tc.function.arguments);
-        const result = await executeToolCall(fnName, fnArgs, supabaseAdmin);
+        const result = await executeToolCall(fnName, fnArgs, supabaseAdmin, caller);
         toolResults.push({
           role: "tool",
           tool_call_id: tc.id,
