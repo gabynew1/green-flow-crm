@@ -1,67 +1,93 @@
-## Goal
+## Invoice list/detail improvements + Outstanding tile on Customer Financial Summary
 
-When a visit is marked **COMPLETED**, auto-generate a **DRAFT invoice** that combines the contract's fixed charges + any ad-hoc items delivered on that visit. The provider reviews, adjusts if needed, and clicks **Issue** to send it. The Financial Summary card then reflects real invoiced/collected numbers instead of fake projections.
+### 1. Whole-row click → invoice detail (Billing.tsx)
+The row already navigates on click, but inner `<Link>` cells stop propagation. Clean it up:
+- Keep `onClick` on `TableRow` navigating to `/provider/invoices/:id`; add `hover:bg-muted/40`.
+- Remove inner `<Link>` wrappers on invoice number / customer / contract columns — plain styled text — so clicking anywhere on the row (except the Actions cell) opens the invoice.
+- Keep `stopPropagation` on the Actions cell so Emite / Încasat / PDF still work standalone.
 
-## Business rules
+### 2. Download PDF
+Add a "Descarcă PDF" button on `InvoiceDetail.tsx` for any non-DRAFT invoice, plus a small PDF icon-button in the Actions column of `Billing.tsx` rows (non-DRAFT).
+- Deps: `jspdf`, `jspdf-autotable`.
+- New `src/lib/invoice-pdf.ts` exporting `generateInvoicePdf(invoice, lines, tenant, customer)`:
+  - Header: tenant company_name, CUI, address.
+  - Bill-to: customer company_name / name, CUI/CNP, address.
+  - Meta: invoice number, issue date, due date, period.
+  - Table: description, qty, unit price, line total.
+  - Footer: subtotal / total, notes, "Generat din GreenGrassCRM".
+  - Filename: `Factura-${invoice_number}.pdf`.
+- `InvoiceDetail.tsx` fetches tenant header once on load and passes it to the helper.
 
-1. **Trigger** — every time a `service_orders` row transitions to `status = 'COMPLETED'`, exactly one draft invoice per completion is created.
-2. **Fixed portion (from contract)** — one line per `contract_line_items` row scoped to that visit:
-   - `PER_VISIT` → billed at `unit_price × quantity` for this visit.
-   - `PER_WEEK` / `PER_MONTH` → billed only on the **first completed visit of that period** (week / calendar month), then skipped until the next period. Prevents duplicate charges when a fixed-fee contract has multiple visits per month.
-   - `ONE_TIME` → billed only on the first ever completed visit of the contract.
-3. **Ad-hoc portion (from the visit itself)** — one line per `service_order_items` row where `is_completed = true` AND `source = 'ADHOC'` (not tied to a contract line). Priced at the item's `unit_price × quantity`.
-4. **Empty invoices are skipped** — if no fixed line qualifies (period already billed) and no ad-hoc items were delivered, no invoice is created.
-5. **Status flow** — `DRAFT` (auto) → provider clicks **Issue** → `ISSUED` (customer-visible, notification email sent) → `PAID` (when a payment is recorded) or `OVERDUE` (past due date). Provider can also `CANCELED`.
-6. **Idempotency** — re-completing the same visit (uncomplete → complete again) must not create a second draft; reuse or restore the existing draft.
-7. **Un-completing a visit** — if a visit is moved back out of `COMPLETED`, its **DRAFT** invoice is deleted; **ISSUED/PAID** invoices are left alone (already sent to customer — provider must void manually).
+### 3. Audit trail for "Marchează încasat"
+`invoice_payments.recorded_by_user_id` already exists but is never populated. Fix it and surface it.
 
-## UX
+- Update both `markPaid` call sites (`Billing.tsx`, `InvoiceDetail.tsx`) to include `recorded_by_user_id: user.id`.
+- DB safety net (migration):
+  - `BEFORE INSERT` trigger that sets `recorded_by_user_id = auth.uid()` when NULL.
+  - `BEFORE UPDATE` trigger blocking changes to `recorded_by_user_id`.
+  - `AFTER INSERT` trigger writing an `activity_log` row (`action = 'invoice.marked_paid'`, metadata: amount, method, payment_id) so it appears in the tenant activity feed no matter which code path recorded the payment.
+- `InvoiceDetail.tsx`: when PAID, show an "Încasat de {full_name} · {paid_at}" line under the total (join `profiles` on `recorded_by_user_id`).
 
-- **Visit completion dialog** — after the provider marks the visit complete, show a toast "Draft invoice created · Review" with a link to the new invoice. If skipped (rule 4), show "No invoice generated · already billed this period".
-- **Invoice detail page** — add an **Issue Invoice** button (visible only on `DRAFT`). On click: set `issue_date = today`, `due_date = today + tenant default net-days` (default 14), status `ISSUED`, send `contract-sent`-style notification email to the customer. Provider can edit line items, quantities, prices, and notes while `DRAFT`.
-- **Provider Billing dashboard** — no structural change; new drafts show up in the existing "Drafts" filter.
-- **Customer Dashboard Financial Summary** — replace the fake projection tiles with real invoice-based numbers (see next section).
+### 4. New "De încasat" tile on Customer Financial Summary
+On each customer's dashboard (`src/components/provider/CustomerDashboard.tsx`), add a fourth tile to the Financial Summary card:
+- Label: "De încasat" (outstanding).
+- Value: sum of `invoices.total` where `customer_id = <this customer>` AND `status IN ('ISSUED','OVERDUE')` (i.e. everything issued and not yet paid — includes restanțe by definition). Sub-label shows the restanțe subset: "din care X RON restanțe" using invoices with `status='OVERDUE' OR (status='ISSUED' AND due_date < today)`.
+- Style: red/amber tone when > 0, muted when 0.
+- Clickable: wrap the tile in a `Link` to `/provider/billing?customer=<id>&status=OVERDUE`. `Billing.tsx` reads these URL params on mount:
+  - `customer` → pre-fills a customer filter (currently only free-text search exists — extend `search` OR add a dedicated `customerId` state and disable the search box while active, showing a removable chip "Client: <name>").
+  - `status=OVERDUE` → sets `statusFilter` to `OVERDUE`.
+- Data source: reuse the existing `invoices` fetch already in `CustomerDashboard.loadInvoices` (fetches this year's invoices for the customer). Widen the query if needed to include all unpaid invoices regardless of year — outstanding shouldn't be YTD-scoped.
 
-## Financial Summary card — real numbers
+### Technical section
 
-`src/components/provider/CustomerDashboard.tsx`
+**Files to edit**
+- `src/pages/provider/Billing.tsx` — unwrap inner Links; read `customer` and `status` URL params; add customer-filter chip; add per-row PDF icon; pass `user.id` to markPaid.
+- `src/pages/provider/InvoiceDetail.tsx` — Download PDF button; fetch tenant header + payments + recorder profile; show audit line; pass `user.id` to markPaid.
+- `src/components/provider/CustomerDashboard.tsx` — add "De încasat" tile linking to filtered billing view; widen invoice query to include all unpaid rows.
+- `src/lib/invoice-pdf.ts` — new jsPDF helper.
 
-- **Total Contract Value** — keep the current forward-looking calc, relabel sublabel as "contracted".
-- **Monthly Billing** — sum of `invoices.total` for this customer where `issue_date` is in the current month AND `status IN ('ISSUED','PAID','OVERDUE')`. Split into Contract (`source='CONTRACT_CYCLE'`) vs Ad-hoc (`source='ADHOC'` or MANUAL). Drafts excluded.
-- **YTD Revenue** — two numbers side by side:
-  - **Collected** = `SUM(invoice_payments.amount)` for invoices of this customer in the current year.
-  - **Invoiced** = `SUM(invoices.total)` for `status IN ('ISSUED','PAID','OVERDUE')` in the current year.
-  - Same Contract vs Ad-hoc split.
-- Empty state: "No invoices yet" when zero rows.
+**Migration**
+```sql
+CREATE OR REPLACE FUNCTION public.set_invoice_payment_recorder()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.recorded_by_user_id IS NULL THEN
+    NEW.recorded_by_user_id := auth.uid();
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_invoice_payments_set_recorder
+BEFORE INSERT ON public.invoice_payments
+FOR EACH ROW EXECUTE FUNCTION public.set_invoice_payment_recorder();
 
-Delete `monthlyContractValue * now.getMonth()` (line 335) entirely.
+CREATE OR REPLACE FUNCTION public.lock_invoice_payment_recorder()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF NEW.recorded_by_user_id IS DISTINCT FROM OLD.recorded_by_user_id THEN
+    RAISE EXCEPTION 'recorded_by_user_id is immutable';
+  END IF;
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_invoice_payments_lock_recorder
+BEFORE UPDATE ON public.invoice_payments
+FOR EACH ROW EXECUTE FUNCTION public.lock_invoice_payment_recorder();
 
-## Technical section
+CREATE OR REPLACE FUNCTION public.log_invoice_payment_activity()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.activity_log (tenant_id, user_id, action, entity_type, entity_id, metadata)
+  VALUES (NEW.tenant_id, NEW.recorded_by_user_id, 'invoice.marked_paid', 'invoice', NEW.invoice_id,
+          jsonb_build_object('amount', NEW.amount, 'method', NEW.method, 'payment_id', NEW.id));
+  RETURN NEW;
+END $$;
+CREATE TRIGGER trg_invoice_payments_activity_log
+AFTER INSERT ON public.invoice_payments
+FOR EACH ROW EXECUTE FUNCTION public.log_invoice_payment_activity();
+```
 
-### 1. Database migration
+**Deps**: `bun add jspdf jspdf-autotable`.
 
-- Add `service_order_id UUID REFERENCES service_orders(id)` to `public.invoices` + partial unique index `(service_order_id) WHERE service_order_id IS NOT NULL AND status='DRAFT'` for idempotency.
-- Add `billed_period_key TEXT` to `public.contract_line_items` — not used; instead track billing at the invoice line level via existing `contract_line_item_id` on `invoice_line_items` + the invoice's `period_start`/`period_end`. So: no new column, we check "has this contract line already been billed for the period containing this visit's performed_date?" against `invoice_line_items` joined to `invoices`.
-- New SECURITY DEFINER function `public.fn_generate_invoice_for_visit(p_service_order_id uuid) returns uuid` — encapsulates rules 1–4 & 6, returns the invoice id (or NULL if skipped). Callable from an AFTER UPDATE trigger on `service_orders` when status transitions to `COMPLETED`, and manually from the "Regenerate draft" button.
-- New trigger `trg_service_orders_after_complete` — calls the function.
-- New trigger on `service_orders` for un-complete transitions → deletes DRAFT invoice tied to that `service_order_id`.
-- `GRANT EXECUTE` on the function to `authenticated` (used by the frontend regenerate button) and `service_role`.
-- Invoice numbering: use existing pattern (check current logic; if none, `INV-YYYY-NNNN` per tenant with a sequence table).
-
-### 2. Frontend changes
-
-- `src/pages/provider/InvoiceDetail.tsx` (create or extend existing): add "Issue Invoice" and "Regenerate from visit" actions, editable line items while DRAFT.
-- `src/components/provider/CompleteVisitDialog.tsx` (or wherever the complete action lives): after the mutation succeeds, read the returned invoice id and toast + link.
-- `src/components/provider/CustomerDashboard.tsx`: load `invoices` + `invoice_payments` for the customer, compute the four aggregates above, rewrite the three tiles.
-- `src/pages/provider/Billing.tsx`: verify draft invoices appear in the Drafts filter (should — no change needed).
-
-### 3. Email
-
-- Reuse the existing transactional-email pipeline. Add one new template `invoice-issued` (customer-facing, RO + EN) triggered by the Issue button. Do NOT trigger on DRAFT creation.
-
-## Out of scope
-
-- Auto-issuing invoices (always requires provider approval).
-- Recurring cron-based invoicing for contracts with no visits (that's a different model; current design is visit-driven).
-- PDF export & e-Factura submission (existing separate work).
-- Partial payments UI beyond what already exists in `invoice_payments`.
+### Out of scope
+- Server-side PDF rendering / fully branded template beyond a clean basic layout.
+- e-Factura XML export.
+- Partial payments UI (still one-click full amount as today).

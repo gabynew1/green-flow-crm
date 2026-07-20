@@ -12,9 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { generateInvoicePdf } from "@/lib/invoice-pdf";
 
 type Invoice = {
   id: string;
@@ -59,12 +60,15 @@ const STATUS_STYLE: Record<Invoice["status"], string> = {
 export default function InvoiceDetail() {
   const { invoiceId } = useParams();
   const navigate = useNavigate();
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
   const currency = useTenantCurrency();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [lines, setLines] = useState<Line[]>([]);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [payment, setPayment] = useState<{ paid_at: string; amount: number; recorder_name: string | null } | null>(null);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
 
   const load = async () => {
     if (!invoiceId) return;
@@ -85,6 +89,40 @@ export default function InvoiceDetail() {
       .eq("invoice_id", invoiceId)
       .order("created_at", { ascending: true });
     setLines((l as any) ?? []);
+
+    // Payment audit trail
+    const { data: pays } = await supabase
+      .from("invoice_payments")
+      .select("paid_at, amount, recorded_by_user_id")
+      .eq("invoice_id", invoiceId)
+      .order("paid_at", { ascending: false })
+      .limit(1);
+    const p = (pays as any)?.[0];
+    if (p) {
+      let recorderName: string | null = null;
+      if (p.recorded_by_user_id) {
+        const { data: prof } = await supabase
+          .from("profiles").select("full_name, email").eq("user_id", p.recorded_by_user_id).maybeSingle();
+        recorderName = (prof as any)?.full_name || (prof as any)?.email || null;
+      }
+      setPayment({ paid_at: p.paid_at, amount: Number(p.amount), recorder_name: recorderName });
+    } else {
+      setPayment(null);
+    }
+
+    // Party info for PDF (fetched once)
+    if (!tenantInfo && (data as any).tenant_id) {
+      const { data: t } = await supabase.from("tenants")
+        .select("company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone")
+        .eq("id", (data as any).tenant_id).maybeSingle();
+      setTenantInfo(t);
+    }
+    if ((data as any).customer_id) {
+      const { data: c } = await supabase.from("customers")
+        .select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone")
+        .eq("id", (data as any).customer_id).maybeSingle();
+      setCustomerInfo(c);
+    }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [invoiceId]);
@@ -165,10 +203,24 @@ export default function InvoiceDetail() {
       tenant_id: tenantId,
       amount: invoice.total,
       method: "TRANSFER",
+      recorded_by_user_id: user?.id ?? null,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Marcată încasat");
     load();
+  };
+
+  const downloadPdf = () => {
+    if (!invoice) return;
+    const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
+    const t = tenantInfo ?? {};
+    const c = customerInfo ?? {};
+    generateInvoicePdf(
+      invoice as any,
+      lines as any,
+      { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+    );
   };
 
   if (!invoice) {
@@ -190,6 +242,11 @@ export default function InvoiceDetail() {
           <Badge className={STATUS_STYLE[invoice.status]} variant="outline">{invoice.status}</Badge>
         </div>
         <div className="flex items-center gap-2">
+          {invoice.status !== "DRAFT" && (
+            <Button variant="outline" size="sm" onClick={downloadPdf}>
+              <Download className="h-4 w-4 mr-1" /> Descarcă PDF
+            </Button>
+          )}
           {isDraft && invoice.service_order_id && (
             <Button variant="outline" size="sm" onClick={regenerate} disabled={busy}>
               <RefreshCw className="h-4 w-4 mr-1" /> Regenerează din vizită
@@ -240,6 +297,15 @@ export default function InvoiceDetail() {
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Total</p>
           <p className="text-2xl font-bold text-primary">{fmt(Number(invoice.total))}</p>
           <p className="text-xs text-muted-foreground mt-1">{lines.length} linii</p>
+          {invoice.status === "PAID" && payment && (
+            <div className="mt-2 pt-2 border-t flex items-start gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+              <UserCheck className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              <div>
+                <div>Încasat de <span className="font-medium">{payment.recorder_name || "—"}</span></div>
+                <div className="text-muted-foreground">{format(new Date(payment.paid_at), "dd MMM yyyy HH:mm")}</div>
+              </div>
+            </div>
+          )}
         </CardContent></Card>
       </div>
 

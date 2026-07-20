@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import {
   startOfWeek, endOfWeek, isWithinInterval, addMonths, differenceInWeeks, differenceInMonths,
 } from "date-fns";
 import {
-  BarChart3, Calendar, TrendingUp, Receipt, CheckCircle2, Clock, AlertTriangle,
+  BarChart3, Calendar, TrendingUp, Receipt, CheckCircle2, Clock, AlertTriangle, Wallet,
 } from "lucide-react";
 import { getContractConsumption, LineItemConsumption } from "@/lib/contract-consumption";
 import { formatCurrency, CurrencyCode } from "@/lib/currency";
@@ -77,12 +78,14 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
 
   const loadInvoices = async () => {
     if (!customerId) return;
+    // Fetch all invoices this year PLUS every unpaid invoice regardless of year
+    // so the "De încasat" tile reflects true outstanding balance.
     const yearStartIso = format(startOfYear(new Date()), "yyyy-MM-dd");
     const { data: invs } = await supabase
       .from("invoices")
-      .select("id, total, status, source, contract_id, issue_date, paid_at")
+      .select("id, total, status, source, contract_id, issue_date, due_date, paid_at")
       .eq("customer_id", customerId)
-      .gte("issue_date", yearStartIso);
+      .or(`issue_date.gte.${yearStartIso},status.in.(ISSUED,OVERDUE)`);
     setInvoices((invs as any) ?? []);
     const ids = ((invs as any) ?? []).map((i: any) => i.id);
     if (ids.length > 0) {
@@ -259,6 +262,15 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     .reduce((s, p) => s + Number(p.amount || 0), 0);
   const hasInvoices = invoices.length > 0;
 
+  // Outstanding across all time (issued & not paid)
+  const outstandingInvoices = invoices.filter(
+    (i) => i.status === "ISSUED" || i.status === "OVERDUE",
+  );
+  const outstandingTotal = outstandingInvoices.reduce((s, i) => s + Number(i.total || 0), 0);
+  const overdueTotal = outstandingInvoices
+    .filter((i) => i.status === "OVERDUE" || (i.status === "ISSUED" && i.due_date && new Date(i.due_date) < now))
+    .reduce((s, i) => s + Number(i.total || 0), 0);
+
   if (activeContracts.length === 0 && visits.length === 0) return null;
 
   return (
@@ -355,7 +367,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* Total Contract Value */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Contract Value</p>
@@ -406,6 +418,33 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
                 <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
               )}
             </div>
+
+            {/* Outstanding — De încasat */}
+            <Link
+              to={`/provider/billing?customer=${customerId}&status=${overdueTotal > 0 ? "OVERDUE" : "ISSUED"}`}
+              className={`rounded-lg border p-3 block transition-colors hover:bg-muted/40 ${
+                overdueTotal > 0
+                  ? "border-destructive/40 bg-destructive/5"
+                  : outstandingTotal > 0
+                    ? "border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10"
+                    : ""
+              }`}
+            >
+              <p className="text-[11px] uppercase tracking-wide flex items-center gap-1 text-muted-foreground">
+                <Wallet className="h-3 w-3" /> De încasat
+              </p>
+              <p className={`text-xl font-bold mt-1 ${overdueTotal > 0 ? "text-destructive" : ""}`}>
+                {fmt(outstandingTotal)}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {outstandingInvoices.length} factur{outstandingInvoices.length === 1 ? "ă" : "i"} neîncasate
+              </p>
+              {overdueTotal > 0 && (
+                <p className="text-[10px] text-destructive mt-1 font-medium">
+                  din care {fmt(overdueTotal)} restanțe
+                </p>
+              )}
+            </Link>
           </div>
         </CardContent>
       </Card>
