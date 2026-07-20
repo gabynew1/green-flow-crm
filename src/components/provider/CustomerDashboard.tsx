@@ -23,6 +23,8 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const [allLineItems, setAllLineItems] = useState<any[]>([]);
   const [consumptionData, setConsumptionData] = useState<Map<string, LineItemConsumption[]>>(new Map());
   const [tenantCurrency, setTenantCurrency] = useState<CurrencyCode>("RON");
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
 
   const activeContracts = useMemo(
     () => contracts.filter(c => c.status === "ACTIVE" || c.status === "SIGNED"),
@@ -32,6 +34,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   useEffect(() => {
     loadData();
     loadCurrency();
+    loadInvoices();
   }, [contracts]);
 
   const loadData = async () => {
@@ -69,6 +72,27 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
       if (tenant && (tenant as any).currency) {
         setTenantCurrency((tenant as any).currency as CurrencyCode);
       }
+    }
+  };
+
+  const loadInvoices = async () => {
+    if (!customerId) return;
+    const yearStartIso = format(startOfYear(new Date()), "yyyy-MM-dd");
+    const { data: invs } = await supabase
+      .from("invoices")
+      .select("id, total, status, source, contract_id, issue_date, paid_at")
+      .eq("customer_id", customerId)
+      .gte("issue_date", yearStartIso);
+    setInvoices((invs as any) ?? []);
+    const ids = ((invs as any) ?? []).map((i: any) => i.id);
+    if (ids.length > 0) {
+      const { data: pays } = await supabase
+        .from("invoice_payments")
+        .select("invoice_id, amount, paid_at")
+        .in("invoice_id", ids);
+      setPayments((pays as any) ?? []);
+    } else {
+      setPayments([]);
     }
   };
 
