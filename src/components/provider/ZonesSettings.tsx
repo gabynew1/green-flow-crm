@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -27,6 +28,7 @@ interface ZoneRow {
   id: string;
   name: string;
   color: string;
+  description: string | null;
   properties: { count: number }[] | null;
 }
 
@@ -42,6 +44,7 @@ export default function ZonesSettings() {
   const [editing, setEditing] = useState<ZoneRow | null>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>("#10b981");
+  const [description, setDescription] = useState<string>("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -53,7 +56,7 @@ export default function ZonesSettings() {
     setLoading(true);
     const { data, error } = await supabase
       .from("service_zones")
-      .select("id, name, color, properties(count)")
+      .select("id, name, color, description, properties(count)")
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: true });
     if (!error) setZones((data ?? []) as unknown as ZoneRow[]);
@@ -68,6 +71,7 @@ export default function ZonesSettings() {
     setEditing(null);
     setName("");
     setColor("#10b981");
+    setDescription("");
     setNameError(null);
     setDialogOpen(true);
   };
@@ -76,6 +80,7 @@ export default function ZonesSettings() {
     setEditing(z);
     setName(z.name);
     setColor(safeColor(z.color));
+    setDescription(z.description ?? "");
     setNameError(null);
     setDialogOpen(true);
   };
@@ -89,9 +94,11 @@ export default function ZonesSettings() {
     }
     setSaving(true);
     setNameError(null);
-    const payload = { tenant_id: tenantId, name: trimmed, color: safeColor(color) };
+    const trimmedDesc = description.trim();
+    const descValue = trimmedDesc.length > 0 ? trimmedDesc : null;
+    const payload = { tenant_id: tenantId, name: trimmed, color: safeColor(color), description: descValue };
     const { error } = editing
-      ? await supabase.from("service_zones").update({ name: trimmed, color: safeColor(color) }).eq("id", editing.id)
+      ? await supabase.from("service_zones").update({ name: trimmed, color: safeColor(color), description: descValue }).eq("id", editing.id)
       : await supabase.from("service_zones").insert(payload);
     setSaving(false);
     if (error) {
@@ -163,8 +170,17 @@ export default function ZonesSettings() {
                       style={{ backgroundColor: safeColor(z.color) }}
                       aria-hidden
                     />
-                    <span className="font-medium truncate">{z.name}</span>
-                    <Badge variant="secondary" className="text-[10px]">{count} properties</Badge>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium truncate">{z.name}</span>
+                        <Badge variant="secondary" className="text-[10px]">{count} properties</Badge>
+                      </div>
+                      {z.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5 whitespace-pre-wrap">
+                          {z.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(z)} disabled={!canEdit}>
@@ -217,6 +233,16 @@ export default function ZonesSettings() {
                 aria-invalid={!!nameError}
               />
               {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="zone-description">Description / addresses</Label>
+              <Textarea
+                id="zone-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="List streets or landmarks that belong to this zone"
+                rows={4}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Color</Label>
