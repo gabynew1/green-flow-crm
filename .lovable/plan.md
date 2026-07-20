@@ -1,119 +1,38 @@
-## Deliverable
-Create `TEST_PLAN.md` at the repo root as the **single source of truth for QA scenarios**. Future test runs must open this file first, execute the relevant sections, and update it when features change.
+## B1 · Billing invoices list 400 (missing FK for PostgREST embed)
 
-Also save a Core memory rule: *"Always consult and update `TEST_PLAN.md` before running or designing QA scenarios."*
+Confirmed: `public.invoices` has zero FKs on `customer_id` / `contract_id`. `Billing.tsx` embeds `customers(...)` and `contracts(...)`, which PostgREST rejects.
 
-## File contents — `TEST_PLAN.md`
+Fix (schema, not code — preserves the current query shape and enables future embeds):
+- Migration: add `invoices_customer_id_fkey` → `public.customers(id) ON DELETE RESTRICT`, and `invoices_contract_id_fkey` → `public.contracts(id) ON DELETE SET NULL`.
+- No code changes; `Billing.tsx` embed starts resolving.
+- Verification: `psql \d public.invoices` shows both FKs; reload `/provider/billing` — table renders, no 400.
 
-```markdown
-# GreenGrassCRM — Test Plan
+## B2 · Customer email history 403 for PROVIDER_ADMIN
 
-Living document. Always read this before running QA. Update it whenever a
-feature ships or a scenario changes.
+Confirmed root cause: `get_customer_email_history(uuid,int,int)` has no `EXECUTE` grant to `authenticated` (only `postgres` / `service_role`). PostgREST returns 403 before the function body ever runs, so the `is_provider` gate is fine — the grant is missing.
 
-## How to use
-- Pick the sections relevant to the change under test (or run the full suite).
-- Drive Playwright against `http://localhost:8080`. Screenshots to `/tmp/browser/qa/`.
-- Cross-check UI claims with SQL reads. Report pass/fail per numbered step.
+Fix:
+- Migration: `GRANT EXECUTE ON FUNCTION public.get_customer_email_history(uuid, integer, integer) TO authenticated;`
+- No code changes needed. The function already restricts to `is_provider(auth.uid())` + same-tenant customer, so this is a safe grant.
+- Verification: as `test@acme.io`, open a customer → "Emails sent to this customer" card loads without 403.
 
-## Test accounts
-- Provider: `test@acme.io` / `Green123#Grass` (tenant: Hero dinamo)
-- Client:   `test@acme.ro` / `Green123#Grass`
-- Super:   `test-public-onboard@example.com`
+## B3 · Zone `description` field never shipped
 
-## Seed policy
-Prefer UI-driven creation so we actually test UX. Fall back to SQL only when
-the UI path is blocked. Never destructive.
+`public.service_zones` has no `description` column and `ZonesSettings.tsx` dialog exposes only Name + color. TEST_PLAN §3 / §13 require a free-text description.
 
----
+Fix (data + UI):
+1. Migration: `ALTER TABLE public.service_zones ADD COLUMN description text;` (nullable, no default).
+2. `src/components/provider/ZonesSettings.tsx`:
+   - Add `description` to the local form state and to the create/edit mutation payload.
+   - Add a `<Textarea>` labeled "Description / addresses" beneath the name field in the New/Edit Zone dialog with a short helper ("List streets or landmarks that belong to this zone").
+   - In the zone list row, show a 1–2 line clamp of the description when present.
+3. `src/components/provider/ZoneChip.tsx`: unchanged (chip stays name-only); add zone description into the tooltip only if trivially available — otherwise leave for a follow-up.
+4. Verification: create + edit a zone with a description; reopen dialog and confirm value persists; list shows the clamp.
 
-## Core E2E scenario (Provider)
+## Order of execution
+1. Single migration containing all three DB changes (2 FKs, 1 GRANT, 1 ADD COLUMN).
+2. Frontend edit to `ZonesSettings.tsx` only.
+3. Manual smoke on `/provider/billing`, customer email history card, and Settings → Zones.
 
-1. Login → land on `/provider/customers`.
-2. Open "QA Test Client" (create via UI + seed 1 property if missing).
-3. **Service Zones** — Settings → Zones. Create 2 zones with descriptions if
-   none exist (`Zone Nord - Voluntari`, `Zone Sud - Berceni`). Assign the
-   property to a random zone from the property edit UI. Verify description
-   persists on reopen.
-4. **Create 1-year maintenance contract** — WEEKLY, 12 months, 3–5 random
-   catalog services. Activate.
-5. **Auto-seeded first visit** — exactly ONE upcoming visit exists after
-   activation. Zone chip renders on the row.
-6. **Generate next 30 days** — open dialog, confirm preview, submit. Visits
-   appear in calendar + list. Overload highlighting sane.
-7. **Reschedule** onto a day already at 4+ visits → soft warning toast (no
-   block), calendar day orange with team-count tooltip, "Rescheduled from …"
-   amber badge with NEW date prominent.
-8. **Quick-cancel** an overdue/upcoming visit from customer Visits section →
-   10s Undo toast restores it.
-9. **Ad-hoc visit** — Create dialog, use service search, custom `HH:MM–HH:MM`
-   slot, save → shows on calendar + customer list.
-10. **List parity** — same visit renders identically in `/provider/visits` and
-    on the customer Visits tab (shared `VisitRow`, same actions).
-
-## Feature coverage
-
-### 11. Billing (Provider + Client)
-- Mark 1–2 visits COMPLETED → invoices generated.
-- `/provider/billing`: KPIs (collected / outstanding / overdue); mark paid via
-  checkbox persists and rebuckets.
-- Client `/client/billing`: Overdue / Upcoming (next subscription + ad-hoc) /
-  History match provider numbers. Cross-check `invoices`,`invoice_payments`.
-
-### 12. Account details editing
-- `/provider/customers/:id/manage`: edit name, contact person, email, phone,
-  company → both `profiles` and `customers` updated; header reflects without
-  reload.
-
-### 13. Zone description + ZoneChip everywhere
-- ZoneChip appears in: `ServiceVisits` row, `VisitDetail`, `ClientVisitDetail`,
-  customer `VisitRow`.
-- Zone filter dropdown on `/provider/visits` narrows correctly.
-
-### 14. Overdue / Upcoming / Past sections + Undo
-- Backdate a visit via SQL → lands in Overdue. Collapsibles work. Quick-`X`
-  on overdue. Undo restores within 10s.
-
-### 15. Reschedule prominence & conflict warning
-- New date is the large/primary label; amber "Rescheduled from …" shows old
-  date. Conflict → warn, don't block.
-
-### 16. Needs-scheduling widget (Dashboard)
-- Cancel all upcoming visits for one active contract → contract appears in
-  "Needs scheduling soon" on `/provider/dashboard`.
-
-### 17. Self-serve tier switching + trial soft-lock
-- Switch tier via UI → entitlements refresh, gated feature toggles.
-- Simulate expiry (`trial_ends_at = yesterday`) on throwaway tenant → downgrade
-  to Patio, no data loss.
-
-### 18. Language switcher (RO default, EN toggle)
-- Globe → EN, reload → persists (reads `profiles.locale`). Service Catalog +
-  Inventory categories switch language via translation tables, not just static.
-
-### 19. `per_contract` frequency (regression guard)
-- Create contract with `per Contract` frequency → visit count auto-locks to 1;
-  only one visit ever seeded.
-
-### 20. Notifications & audit
-- Bell shows new entries after contract create + visit cancel.
-- `super_admin_audit_logs` / `activity_log` rows exist via SQL.
-
-### 21. Console / network hygiene
-- Aggregate console errors + 4xx/5xx across the run into a single Health
-  report grouped by page.
-
-## Report format
-- Feature coverage matrix: feature → step → pass/fail/screenshot.
-- Bugs: reproducible defects with steps + evidence.
-- UX friction: top 5 ranked with one-line fix each.
-
-## Maintenance
-- When a feature ships or changes, add or update its section here in the
-  same PR.
-- When a bug is fixed, add a regression step referencing it.
-```
-
-## Memory update
-Append to `mem://index.md` Core:
-> Always consult and update `TEST_PLAN.md` before running or designing QA scenarios.
+## Out of scope
+No changes to the invoice query itself, no changes to `is_provider` / RPC body, no changes to `ZoneChip` layout, no data backfill (description defaults to NULL). B4 (sidebar i18n) and B5 (sections vs tabs) remain deferred per TEST_RUN report.
