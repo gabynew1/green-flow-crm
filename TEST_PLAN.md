@@ -1,11 +1,3 @@
-## Deliverable
-Create `TEST_PLAN.md` at the repo root as the **single source of truth for QA scenarios**. Future test runs must open this file first, execute the relevant sections, and update it when features change.
-
-Also save a Core memory rule: *"Always consult and update `TEST_PLAN.md` before running or designing QA scenarios."*
-
-## File contents — `TEST_PLAN.md`
-
-```markdown
 # GreenGrassCRM — Test Plan
 
 Living document. Always read this before running QA. Update it whenever a
@@ -110,10 +102,5 @@ the UI path is blocked. Never destructive.
 
 ## Maintenance
 - When a feature ships or changes, add or update its section here in the
-  same PR.
+  same commit.
 - When a bug is fixed, add a regression step referencing it.
-```
-
-## Memory update
-Append to `mem://index.md` Core:
-> Always consult and update `TEST_PLAN.md` before running or designing QA scenarios.
