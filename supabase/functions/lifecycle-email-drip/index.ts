@@ -46,6 +46,17 @@ interface Candidate {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  // Cron/internal-only: reject any caller that doesn't present the service-role key
+  // via the x-internal-service-key header. pg_cron sets this; user JWTs never do.
+  const internalKey = req.headers.get('x-internal-service-key')
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!internalKey || !serviceKey || internalKey !== serviceKey) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
+    })
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
