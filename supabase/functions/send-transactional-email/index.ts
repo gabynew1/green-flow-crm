@@ -25,6 +25,26 @@ function generateToken(): string {
 
 // Auth: verify_jwt = false; validate caller in code via getClaims().
 
+// Per-template caller allowlist. Templates not listed here are internal-only
+// (require the x-internal-service-key header). This blocks a signed-in user
+// from sending arbitrary branded emails to arbitrary recipients.
+//
+//   "provider"    → PROVIDER_ADMIN or PROVIDER_STAFF may invoke; recipient must
+//                   be in caller's tenant (or match caller's own email).
+//   "client"      → CLIENT_USER may invoke; recipient must be a provider in
+//                   the caller's tenant (or match caller's own email).
+//   "self"        → any authenticated user, but recipient MUST match their email.
+type CallerScope = 'provider' | 'client' | 'self'
+const TEMPLATE_CALLER_ALLOWLIST: Record<string, CallerScope[]> = {
+  'contract-sent':        ['provider'],
+  'offer-sent':           ['provider'],
+  'visit-report':         ['provider'],
+  'inspection-scheduled': ['provider'],
+  'contract-response':    ['client'],
+  'offer-response':       ['client'],
+  'test-notification':    ['provider', 'self'],
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -40,6 +60,12 @@ Deno.serve(async (req) => {
 
   // Internal service-role bypass for server-to-server calls (e.g. password reset).
   const isInternalCall = !!internalKey && !!supabaseServiceKey && internalKey === supabaseServiceKey
+
+  // Caller identity resolved from JWT (only for non-internal calls)
+  let callerUserId: string | null = null
+  let callerEmail: string | null = null
+  let callerRoles: string[] = []
+  let callerTenantId: string | null = null
 
   if (!isInternalCall) {
     if (!authHeader?.startsWith('Bearer ')) {
@@ -64,6 +90,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    callerUserId = (claimsData.claims.sub as string) ?? null
+    callerEmail = ((claimsData.claims.email as string | undefined) ?? '').toLowerCase() || null
   }
 
   if (!supabaseUrl || !supabaseServiceKey || !anonKey) {
@@ -156,6 +184,104 @@ Deno.serve(async (req) => {
 
   // Resolve governance category for this template (defaults to 'account' = required)
   const category = TEMPLATE_CATEGORY[templateName] ?? 'account'
+
+  // Enforce per-template caller allowlist for non-internal calls.
+  if (!isInternalCall) {
+    const allowedScopes = TEMPLATE_CALLER_ALLOWLIST[templateName]
+    if (!allowedScopes || allowedScopes.length === 0) {
+      // Not in the allowlist → this template is internal-only.
+      console.warn('Template not callable by end users', { templateName, callerUserId })
+      return new Response(
+        JSON.stringify({ error: 'Template not permitted for this caller' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Resolve caller role + tenant server-side (never trust the client).
+    const [{ data: roleRows }, { data: profileRow }] = await Promise.all([
+      supabase.from('user_roles').select('role').eq('user_id', callerUserId!),
+      supabase.from('profiles').select('tenant_id, email').eq('user_id', callerUserId!).maybeSingle(),
+    ])
+    callerRoles = ((roleRows ?? []) as { role: string }[]).map((r) => r.role)
+    callerTenantId = ((profileRow as any)?.tenant_id as string | null) ?? null
+    if (!callerEmail && (profileRow as any)?.email) {
+      callerEmail = String((profileRow as any).email).toLowerCase()
+    }
+
+    const isProvider =
+      callerRoles.includes('PROVIDER_ADMIN') || callerRoles.includes('PROVIDER_STAFF')
+    const isClientUser = callerRoles.includes('CLIENT_USER')
+
+    const recipientLower = effectiveRecipient.toLowerCase()
+    let scopeSatisfied = false
+
+    for (const scope of allowedScopes) {
+      if (scope === 'self') {
+        if (callerEmail && recipientLower === callerEmail) {
+          scopeSatisfied = true
+          break
+        }
+      } else if (scope === 'provider' && isProvider) {
+        if (!callerTenantId) continue
+        // Caller-supplied tenantId must match the caller's own tenant.
+        if (tenantId && tenantId !== callerTenantId) continue
+        // Recipient must be either the caller, or a customer/profile in the caller's tenant.
+        if (callerEmail && recipientLower === callerEmail) { scopeSatisfied = true; break }
+        const [{ data: cust }, { data: prof }] = await Promise.all([
+          supabase.from('customers').select('id').eq('tenant_id', callerTenantId).ilike('email', recipientLower).limit(1),
+          supabase.from('profiles').select('user_id').eq('tenant_id', callerTenantId).ilike('email', recipientLower).limit(1),
+        ])
+        if ((cust && cust.length > 0) || (prof && prof.length > 0)) {
+          scopeSatisfied = true
+          break
+        }
+      } else if (scope === 'client' && isClientUser) {
+        if (callerEmail && recipientLower === callerEmail) { scopeSatisfied = true; break }
+        // Recipient must be a provider in the caller's tenant.
+        const { data: providerProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, tenant_id')
+          .ilike('email', recipientLower)
+          .not('tenant_id', 'is', null)
+          .limit(5)
+        if (providerProfiles && providerProfiles.length > 0) {
+          // Confirm caller shares tenant with recipient via client_connections/profile
+          const { data: myProfile } = await supabase
+            .from('profiles')
+            .select('customer_id')
+            .eq('user_id', callerUserId!)
+            .maybeSingle()
+          const myCustomerId = (myProfile as any)?.customer_id as string | null
+          if (myCustomerId) {
+            const providerTenantIds = new Set(
+              providerProfiles.map((p: any) => p.tenant_id).filter(Boolean)
+            )
+            const { data: myTenants } = await supabase
+              .from('client_connections')
+              .select('tenant_id')
+              .eq('customer_id', myCustomerId)
+            const myTenantIds = new Set(((myTenants ?? []) as any[]).map((r) => r.tenant_id))
+            for (const t of providerTenantIds) {
+              if (myTenantIds.has(t)) { scopeSatisfied = true; break }
+            }
+            if (scopeSatisfied) break
+          }
+        }
+      }
+    }
+
+    if (!scopeSatisfied) {
+      console.warn('Caller not permitted to send this template to this recipient', {
+        templateName,
+        callerUserId,
+        roles: callerRoles,
+      })
+      return new Response(
+        JSON.stringify({ error: 'Not permitted to send this template to this recipient' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+  }
 
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase
