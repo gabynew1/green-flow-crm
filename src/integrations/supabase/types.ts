@@ -1091,6 +1091,7 @@ export type Database = {
           period_end: string | null
           period_start: string | null
           property_id: string | null
+          service_order_id: string | null
           source: Database["public"]["Enums"]["invoice_source"]
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
@@ -1113,6 +1114,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           property_id?: string | null
+          service_order_id?: string | null
           source?: Database["public"]["Enums"]["invoice_source"]
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
@@ -1135,6 +1137,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           property_id?: string | null
+          service_order_id?: string | null
           source?: Database["public"]["Enums"]["invoice_source"]
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
@@ -1155,6 +1158,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -2967,6 +2977,10 @@ export type Database = {
       fn_expire_trials: { Args: never; Returns: number }
       fn_generate_invoice_for_contract_cycle: {
         Args: { _contract_id: string; _period_start: string }
+        Returns: string
+      }
+      fn_generate_invoice_for_visit: {
+        Args: { _service_order_id: string }
         Returns: string
       }
       fn_get_tenant_entitlements: {
