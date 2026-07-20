@@ -1142,7 +1142,22 @@ export type Database = {
           total?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lifecycle_deletion_audit: {
         Row: {
@@ -2053,6 +2068,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          description: string | null
           id: string
           name: string
           tenant_id: string
@@ -2061,6 +2077,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name: string
           tenant_id: string
@@ -2069,6 +2086,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
           tenant_id?: string
@@ -2735,7 +2753,22 @@ export type Database = {
           tenant_id?: string | null
           total?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
