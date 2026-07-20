@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Check, FileText, Send, Wallet, AlertCircle, Clock } from "lucide-react";
+import { Check, FileText, Send, Wallet, AlertCircle, Clock, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { generateInvoicePdf } from "@/lib/invoice-pdf";
 
 type Invoice = {
   id: string;
@@ -42,13 +43,20 @@ const STATUS_STYLE: Record<Invoice["status"], string> = {
 };
 
 export default function Billing() {
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
   const currency = useTenantCurrency();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get("status") || "ALL");
   const [search, setSearch] = useState("");
+  const [customerFilter, setCustomerFilter] = useState<string | null>(searchParams.get("customer"));
+
+  useEffect(() => {
+    setStatusFilter(searchParams.get("status") || "ALL");
+    setCustomerFilter(searchParams.get("customer"));
+  }, [searchParams]);
 
   const load = async () => {
     if (!tenantId) return;
@@ -86,7 +94,11 @@ export default function Billing() {
 
   const filtered = useMemo(() => {
     return invoices.filter((i) => {
-      if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+      if (statusFilter === "OVERDUE") {
+        const overdue = i.status === "OVERDUE" || (i.status === "ISSUED" && new Date(i.due_date) < new Date());
+        if (!overdue) return false;
+      } else if (statusFilter !== "ALL" && i.status !== statusFilter) return false;
+      if (customerFilter && i.customer_id !== customerFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         const name = (i.customers?.company_name || i.customers?.name || "").toLowerCase();
@@ -95,7 +107,19 @@ export default function Billing() {
       }
       return true;
     });
-  }, [invoices, statusFilter, search]);
+  }, [invoices, statusFilter, search, customerFilter]);
+
+  const customerFilterName = useMemo(() => {
+    if (!customerFilter) return null;
+    const found = invoices.find((i) => i.customer_id === customerFilter);
+    return found?.customers?.company_name || found?.customers?.name || "Client";
+  }, [customerFilter, invoices]);
+
+  const clearCustomerFilter = () => {
+    const p = new URLSearchParams(searchParams);
+    p.delete("customer");
+    setSearchParams(p, { replace: true });
+  };
 
   const issueInvoice = async (inv: Invoice) => {
     const { error } = await supabase
@@ -114,10 +138,31 @@ export default function Billing() {
       tenant_id: tenantId,
       amount: inv.total,
       method: "TRANSFER",
+      recorded_by_user_id: user?.id ?? null,
     });
     if (error) return toast.error(error.message);
     toast.success("Marcată încasat");
     load();
+  };
+
+  const downloadPdf = async (inv: Invoice) => {
+    const [invRes, linesRes, tenantRes, customerRes] = await Promise.all([
+      supabase.from("invoices").select("*").eq("id", inv.id).maybeSingle(),
+      supabase.from("invoice_line_items").select("description, quantity, unit_price, line_total")
+        .eq("invoice_id", inv.id).order("created_at", { ascending: true }),
+      supabase.from("tenants").select("company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone").eq("id", tenantId!).maybeSingle(),
+      supabase.from("customers").select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone").eq("id", inv.customer_id).maybeSingle(),
+    ]);
+    if (!invRes.data) { toast.error("Factură negăsită"); return; }
+    const t: any = tenantRes.data ?? {};
+    const c: any = customerRes.data ?? {};
+    const addr = (o: any) => [o.address_street, o.address_number, o.address_city].filter(Boolean).join(", ") || null;
+    generateInvoicePdf(
+      invRes.data as any,
+      (linesRes.data as any) ?? [],
+      { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+    );
   };
 
   return (
@@ -126,6 +171,17 @@ export default function Billing() {
         <h1 className="text-2xl font-bold">Facturi & Încasări</h1>
         <p className="text-sm text-muted-foreground">Urmărește ce ai emis, încasat și restant.</p>
       </div>
+
+      {customerFilter && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="gap-1.5">
+            Client: {customerFilterName}
+            <button onClick={clearCustomerFilter} className="hover:text-destructive">
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
 
       <div className="grid gap-3 md:grid-cols-4">
         <KpiCard icon={<Wallet className="h-4 w-4" />} label="Încasat luna asta" value={formatCurrency(kpi.collected, currency as any)} tone="emerald" />
@@ -175,28 +231,25 @@ export default function Billing() {
                   const overdue = inv.status === "ISSUED" && new Date(inv.due_date) < new Date();
                   const displayStatus = overdue ? "OVERDUE" : inv.status;
                   return (
-                    <TableRow key={inv.id} className="cursor-pointer" onClick={() => navigate(`/provider/invoices/${inv.id}`)}>
-                      <TableCell className="font-mono text-xs">
-                        <Link to={`/provider/invoices/${inv.id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
-                          {inv.invoice_number || "Draft"}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link to={`/provider/customers/${inv.customer_id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
-                          {inv.customers?.company_name || inv.customers?.name || "—"}
-                        </Link>
-                      </TableCell>
+                    <TableRow
+                      key={inv.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => navigate(`/provider/invoices/${inv.id}`)}
+                    >
+                      <TableCell className="font-mono text-xs">{inv.invoice_number || "Draft"}</TableCell>
+                      <TableCell>{inv.customers?.company_name || inv.customers?.name || "—"}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {inv.contract_id ? (
-                          <Link to={`/provider/contracts/${inv.contract_id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>
-                            {inv.contracts?.contract_name || "Contract"}
-                          </Link>
-                        ) : "—"}
+                        {inv.contract_id ? (inv.contracts?.contract_name || "Contract") : "—"}
                       </TableCell>
                       <TableCell className="text-sm">{format(new Date(inv.due_date), "dd MMM yyyy")}</TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(Number(inv.total), (inv.currency as any) || currency)}</TableCell>
                       <TableCell><Badge className={STATUS_STYLE[displayStatus as Invoice["status"]]} variant="outline">{displayStatus}</Badge></TableCell>
                       <TableCell className="text-right space-x-2" onClick={(e) => e.stopPropagation()}>
+                        {inv.status !== "DRAFT" && (
+                          <Button size="sm" variant="ghost" title="Descarcă PDF" onClick={() => downloadPdf(inv)}>
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                         {inv.status === "DRAFT" && (
                           <Button size="sm" variant="outline" onClick={() => issueInvoice(inv)}>
                             <Send className="mr-1 h-3 w-3" /> Emite
