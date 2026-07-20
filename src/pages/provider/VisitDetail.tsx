@@ -181,6 +181,26 @@ export default function VisitDetail() {
     };
     await supabase.from("service_orders").update(updates).eq("id", visitId!);
     toast.success("Visit completed and report sent to client!");
+    // Surface the auto-generated draft invoice, if any
+    try {
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("id, invoice_number")
+        .eq("service_order_id", visitId!)
+        .eq("status", "DRAFT")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (inv?.id) {
+        toast.success("Draft invoice created", {
+          description: "Review the amounts and issue when ready.",
+          action: {
+            label: "Open",
+            onClick: () => window.location.assign(`/provider/invoices/${inv.id}`),
+          },
+        });
+      }
+    } catch { /* ignore */ }
     await sendVisitEmail("visit-report", `visit-done-${visitId}`);
     load();
   };
