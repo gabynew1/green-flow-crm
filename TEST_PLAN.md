@@ -104,3 +104,15 @@ the UI path is blocked. Never destructive.
 - When a feature ships or changes, add or update its section here in the
   same commit.
 - When a bug is fixed, add a regression step referencing it.
+
+## Regression log
+- **2026-07-20 QA run** → `TEST_RUN_2026-07-20.md`.
+  - B1: `/provider/billing` invoice list embed on `customers` — add a
+    "load billing without error toast" step once fixed.
+  - B2: Zone `description` column + textarea missing — re-run §3/§13 after
+    the feature actually ships.
+  - B3: `get_customer_email_history` 403 for PROVIDER_ADMIN — add an
+    "open customer, expect emails list without 403" step.
+  - B4: Localize sidebar labels — add an RO/EN diff check on nav.
+  - B5: Customer detail is sections, not tabs — decide spec vs code and
+    update §11 accordingly.
