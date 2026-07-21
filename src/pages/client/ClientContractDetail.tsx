@@ -13,6 +13,7 @@ import { ArrowLeft, CalendarDays, DollarSign, ClipboardList, Check, X } from "lu
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { getContractConsumption, type LineItemConsumption } from "@/lib/contract-consumption";
+import { useTranslation } from "react-i18next";
 
 const statusColors: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",

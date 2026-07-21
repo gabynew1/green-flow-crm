@@ -645,7 +645,7 @@ export default function ContractDetail() {
                 )}
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
-                  <Label>Pricing Model</Label>
+                  <Label>{t("entitlements.pricing_model")}</Label>
                   <RadioGroup
                     value={addFormIncluded ? "included" : "billed"}
                     onValueChange={(v) => setAddFormIncluded(v === "included")}
@@ -653,22 +653,22 @@ export default function ContractDetail() {
                   >
                     <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted/40">
                       <RadioGroupItem value="included" className="mt-0.5" />
-                      <div className="text-sm">
-                        <div className="font-medium">Included in subscription</div>
+                     <div className="text-sm">
+                        <div className="font-medium">{t("entitlements.covered_by_subscription")}</div>
                         <div className="text-xs text-muted-foreground">Covered by the flat fee, up to an allowance cap.</div>
                       </div>
                     </label>
                     <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted/40">
                       <RadioGroupItem value="billed" className="mt-0.5" />
                       <div className="text-sm">
-                        <div className="font-medium">Billed separately</div>
+                        <div className="font-medium">{t("entitlements.billed_separately")}</div>
                         <div className="text-xs text-muted-foreground">Charged per unit each time it is delivered.</div>
                       </div>
                     </label>
                   </RadioGroup>
                 </div>
                 <div className="space-y-2">
-                  <Label>{addFormIncluded ? "Allowance Window" : "Frequency"}</Label>
+                  <Label>{addFormIncluded ? t("entitlements.allowance_window") : "Frequency"}</Label>
                   <Select value={addFormFrequency} onValueChange={(v) => { setAddFormFrequency(v); if (v === "ONE_TIME" || v === "PER_VISIT") setAddFormTimesPerFreq("1"); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -683,7 +683,7 @@ export default function ContractDetail() {
                 </div>
                 {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH" || addFormFrequency === "PER_YEAR") && (
                   <div className="space-y-2">
-                    <Label>{addFormIncluded ? "Allowance Limit" : "Times"} per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
+                    <Label>{addFormIncluded ? t("entitlements.allowance_limit") : "Times"} per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
                     <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
                   </div>
                 )}
@@ -746,7 +746,7 @@ export default function ContractDetail() {
             {included.length > 0 && (
               <div className="rounded-lg border overflow-auto">
                 <div className="border-b bg-muted/40 px-4 py-2 text-sm font-semibold">
-                  Included Allowances <span className="font-normal text-muted-foreground">— covered by the subscription fee</span>
+                  {t("entitlements.included_allowances")} <span className="font-normal text-muted-foreground">— covered by the subscription fee</span>
                 </div>
                 <Table>
                   <TableHeader>
@@ -797,7 +797,7 @@ export default function ContractDetail() {
             {billed.length > 0 && (
               <div className="rounded-lg border overflow-auto">
                 <div className="border-b bg-muted/40 px-4 py-2 text-sm font-semibold">
-                  Additional Billable Services <span className="font-normal text-muted-foreground">— charged per unit delivered</span>
+                  {t("entitlements.additional_billable_services")} <span className="font-normal text-muted-foreground">— charged per unit delivered</span>
                 </div>
                 <Table>
                   <TableHeader>
