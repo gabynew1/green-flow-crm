@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { getContractConsumption, type LineItemConsumption } from "@/lib/contract-consumption";
 import { useTranslation } from "react-i18next";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 const statusColors: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
@@ -44,6 +46,7 @@ export default function ClientContractDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation("provider");
+  const currency = useTenantCurrency();
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
@@ -232,6 +235,31 @@ export default function ClientContractDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {flatFeeLines.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">{t("entitlements.subscription_fee")}</p>
+                <p className="text-xs text-muted-foreground">{t("entitlements.subscription_fee_note")}</p>
+              </div>
+              <div className="text-right">
+                {flatFeeLines.map(li => {
+                  const amount = li.unit_price != null ? Number(li.unit_price) * Number(li.quantity || 1) : 0;
+                  const cadence = t(`entitlements.cadence.${li.frequency_type}`, { defaultValue: String(li.frequency_type || "").replace(/_/g, " ") });
+                  return (
+                    <div key={li.id}>
+                      <p className="text-lg font-bold">{formatCurrency(amount, currency)}</p>
+                      <p className="text-xs text-muted-foreground">{cadence}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {includedLines.length > 0 && (
         <Card>

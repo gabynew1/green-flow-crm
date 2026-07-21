@@ -78,6 +78,15 @@ export function PropertyContractsTab({ propertyId }: { propertyId: string }) {
                   <div className="pl-2 border-l-2 border-muted space-y-0.5">
                     {items.map(li => {
                       const included = (li as any).is_included_in_base_fee ?? (li.unit_price == null);
+                      const isFlat = typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee");
+                      if (isFlat) {
+                        const amount = li.unit_price != null ? Number(li.unit_price) * Number(li.quantity || 1) : 0;
+                        return (
+                          <p key={li.id} className="text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">Subscription</span> — {formatCurrency(amount, currency)} {freqLabel[li.frequency_type] || ""}
+                          </p>
+                        );
+                      }
                       return (
                         <p key={li.id} className="text-xs text-muted-foreground">
                           {li.custom_name || (li.service_catalog as any)?.name}
