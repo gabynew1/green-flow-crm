@@ -145,10 +145,16 @@ export default function ClientContractDetail() {
   }
   if (!contract) return <p className="text-muted-foreground text-center py-12">Contract not found</p>;
 
-  const totalValue = lineItems.reduce((sum, li) => {
+  const isIncluded = (li: any) =>
+    li.is_included_in_base_fee === true ||
+    (li.is_included_in_base_fee == null && li.unit_price == null && !(typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee")));
+  const includedLines = lineItems.filter(isIncluded);
+  const billedLines = lineItems.filter(li => !isIncluded(li));
+  const billedTotal = billedLines.reduce((sum, li) => {
     const price = li.unit_price != null ? Number(li.unit_price) : (li.service_catalog?.default_price || 0);
     return sum + price * li.quantity;
   }, 0);
+  const consumptionByLine = new Map(consumption.map(c => [c.lineItemId, c]));
 
   return (
     <div className="space-y-6">
@@ -223,46 +229,86 @@ export default function ClientContractDetail() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between">
-            <span className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Services Included</span>
-            {totalValue > 0 && <span className="text-sm font-normal text-muted-foreground">Est. total: ${totalValue.toFixed(2)}</span>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {lineItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No line items defined</p>
-          ) : (
+      {includedLines.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" /> Included Allowances
+              <span className="text-xs font-normal text-muted-foreground">covered by your subscription</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-2">
-              {lineItems.map(li => {
+              {includedLines.map(li => {
                 const maxOcc = li.max_occurrences_per_period;
+                const cons = consumptionByLine.get(li.id);
                 return (
                   <div key={li.id} className="flex items-center justify-between text-sm py-2 px-3 border rounded-md">
                     <div>
                       <p className="font-medium">{li.custom_name || li.service_catalog?.name || "Service"}</p>
                       <p className="text-xs text-muted-foreground">
-                        {li.quantity} × {li.frequency_type.replace(/_/g, " ").toLowerCase()}
-                        {maxOcc != null && <span className="ml-1">· max {maxOcc}/{li.frequency_type.replace("PER_", "").toLowerCase()}</span>}
+                        {maxOcc != null
+                          ? `Up to ${maxOcc} ${li.frequency_type.replace(/^PER_/, "").toLowerCase()}`
+                          : "Unlimited"}
+                        {li.unit_price != null && <span> · Overage {Number(li.unit_price).toFixed(2)}/unit</span>}
                       </p>
                     </div>
-                    <div className="text-right">
-                      {li.unit_price != null ? (
-                        <div>
-                          <span className="font-medium">${(Number(li.unit_price) * Number(li.quantity)).toFixed(2)}</span>
-                          {Number(li.quantity) > 1 && <p className="text-[10px] text-muted-foreground">${Number(li.unit_price).toFixed(2)} × {li.quantity}</p>}
-                        </div>
-                      ) : li.service_catalog?.default_price ? (
-                        <span className="text-muted-foreground">${(li.service_catalog.default_price * li.quantity).toFixed(2)}</span>
-                      ) : null}
-                    </div>
+                    {maxOcc != null && cons && (
+                      <Badge variant={cons.isOverScope ? "destructive" : "secondary"} className="text-[10px]">
+                        {cons.consumed}/{maxOcc} {cons.periodLabel}
+                      </Badge>
+                    )}
                   </div>
                 );
               })}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {billedLines.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between">
+              <span className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Additional Billable Services</span>
+              {billedTotal > 0 && <span className="text-sm font-normal text-muted-foreground">Est. total: {billedTotal.toFixed(2)}</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {billedLines.map(li => (
+                <div key={li.id} className="flex items-center justify-between text-sm py-2 px-3 border rounded-md">
+                  <div>
+                    <p className="font-medium">{li.custom_name || li.service_catalog?.name || "Service"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {li.quantity} × {li.frequency_type.replace(/_/g, " ").toLowerCase()}
+                      {li.max_occurrences_per_period != null && <span className="ml-1">· max {li.max_occurrences_per_period}</span>}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {li.unit_price != null ? (
+                      <div>
+                        <span className="font-medium">{(Number(li.unit_price) * Number(li.quantity)).toFixed(2)}</span>
+                        {Number(li.quantity) > 1 && <p className="text-[10px] text-muted-foreground">{Number(li.unit_price).toFixed(2)} × {li.quantity}</p>}
+                      </div>
+                    ) : li.service_catalog?.default_price ? (
+                      <span className="text-muted-foreground">{(li.service_catalog.default_price * li.quantity).toFixed(2)}</span>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {lineItems.length === 0 && (
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-muted-foreground text-center py-4">No line items defined</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Consumption Summary */}
       {["ACTIVE", "SIGNED"].includes(contract.status) && consumption.length > 0 && consumption.some(c => c.maxOccurrences !== null) && (

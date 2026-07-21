@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -59,6 +60,7 @@ export default function ContractDetail() {
   const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
   const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
   const [addFormTimesPerFreq, setAddFormTimesPerFreq] = useState("1");
+  const [addFormIncluded, setAddFormIncluded] = useState(false);
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
@@ -322,6 +324,7 @@ export default function ContractDetail() {
       setAddFormUnitPrice("");
       setAddFormFrequency("PER_VISIT");
       setAddFormTimesPerFreq("1");
+      setAddFormIncluded(false);
       loadInventoryItems();
     }
   };
@@ -352,16 +355,23 @@ export default function ContractDetail() {
     e.preventDefault();
     if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
+    const included = addFormIncluded;
+    // Included allowances have no per-unit price surfaced to the client;
+    // an overage price is optional (charged only when the client exceeds the cap).
+    const overagePrice = included
+      ? (addFormUnitPrice ? Number(addFormUnitPrice) : null)
+      : (addFormUnitPrice ? Number(addFormUnitPrice) : null);
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
       frequency_type: addFormFrequency as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME",
-      quantity: Number(addFormQty) || 1,
+      quantity: included ? 1 : (Number(addFormQty) || 1),
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
-      unit_price: addFormUnitPrice ? Number(addFormUnitPrice) : null,
+      unit_price: overagePrice,
+      is_included_in_base_fee: included,
       tenant_id: tenantId,
     }] as any);
     if (error) { toast.error(error.message); return; }
@@ -391,6 +401,7 @@ export default function ContractDetail() {
         quantity: li.quantity,
         unit: li.unit,
         notes: li.notes,
+        is_included_in_base_fee: (li as any).is_included_in_base_fee ?? false,
         tenant_id: tenantId,
       }));
       await supabase.from("contract_line_items").insert(newLines);
@@ -577,6 +588,7 @@ export default function ContractDetail() {
                   quantity: 1,
                   frequency_type: "PER_VISIT" as const,
                   unit: s.default_unit || "visit",
+                  is_included_in_base_fee: false,
                   tenant_id: tenantId,
                 }));
                 const { error } = await supabase.from("contract_line_items").insert(inserts);
@@ -634,7 +646,30 @@ export default function ContractDetail() {
                 )}
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
-                  <Label>Frequency</Label>
+                  <Label>Pricing Model</Label>
+                  <RadioGroup
+                    value={addFormIncluded ? "included" : "billed"}
+                    onValueChange={(v) => setAddFormIncluded(v === "included")}
+                    className="grid grid-cols-1 gap-2"
+                  >
+                    <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted/40">
+                      <RadioGroupItem value="included" className="mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-medium">Included in subscription</div>
+                        <div className="text-xs text-muted-foreground">Covered by the flat fee, up to an allowance cap.</div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted/40">
+                      <RadioGroupItem value="billed" className="mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-medium">Billed separately</div>
+                        <div className="text-xs text-muted-foreground">Charged per unit each time it is delivered.</div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-2">
+                  <Label>{addFormIncluded ? "Allowance Window" : "Frequency"}</Label>
                   <Select value={addFormFrequency} onValueChange={(v) => { setAddFormFrequency(v); if (v === "ONE_TIME" || v === "PER_VISIT") setAddFormTimesPerFreq("1"); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -649,14 +684,28 @@ export default function ContractDetail() {
                 </div>
                 {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH" || addFormFrequency === "PER_YEAR") && (
                   <div className="space-y-2">
-                    <Label>Times per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
+                    <Label>{addFormIncluded ? "Allowance Limit" : "Times"} per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
                     <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
                   </div>
                 )}
-                <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
+                {!addFormIncluded && (
+                  <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
+                )}
                 <div className="space-y-2">
-                  <Label>Unit Price *</Label>
-                  <CurrencyInput currency={currency} required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
+                  <Label>{addFormIncluded ? "Overage Price (optional)" : "Unit Price *"}</Label>
+                  <CurrencyInput
+                    currency={currency}
+                    required={!addFormIncluded}
+                    min="0"
+                    placeholder="0.00"
+                    value={addFormUnitPrice}
+                    onChange={e => setAddFormUnitPrice(e.target.value)}
+                  />
+                  {addFormIncluded && (
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty if extras beyond the allowance should not be auto-billed.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
@@ -669,100 +718,188 @@ export default function ContractDetail() {
 
       {lineItems.length === 0 ? (
         <p className="text-muted-foreground text-center py-8">No line items yet</p>
-      ) : (
-        <div className="rounded-lg border overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {editable && <TableHead className="w-8" />}
-              <TableHead>Category</TableHead>
-              <TableHead>Service</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Line Total</TableHead>
-                <TableHead>Max/Period</TableHead>
-                {editable && <TableHead />}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lineItems.filter(li => categoryFilter === "ALL" || (li.service_catalog as any)?.code === categoryFilter).map(li => (
-                <TableRow key={li.id}>
-                  {editable && (
-                    <TableCell>
-                      <Checkbox
-                        checked={checkedIds.has(li.id)}
-                        onCheckedChange={(checked) => {
-                          const next = new Set(checkedIds);
-                          checked ? next.add(li.id) : next.delete(li.id);
-                          setCheckedIds(next);
-                        }}
-                      />
-                    </TableCell>
-                  )}
-                  <TableCell className="text-xs text-muted-foreground">{(li.service_catalog as any)?.code || "—"}</TableCell>
-                  <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
-                  <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
-                  <TableCell>{li.quantity}</TableCell>
-                  <TableCell>
-                    {editable ? (
-                      <CurrencyInput
-                        currency={currency}
-                        className="h-7 w-28 text-xs"
-                        placeholder="0.00"
-                        defaultValue={li.unit_price ?? ""}
-                        onBlur={async (e) => {
-                          const val = e.target.value ? Number(e.target.value) : null;
-                          if (val === li.unit_price) return;
-                          await supabase.from("contract_line_items").update({ unit_price: val } as any).eq("id", li.id);
-                          toast.success("Price updated");
-                          load();
-                        }}
-                      />
-                    ) : (
-                      <span>{li.unit_price != null ? formatCurrency(Number(li.unit_price), currency) : "—"}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {li.unit_price != null ? formatCurrency(Number(li.unit_price) * Number(li.quantity), currency) : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {editable ? (
-                      <Input
-                        type="number"
-                        className="h-7 w-16 text-xs"
-                        placeholder="∞"
-                        defaultValue={li.max_occurrences_per_period ?? ""}
-                        onBlur={async (e) => {
-                          const val = e.target.value ? Number(e.target.value) : null;
-                          if (val === li.max_occurrences_per_period) return;
-                          await supabase.from("contract_line_items").update({ max_occurrences_per_period: val } as any).eq("id", li.id);
-                          toast.success("Max updated");
-                          load();
-                        }}
-                      />
-                    ) : (
-                      <span>{li.max_occurrences_per_period ?? "∞"}</span>
-                    )}
-                  </TableCell>
-                  {editable && (
-                    <TableCell>
-                      <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {/* Total row */}
-          {lineItems.some(li => li.unit_price != null) && (
-            <div className="border-t px-4 py-2 flex justify-between text-sm font-semibold">
-              <span>Contract Total</span>
-              <span>{formatCurrency(lineItems.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0), currency)}</span>
-            </div>
-          )}
-        </div>
-      )}
+      ) : (() => {
+        const consumptionByLine = new Map(consumption.map(c => [c.lineItemId, c]));
+        const filtered = lineItems.filter(li => categoryFilter === "ALL" || (li.service_catalog as any)?.code === categoryFilter);
+        const isIncluded = (li: any) =>
+          li.is_included_in_base_fee === true ||
+          (li.is_included_in_base_fee == null && li.unit_price == null && !(typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee")));
+        const included = filtered.filter(isIncluded);
+        const billed = filtered.filter(li => !isIncluded(li));
+        const billedTotal = billed.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0);
+
+        const rowCheckbox = (li: any) => editable && (
+          <TableCell>
+            <Checkbox
+              checked={checkedIds.has(li.id)}
+              onCheckedChange={(checked) => {
+                const next = new Set(checkedIds);
+                checked ? next.add(li.id) : next.delete(li.id);
+                setCheckedIds(next);
+              }}
+            />
+          </TableCell>
+        );
+
+        return (
+          <div className="space-y-4">
+            {included.length > 0 && (
+              <div className="rounded-lg border overflow-auto">
+                <div className="border-b bg-muted/40 px-4 py-2 text-sm font-semibold">
+                  Included Allowances <span className="font-normal text-muted-foreground">— covered by the subscription fee</span>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {editable && <TableHead className="w-8" />}
+                      <TableHead>Category</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Allowance</TableHead>
+                      <TableHead>Usage</TableHead>
+                      <TableHead>Overage Price</TableHead>
+                      {editable && <TableHead />}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {included.map(li => {
+                      const cons = consumptionByLine.get(li.id);
+                      const max = li.max_occurrences_per_period;
+                      const consumed = cons?.consumed ?? 0;
+                      return (
+                        <TableRow key={li.id}>
+                          {rowCheckbox(li)}
+                          <TableCell className="text-xs text-muted-foreground">{(li.service_catalog as any)?.code || "—"}</TableCell>
+                          <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
+                          <TableCell className="text-xs">
+                            {max != null ? `${max} / ${li.frequency_type.replace(/^PER_/, "").toLowerCase()}` : <span className="text-muted-foreground">Unlimited</span>}
+                          </TableCell>
+                          <TableCell>
+                            {max != null ? (
+                              <Badge variant={cons?.isOverScope ? "destructive" : "secondary"} className="text-[11px]">
+                                {consumed}/{max} {cons?.periodLabel || ""}
+                              </Badge>
+                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell>
+                            {editable ? (
+                              <CurrencyInput
+                                currency={currency}
+                                className="h-7 w-28 text-xs"
+                                placeholder="—"
+                                defaultValue={li.unit_price ?? ""}
+                                onBlur={async (e) => {
+                                  const val = e.target.value ? Number(e.target.value) : null;
+                                  if (val === li.unit_price) return;
+                                  await supabase.from("contract_line_items").update({ unit_price: val } as any).eq("id", li.id);
+                                  toast.success("Overage price updated");
+                                  load();
+                                }}
+                              />
+                            ) : (
+                              <span className="text-xs">{li.unit_price != null ? formatCurrency(Number(li.unit_price), currency) : "—"}</span>
+                            )}
+                          </TableCell>
+                          {editable && (
+                            <TableCell>
+                              <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {billed.length > 0 && (
+              <div className="rounded-lg border overflow-auto">
+                <div className="border-b bg-muted/40 px-4 py-2 text-sm font-semibold">
+                  Additional Billable Services <span className="font-normal text-muted-foreground">— charged per unit delivered</span>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {editable && <TableHead className="w-8" />}
+                      <TableHead>Category</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Frequency</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead>Unit Price</TableHead>
+                      <TableHead>Line Total</TableHead>
+                      <TableHead>Max/Period</TableHead>
+                      {editable && <TableHead />}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {billed.map(li => (
+                      <TableRow key={li.id}>
+                        {rowCheckbox(li)}
+                        <TableCell className="text-xs text-muted-foreground">{(li.service_catalog as any)?.code || "—"}</TableCell>
+                        <TableCell className="font-medium">{li.custom_name || (li.service_catalog as any)?.name}</TableCell>
+                        <TableCell>{li.frequency_type.replace(/_/g, " ")}</TableCell>
+                        <TableCell>{li.quantity}</TableCell>
+                        <TableCell>
+                          {editable ? (
+                            <CurrencyInput
+                              currency={currency}
+                              className="h-7 w-28 text-xs"
+                              placeholder="0.00"
+                              defaultValue={li.unit_price ?? ""}
+                              onBlur={async (e) => {
+                                const val = e.target.value ? Number(e.target.value) : null;
+                                if (val === li.unit_price) return;
+                                await supabase.from("contract_line_items").update({ unit_price: val } as any).eq("id", li.id);
+                                toast.success("Price updated");
+                                load();
+                              }}
+                            />
+                          ) : (
+                            <span>{li.unit_price != null ? formatCurrency(Number(li.unit_price), currency) : "—"}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {li.unit_price != null ? formatCurrency(Number(li.unit_price) * Number(li.quantity), currency) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {editable ? (
+                            <Input
+                              type="number"
+                              className="h-7 w-16 text-xs"
+                              placeholder="∞"
+                              defaultValue={li.max_occurrences_per_period ?? ""}
+                              onBlur={async (e) => {
+                                const val = e.target.value ? Number(e.target.value) : null;
+                                if (val === li.max_occurrences_per_period) return;
+                                await supabase.from("contract_line_items").update({ max_occurrences_per_period: val } as any).eq("id", li.id);
+                                toast.success("Max updated");
+                                load();
+                              }}
+                            />
+                          ) : (
+                            <span>{li.max_occurrences_per_period ?? "∞"}</span>
+                          )}
+                        </TableCell>
+                        {editable && (
+                          <TableCell>
+                            <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {billedTotal > 0 && (
+                  <div className="border-t px-4 py-2 flex justify-between text-sm font-semibold">
+                    <span>Billable Extras Total</span>
+                    <span>{formatCurrency(billedTotal, currency)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Consumption Summary */}
       {["ACTIVE", "SIGNED"].includes(contract?.status) && consumption.length > 0 && consumption.some(c => c.maxOccurrences !== null) && (

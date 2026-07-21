@@ -271,6 +271,7 @@ export default function ContractNew() {
               frequency_type: cfg.frequency_type ?? flatFeeFrequency,
               unit_price: null,
               max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+              is_included_in_base_fee: true,
               tenant_id: profile?.tenant_id,
             };
           });
@@ -283,6 +284,7 @@ export default function ContractNew() {
             unit_price: Number(flatFee),
             max_occurrences_per_period: null,
             notes: `Flat fee covering: ${selectedServiceNames}`,
+            is_included_in_base_fee: false,
             tenant_id: profile?.tenant_id,
           };
           return [...serviceRows, flatRow];
@@ -296,6 +298,7 @@ export default function ContractNew() {
             frequency_type: cfg.frequency_type,
             unit_price: cfg.unit_price ? Number(cfg.unit_price) : null,
             max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+            is_included_in_base_fee: false,
             tenant_id: profile?.tenant_id,
           };
         });
