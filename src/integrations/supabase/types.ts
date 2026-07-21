@@ -276,6 +276,7 @@ export type Database = {
           custom_name: string | null
           frequency_type: Database["public"]["Enums"]["frequency_type"]
           id: string
+          is_included_in_base_fee: boolean
           max_occurrences_per_period: number | null
           notes: string | null
           quantity: number
@@ -291,6 +292,7 @@ export type Database = {
           custom_name?: string | null
           frequency_type?: Database["public"]["Enums"]["frequency_type"]
           id?: string
+          is_included_in_base_fee?: boolean
           max_occurrences_per_period?: number | null
           notes?: string | null
           quantity?: number
@@ -306,6 +308,7 @@ export type Database = {
           custom_name?: string | null
           frequency_type?: Database["public"]["Enums"]["frequency_type"]
           id?: string
+          is_included_in_base_fee?: boolean
           max_occurrences_per_period?: number | null
           notes?: string | null
           quantity?: number
@@ -1288,6 +1291,7 @@ export type Database = {
           created_at: string
           custom_name: string | null
           id: string
+          is_included_in_base_fee: boolean
           notes: string | null
           offer_id: string
           quantity: number
@@ -1301,6 +1305,7 @@ export type Database = {
           created_at?: string
           custom_name?: string | null
           id?: string
+          is_included_in_base_fee?: boolean
           notes?: string | null
           offer_id: string
           quantity?: number
@@ -1314,6 +1319,7 @@ export type Database = {
           created_at?: string
           custom_name?: string | null
           id?: string
+          is_included_in_base_fee?: boolean
           notes?: string | null
           offer_id?: string
           quantity?: number
