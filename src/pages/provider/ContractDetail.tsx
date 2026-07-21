@@ -646,7 +646,30 @@ export default function ContractDetail() {
                 )}
                 <div className="space-y-2"><Label>Custom Name (optional)</Label><Input name="custom_name" /></div>
                 <div className="space-y-2">
-                  <Label>Frequency</Label>
+                  <Label>Pricing Model</Label>
+                  <RadioGroup
+                    value={addFormIncluded ? "included" : "billed"}
+                    onValueChange={(v) => setAddFormIncluded(v === "included")}
+                    className="grid grid-cols-1 gap-2"
+                  >
+                    <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted/40">
+                      <RadioGroupItem value="included" className="mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-medium">Included in subscription</div>
+                        <div className="text-xs text-muted-foreground">Covered by the flat fee, up to an allowance cap.</div>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-2 rounded-md border p-2 cursor-pointer hover:bg-muted/40">
+                      <RadioGroupItem value="billed" className="mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-medium">Billed separately</div>
+                        <div className="text-xs text-muted-foreground">Charged per unit each time it is delivered.</div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+                </div>
+                <div className="space-y-2">
+                  <Label>{addFormIncluded ? "Allowance Window" : "Frequency"}</Label>
                   <Select value={addFormFrequency} onValueChange={(v) => { setAddFormFrequency(v); if (v === "ONE_TIME" || v === "PER_VISIT") setAddFormTimesPerFreq("1"); }}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -661,14 +684,28 @@ export default function ContractDetail() {
                 </div>
                 {(addFormFrequency === "PER_WEEK" || addFormFrequency === "PER_MONTH" || addFormFrequency === "PER_YEAR") && (
                   <div className="space-y-2">
-                    <Label>Times per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
+                    <Label>{addFormIncluded ? "Allowance Limit" : "Times"} per {addFormFrequency === "PER_WEEK" ? "week" : addFormFrequency === "PER_MONTH" ? "month" : "year"}</Label>
                     <Input type="number" value={addFormTimesPerFreq} onChange={e => setAddFormTimesPerFreq(e.target.value)} min="1" placeholder="1" />
                   </div>
                 )}
-                <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
+                {!addFormIncluded && (
+                  <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
+                )}
                 <div className="space-y-2">
-                  <Label>Unit Price *</Label>
-                  <CurrencyInput currency={currency} required min="0" placeholder="0.00" value={addFormUnitPrice} onChange={e => setAddFormUnitPrice(e.target.value)} />
+                  <Label>{addFormIncluded ? "Overage Price (optional)" : "Unit Price *"}</Label>
+                  <CurrencyInput
+                    currency={currency}
+                    required={!addFormIncluded}
+                    min="0"
+                    placeholder="0.00"
+                    value={addFormUnitPrice}
+                    onChange={e => setAddFormUnitPrice(e.target.value)}
+                  />
+                  {addFormIncluded && (
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty if extras beyond the allowance should not be auto-billed.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
