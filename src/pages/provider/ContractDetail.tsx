@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -59,6 +60,7 @@ export default function ContractDetail() {
   const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
   const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
   const [addFormTimesPerFreq, setAddFormTimesPerFreq] = useState("1");
+  const [addFormIncluded, setAddFormIncluded] = useState(false);
 
   useEffect(() => { load(); }, [contractId]);
   useEffect(() => { loadTeams(); }, [tenantId]);
@@ -322,6 +324,7 @@ export default function ContractDetail() {
       setAddFormUnitPrice("");
       setAddFormFrequency("PER_VISIT");
       setAddFormTimesPerFreq("1");
+      setAddFormIncluded(false);
       loadInventoryItems();
     }
   };
@@ -352,16 +355,23 @@ export default function ContractDetail() {
     e.preventDefault();
     if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
+    const included = addFormIncluded;
+    // Included allowances have no per-unit price surfaced to the client;
+    // an overage price is optional (charged only when the client exceeds the cap).
+    const overagePrice = included
+      ? (addFormUnitPrice ? Number(addFormUnitPrice) : null)
+      : (addFormUnitPrice ? Number(addFormUnitPrice) : null);
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
       custom_name: (form.get("custom_name") as string) || null,
       frequency_type: addFormFrequency as "PER_VISIT" | "PER_WEEK" | "PER_MONTH" | "PER_YEAR" | "ONE_TIME",
-      quantity: Number(addFormQty) || 1,
+      quantity: included ? 1 : (Number(addFormQty) || 1),
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
-      unit_price: addFormUnitPrice ? Number(addFormUnitPrice) : null,
+      unit_price: overagePrice,
+      is_included_in_base_fee: included,
       tenant_id: tenantId,
     }] as any);
     if (error) { toast.error(error.message); return; }
@@ -391,6 +401,7 @@ export default function ContractDetail() {
         quantity: li.quantity,
         unit: li.unit,
         notes: li.notes,
+        is_included_in_base_fee: (li as any).is_included_in_base_fee ?? false,
         tenant_id: tenantId,
       }));
       await supabase.from("contract_line_items").insert(newLines);
