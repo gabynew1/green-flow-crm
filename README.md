@@ -102,6 +102,8 @@ offers / contracts), `InspectionDetail`, `OfferDetail`, `ContractNew` +
 
 ## 4. Domain model (high level)
 
+> For the authoritative guide on how contracts, service line items, inventory, pricing, frequency, quantity, and scope consumption fit together — including a worked recurring-contract example and the single-source-of-truth map of every screen — see [`docs/contracts-services-inventory.md`](docs/contracts-services-inventory.md).
+
 Key Postgres tables (see `supabase/migrations/` for full schema and
 `src/integrations/supabase/types.ts` for typings):
 
