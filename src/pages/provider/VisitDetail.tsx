@@ -419,6 +419,11 @@ export default function VisitDetail() {
           // Complete flow lives in the dedicated Complete & Send Report dialog above,
           // so we don't pass onComplete here to avoid duplicate buttons.
         />
+        {!isCompleted && (
+          <Button onClick={saveAll} className="gap-2">
+            <Save className="h-4 w-4" /> Save Changes
+          </Button>
+        )}
       </div>
 
       {/* Details card */}
