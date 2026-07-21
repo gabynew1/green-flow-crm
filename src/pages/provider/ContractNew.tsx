@@ -59,6 +59,21 @@ export default function ContractNew() {
 
   const isFlatFeeMode = selectedCategory === "Regular Maintenance";
 
+  // Preset derived from the contract's visit frequency — every auto-added
+  // included service inherits this allowance so nothing defaults to Unlimited.
+  const allowancePreset = useMemo(() => {
+    const frequency_type: FrequencyType =
+      visitType === "WEEK" ? "PER_WEEK"
+      : visitType === "MONTH" ? "PER_MONTH"
+      : visitType === "YEAR" ? "PER_YEAR"
+      : "PER_MONTH";
+    return { frequency_type, max: Math.max(1, Number(visitCount) || 1) };
+  }, [visitType, visitCount]);
+
+  // Track services the user hand-edited so re-syncing the preset does not
+  // clobber their choices.
+  const [overriddenServiceIds, setOverriddenServiceIds] = useState<Set<string>>(new Set());
+
   // Reset flat fee whenever category changes
   useEffect(() => {
     setFlatFee("");
@@ -72,10 +87,44 @@ export default function ContractNew() {
     setSelectedServiceIds(catIds);
     setServiceConfig((cfg) => {
       const next = { ...cfg };
-      for (const id of catIds) if (!next[id]) next[id] = defaultCfg();
+      for (const id of catIds) {
+        if (!next[id]) {
+          next[id] = {
+            ...defaultCfg(),
+            frequency_type: allowancePreset.frequency_type,
+            max_occurrences: String(allowancePreset.max),
+          };
+        }
+      }
       return next;
     });
-  }, [isFlatFeeMode, selectedCategory, services]);
+  }, [isFlatFeeMode, selectedCategory, services, allowancePreset]);
+
+  // Re-sync preset when visit frequency changes; skip user-edited rows.
+  useEffect(() => {
+    if (!isFlatFeeMode) return;
+    setServiceConfig((cfg) => {
+      let changed = false;
+      const next = { ...cfg };
+      for (const id of Object.keys(next)) {
+        if (overriddenServiceIds.has(id)) continue;
+        const row = next[id];
+        if (!row) continue;
+        if (
+          row.frequency_type !== allowancePreset.frequency_type ||
+          row.max_occurrences !== String(allowancePreset.max)
+        ) {
+          next[id] = {
+            ...row,
+            frequency_type: allowancePreset.frequency_type,
+            max_occurrences: String(allowancePreset.max),
+          };
+          changed = true;
+        }
+      }
+      return changed ? next : cfg;
+    });
+  }, [allowancePreset, isFlatFeeMode, overriddenServiceIds]);
 
   // Live total preview (right of category selector)
   const servicesTotal = useMemo(() => {
@@ -213,8 +262,17 @@ export default function ContractNew() {
     });
   };
 
-  const updateServiceConfig = (id: string, field: keyof ServiceCfg, value: string | number) =>
+  const updateServiceConfig = (id: string, field: keyof ServiceCfg, value: string | number) => {
     setServiceConfig((cfg) => ({ ...cfg, [id]: { ...cfg[id], [field]: value } as ServiceCfg }));
+    if (field === "frequency_type" || field === "max_occurrences") {
+      setOverriddenServiceIds((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    }
+  };
 
   const handleCreate = async () => {
     if (!selectedCustomerId) return toast.error("Select a customer");
@@ -264,13 +322,23 @@ export default function ContractNew() {
           // One row per included service (no per-line price), plus a single flat-fee row
           const serviceRows = selectedServiceIds.map((serviceId) => {
             const cfg = serviceConfig[serviceId] ?? defaultCfg();
+            // Fallback: if state never received the preset, apply it now so
+            // we never persist an "Unlimited" included line.
+            const effectiveFreq =
+              cfg.frequency_type && cfg.frequency_type !== "PER_VISIT"
+                ? cfg.frequency_type
+                : allowancePreset.frequency_type;
+            const effectiveMax =
+              cfg.max_occurrences !== ""
+                ? Number(cfg.max_occurrences)
+                : allowancePreset.max;
             return {
               contract_id: c.id,
               service_catalog_id: serviceId,
               quantity: 1,
-              frequency_type: cfg.frequency_type ?? flatFeeFrequency,
+              frequency_type: effectiveFreq,
               unit_price: null,
-              max_occurrences_per_period: cfg.max_occurrences ? Number(cfg.max_occurrences) : null,
+              max_occurrences_per_period: effectiveMax,
               is_included_in_base_fee: true,
               tenant_id: profile?.tenant_id,
             };
@@ -630,6 +698,32 @@ export default function ContractNew() {
                       onChange={(e) => setFlatFee(e.target.value)}
                     />
                   </div>
+                  {(() => {
+                    const periodLabel =
+                      allowancePreset.frequency_type === "PER_WEEK" ? "week"
+                      : allowancePreset.frequency_type === "PER_YEAR" ? "year"
+                      : "month";
+                    let totalHint = "";
+                    if (startDate && endDate) {
+                      const start = new Date(startDate);
+                      const end = new Date(endDate);
+                      const ms = end.getTime() - start.getTime();
+                      if (ms > 0) {
+                        const days = ms / 86400000;
+                        const periods =
+                          periodLabel === "week" ? days / 7
+                          : periodLabel === "year" ? days / 365
+                          : days / 30;
+                        const total = Math.round(periods * allowancePreset.max);
+                        if (total > 0) totalHint = ` (${Math.max(1, Math.round(periods))} ${periodLabel}s → ≈ ${total} visits total)`;
+                      }
+                    }
+                    return (
+                      <p className="text-xs text-muted-foreground">
+                        Every included service inherits <span className="font-medium">{allowancePreset.max}× per {periodLabel}</span>{totalHint}. Change the visit frequency above to adjust.
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
 
