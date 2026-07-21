@@ -1,40 +1,48 @@
 
-Ship Steps 1 and 3 only. Defer Step 2 (ContractNew parity) until we're ready to extract a shared line-item component used by Contract, ContractNew, and Offer together.
+## Goal
 
-## Step 1 — VisitDetail flat-fee heuristic
+Stop showing the `Flat fee — …` line under "Additional Billable Services". It represents the monthly/annual subscription price, not an add-on. Surface it as its own top-of-page section so the read order matches how the contract actually works:
 
-File: `src/pages/provider/VisitDetail.tsx` (around lines 107–115).
+1. **Subscription Fee** (the flat-fee sibling row)
+2. **Included Allowances** (services covered by the subscription)
+3. **Additional Billable Services** (true pay-per-visit extras — only shown when non-empty)
 
-Change the `contractFlatFee` detection so it prefers the flag on the linked contract line:
+## Detection rule (shared)
 
-- If the visit's linked `contract_line_items` row has `is_included_in_base_fee === true`, treat it as flat-fee-covered.
-- Otherwise fall back to the current "Flat fee —" sibling-row heuristic for legacy contracts where the flag is null.
+A line is the "flat fee" sibling row when:
+`typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee")`
 
-No changes to `finalizeVisit`, invoice generation, or pricing math — only the display heuristic that drives the "Included in flat fee" labels.
+It stays a single row created by `ContractNew` / `recreateFromOffer`; we're only changing where it renders.
 
-## Step 3 — i18n strings
+## Changes
 
-Add EN and RO entries and route the corresponding literals in `ContractDetail.tsx` and `ClientContractDetail.tsx` through `useTranslation`:
+### 1. `src/pages/provider/ContractDetail.tsx`
+- Partition `filtered` into `flatFeeRows`, `included`, `billed`. `billed` excludes flat-fee rows.
+- Above the two existing tables, add a compact "Subscription Fee" section listing each flat-fee row with: Service label (`custom_name`), Billing cadence (`frequency_type` humanized, e.g. "per month"), and Amount (`formatCurrency(unit_price, currency)`). Keep the row's delete/edit affordances consistent with the other tables so providers can still adjust it.
+- Update `billedTotal` to sum only true billable extras (unchanged math, just a smaller set).
 
-- `Pricing Model` / `Model de tarifare`
-- `Covered by Subscription` / `Inclus în abonament`
-- `Billed Separately` / `Facturat separat`
-- `Allowance Window` / `Interval alocare`
-- `Allowance Limit` / `Limită alocare`
-- `Overage Price` / `Preț depășire`
-- `Included Allowances` / `Alocări incluse`
-- `Additional Billable Services` / `Servicii facturate suplimentar`
+### 2. `src/pages/client/ClientContractDetail.tsx`
+- Same partition. Render a read-only "Subscription Fee" card at the top of the line-items area with the humanized cadence and `formatCurrency` amount.
+- Remove flat-fee rows from `billedLines`. If nothing else remains, hide the "Additional Billable Services" card entirely (already conditional on `.length > 0`).
 
-Use the existing translation loader / keys convention already in the repo.
+### 3. `src/components/provider/PropertyContractsTab.tsx`
+- Totals already sum every non-included line, which correctly includes the flat-fee row — no math change. Only tweak the per-line summary list so the flat-fee row renders as "Subscription — {amount} / {cadence}" instead of the generic `qty × freq · price/unit` string.
+
+### 4. i18n
+Add EN/RO keys under the existing `entitlements` block and wire them in the three files above:
+- `subscription_fee` / `Abonament lunar`
+- `subscription_fee_note` / `Costul lunar al abonamentului — include alocările de mai jos`
+- `billing_cadence.per_month` / `pe lună`, `per_year` / `pe an`, `one_time` / `unic`
+
+(Reuse existing `included_allowances` / `additional_billable_services` keys.)
 
 ## Out of scope
-
-- ContractNew UI parity (deferred to a future shared-component pass).
-- Invoice generation, `finalizeVisit`, schema changes, `NOT NULL` on `unit_price`.
-- Offer modals.
+- No schema changes; `is_included_in_base_fee` semantics untouched.
+- No changes to invoice generation, `finalizeVisit`, or contract creation logic — the flat-fee row is still created the same way.
+- No refactor of `ContractNew` line-item UI.
 
 ## Verification
-
-- Build passes.
-- A contract line with `is_included_in_base_fee = true` and no "Flat fee —" sibling row shows "Included in flat fee" on the visit detail page.
-- Switching the UI to RO shows translated labels on Contract detail screens (provider + client).
+- Contract with a `Flat fee — Regular Maintenance (Monthly)` row shows: top "Subscription Fee 400 RON / pe lună" card, then Included Allowances table, and the "Additional Billable Services" section is hidden (there are no true extras).
+- Adding an ad-hoc billable line makes the "Additional Billable Services" table reappear with only that line.
+- Client contract detail mirrors the same ordering.
+- Property list summary shows "Subscription — 400 RON / pe lună" for the flat-fee row and keeps total unchanged.
