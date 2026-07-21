@@ -104,14 +104,20 @@ export default function VisitDetail() {
       const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
       setScopeMap(sm);
 
-      // Detect flat-fee contract via the dedicated "Flat fee — …" line item
+      // Detect flat-fee contract. Prefer the SSOT flag `is_included_in_base_fee`
+      // on any linked contract line; fall back to the legacy "Flat fee — …"
+      // sibling-row heuristic for contracts created before the flag existed.
       const { data: cli } = await supabase
         .from("contract_line_items")
-        .select("custom_name, unit_price, frequency_type")
+        .select("custom_name, unit_price, frequency_type, is_included_in_base_fee")
         .eq("contract_id", o.contract_id);
-      const flatRow = (cli ?? []).find((r: any) => typeof r.custom_name === "string" && r.custom_name.startsWith("Flat fee"));
+      const rows = cli ?? [];
+      const flatRow = rows.find((r: any) => typeof r.custom_name === "string" && r.custom_name.startsWith("Flat fee"));
+      const hasIncludedFlag = rows.some((r: any) => r.is_included_in_base_fee === true);
       if (flatRow) {
         setContractFlatFee({ isFlat: true, amount: Number(flatRow.unit_price) || 0, frequency: (flatRow as any).frequency_type ?? null });
+      } else if (hasIncludedFlag) {
+        setContractFlatFee({ isFlat: true, amount: 0, frequency: null });
       } else {
         setContractFlatFee({ isFlat: false, amount: 0, frequency: null });
       }

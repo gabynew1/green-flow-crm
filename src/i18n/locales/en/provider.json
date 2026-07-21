@@ -42,5 +42,15 @@
       "stable": "Stable",
       "attention": "Attention"
     }
+  },
+  "entitlements": {
+    "pricing_model": "Pricing Model",
+    "covered_by_subscription": "Covered by Subscription",
+    "billed_separately": "Billed Separately",
+    "allowance_window": "Allowance Window",
+    "allowance_limit": "Allowance Limit",
+    "overage_price": "Overage Price",
+    "included_allowances": "Included Allowances",
+    "additional_billable_services": "Additional Billable Services"
   }
 }
