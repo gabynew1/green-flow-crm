@@ -43,6 +43,7 @@ export default function ClientContractDetail() {
   const { contractId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation("provider");
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
@@ -234,7 +235,7 @@ export default function ClientContractDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" /> Included Allowances
+              <ClipboardList className="h-4 w-4" /> {t("entitlements.included_allowances")}
               <span className="text-xs font-normal text-muted-foreground">covered by your subscription</span>
             </CardTitle>
           </CardHeader>
@@ -271,7 +272,7 @@ export default function ClientContractDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center justify-between">
-              <span className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Additional Billable Services</span>
+              <span className="flex items-center gap-2"><ClipboardList className="h-4 w-4" /> {t("entitlements.additional_billable_services")}</span>
               {billedTotal > 0 && <span className="text-sm font-normal text-muted-foreground">Est. total: {billedTotal.toFixed(2)}</span>}
             </CardTitle>
           </CardHeader>
