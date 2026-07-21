@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, Bot, UserPlus, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -23,8 +23,9 @@ import { useWorkdays } from "@/hooks/useWorkdays";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
-import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
+import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
 import { ZoneChip } from "@/components/provider/ZoneChip";
+import VisitActionRow from "@/components/visits/VisitActionRow";
 
 const statusColor = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusColor(key),
@@ -32,7 +33,6 @@ const statusColor = new Proxy({} as Record<string, string>, {
 const statusLabels = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusLabel(key),
 });
-const visibleStatuses = VISIBLE_VISIT_STATUSES as readonly string[];
 
 export default function VisitDetail() {
   const { tenantId } = useAuth();
@@ -324,25 +324,10 @@ export default function VisitDetail() {
             </div>
           )}
         </div>
-        {/* Status dropdown — COMPLETED is final */}
-        <Select
-          value={order.status}
-          onValueChange={changeStatus}
-          disabled={isCompleted}
-        >
-          <SelectTrigger className={cn("w-[180px] font-medium", statusColor[order.status] || "bg-muted text-muted-foreground")}>
-            <SelectValue>{statusLabels[order.status] || order.status.replace(/_/g, " ")}</SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {visibleStatuses.map(s => (
-              <SelectItem key={s} value={s}>
-                <span className={cn("inline-block rounded px-1.5 py-0.5 text-xs", statusColor[s])}>
-                  {statusLabels[s]}
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Read-only status badge — all transitions live in the action row below */}
+        <Badge className={cn("text-sm px-3 py-1.5", statusColor[order.status] || "bg-muted text-muted-foreground")}>
+          {statusLabels[order.status] || order.status.replace(/_/g, " ")}
+        </Badge>
       </div>
 
       {/* Completed banner */}
@@ -427,35 +412,13 @@ export default function VisitDetail() {
           </AlertDialog>
         )}
 
-        {["SCHEDULED", "IN_PROGRESS"].includes(order.status) && (
-          <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <CalendarClock className="h-4 w-4" /> Reschedule
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Reschedule Visit</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Current date: <span className="font-medium text-foreground">{order.scheduled_date}</span>
-                </p>
-                <Calendar
-                  mode="single"
-                  selected={rescheduleDate}
-                  onSelect={setRescheduleDate}
-                  initialFocus
-                  className="rounded-md border pointer-events-auto"
-                  modifiers={{ nonWorkday: (date) => !isWorkday(date) }}
-                  modifiersStyles={{ nonWorkday: { color: 'hsl(var(--destructive))', fontWeight: 500 } }}
-                />
-                <Button onClick={handleReschedule} className="w-full" disabled={!rescheduleDate}>
-                  <CalendarClock className="h-4 w-4 mr-2" /> Reschedule to {rescheduleDate ? format(rescheduleDate, "PPP") : "…"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        {/* Unified action row: Check-In · Reschedule · Cancel · (Rebook/Delete when canceled) */}
+        <VisitActionRow
+          visit={order}
+          onChanged={load}
+          // Complete flow lives in the dedicated Complete & Send Report dialog above,
+          // so we don't pass onComplete here to avoid duplicate buttons.
+        />
       </div>
 
       {/* Details card */}

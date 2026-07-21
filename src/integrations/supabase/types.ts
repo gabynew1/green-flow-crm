@@ -1984,6 +1984,8 @@ export type Database = {
       }
       service_orders: {
         Row: {
+          cancel_reason: string | null
+          checked_in_at: string | null
           client_summary: string | null
           contract_id: string | null
           created_at: string
@@ -2004,6 +2006,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancel_reason?: string | null
+          checked_in_at?: string | null
           client_summary?: string | null
           contract_id?: string | null
           created_at?: string
@@ -2024,6 +2028,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancel_reason?: string | null
+          checked_in_at?: string | null
           client_summary?: string | null
           contract_id?: string | null
           created_at?: string
