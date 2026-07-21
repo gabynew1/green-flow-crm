@@ -1,141 +1,92 @@
-## Async Combobox rollout — Global Users pivot + shared pickers
+## Unified Visit Action Row + Strict State Machine (v2)
 
-Two-phase plan. Phase 1 ships the Global Users pivot (the original request) *using* a new shared `TenantCombobox`. Phase 2 extracts the same pattern into `CustomerCombobox` + `PropertyCombobox` and pilots them in the ad-hoc visit dialog. Later surfaces migrate one PR at a time.
+Single shared component drives every visit interaction — list rows AND the detail page — so the rules can't drift across surfaces.
 
----
+### Architecture check
 
-## Phase 1 — Global Users: Omnisearch + Async Tenant Combobox
+- Mutation surfaces confirmed: `VisitDetail.tsx` (status Select + Complete + Delete), `RescheduleVisitButton.tsx`, `VisitRow.tsx` (quick-cancel — currently broken because `cancel_reason` column doesn't exist), `GenerateNext30Dialog.tsx` (bulk insert, out of scope). Calendar `ServiceVisits.tsx` navigates to detail; no inline editor. `ClientVisitDetail.tsx` is read-only.
+- Current status counts: SCHEDULED 137, CANCELED 147, COMPLETED 11, no legacy states — hygiene UPDATE is a defensive no-op today.
+- No architectural blockers.
 
-### New filter bar in `src/pages/admin/GlobalUserManagement.tsx`
+### 1. New shared component — `src/components/visits/VisitActionRow.tsx`
 
-```text
-[ 🔍 Search user name or email... ] [ 🏢 Tenant: Any ▾ ] [ Tier ▾ ] [ Status ▾ ] [ Clear ]
-```
+Buttons are rendered **contextually by status** (revised per feedback — no upfront noise):
 
-### State changes
+| Status         | Buttons rendered (in order)                             |
+| -------------- | ------------------------------------------------------- |
+| SCHEDULED      | Check-In · Reschedule · Complete · Cancel Visit         |
+| IN_PROGRESS    | Complete · Cancel Visit                                 |
+| COMPLETED      | *(none — terminal)*                                     |
+| CANCELED       | Rebook · Delete Visit                                   |
 
-Remove:
-- `tenantFilter` state and its populated `<Select>`
-- The `tenantOptions` derivation block (lines 89–95)
+Within a status, buttons that exist are always enabled (no disabled ghosts). Rebook and Delete only appear when `status === 'CANCELED'`.
 
-Add:
-- `userSearchTerm` (rename of current `searchTerm`), debounced 250 ms
-- `selectedTenantId: string | null` — drives the async combobox
-
-Keep: `tierFilter`, `statusFilter`, `signupInfo*`, all action handlers.
-
-### Users query
-
-Refactor the existing `useQuery` (line 57):
-- `queryKey: ["admin-global-users", debouncedUserSearch, selectedTenantId, tierFilter, statusFilter]`
-- Compose server-side:
-  - `debouncedUserSearch` → `.or("full_name.ilike.%term%,email.ilike.%term%")`
-  - `selectedTenantId` → `.eq("tenant_id", selectedTenantId)`
-- Tier + Status stay client-side (they filter on joined `tenants.subscription_tier` and `is_locked`; no regression).
-- Keep `.limit(500)` and the "narrow your search" hint.
-
-### `Clear`
-
-Resets `userSearchTerm`, `selectedTenantId`, `tierFilter`, `statusFilter`.
-
-### `TenantCombobox` (shared component built in this phase)
-
-`src/components/pickers/TenantCombobox.tsx`, built from existing `Popover` + `Command` primitives, no new deps. Follows the shared spec below so `CustomerCombobox` and `PropertyCombobox` reuse the same shape.
-
----
-
-## Phase 2 — Shared pickers + pilot in Ad-hoc Visit dialog
-
-### New files
-
-- `src/components/pickers/CustomerCombobox.tsx`
-- `src/components/pickers/PropertyCombobox.tsx`
-- (`TenantCombobox.tsx` already exists from Phase 1)
-
-`src/components/pickers/` chosen over `ui/` because `ui/` is reserved for shadcn primitives.
-
-### Shared spec (all three components)
-
-**Controlled props:**
+Props:
 ```ts
-type Props = {
-  value: string | null;
-  onChange: (id: string | null) => void;
-  placeholder?: string;
-  allowClear?: boolean;   // default true
-  disabled?: boolean;
-};
+{
+  visit: { id, status, scheduled_date, scheduled_start_time, scheduled_end_time,
+           property_id, customer_id, contract_id, tenant_id,
+           properties?: { name, customers?: { name, email } } };
+  onChanged: () => void | Promise<void>;
+  onComplete?: () => void;          // detail page passes its report flow; lists omit
+  size?: "sm" | "default";          // sm = compact icon buttons for list rows
+  layout?: "row" | "detail";
+}
 ```
 
-**Query rules:**
-- Debounce input 250 ms.
-- Skip queries for terms < 2 chars — show "Type to search…".
-- Search: `.ilike("name", %term%).order("name").limit(20)`.
-- Tenant scoping via `useTenantQuery` for cache-key consistency (`TenantCombobox` is admin-only and skips this).
-- Query keys:
-  - `["picker-tenants", term]`
-  - `["picker-customers", tenantId, term]`
-  - `["picker-properties", tenantId, customerId ?? "all", term]`
+Handlers (all live inside `VisitActionRow`, reused everywhere):
 
-**Initial hydration:** if the component mounts with `value` set but no cached label, run a single `.select("id, name").eq("id", value).maybeSingle()` so the trigger shows the real name, never a UUID.
+- **Check-In** — `AlertDialog` "Confirm check-in? This notifies the client." → `update({status:'IN_PROGRESS', checked_in_at: now()})` → `sendAppEmail({templateName:'visit-checkin', idempotencyKey:'visit-checkin-<id>', templateData:{propertyName, providerName, timestamp}, tenantId})`. Toast "Checked in — client notified".
+- **Reschedule** — reuses `RescheduleVisitButton`'s date-picker popover internally.
+- **Complete** — calls `onComplete` when provided (detail page's existing report-generation flow, too coupled to inline line-item state to extract this pass). List rows omit the prop, so Complete simply isn't rendered there — matches user's "click into detail to complete" ergonomics.
+- **Cancel Visit** — `AlertDialog` with optional `<Textarea>` reason (default `"Canceled by provider"`) → `update({status:'CANCELED', cancel_reason})` → toast with Undo (10s) that restores prior status + nulls reason.
+- **Rebook** — opens `CreateAdHocVisitDialog` prefilled with this visit's customer, property, and line items via new `initialVisit` prop. Save = fresh `service_orders` insert; original CANCELED row untouched.
+- **Delete Visit** — `AlertDialog` "This cannot be undone." → hard `delete().eq('id', ...)`.
 
-**Popover states:** 0–1 char → "Type to search…"; loading → spinner row; 0 results → "No matches"; 20 rows → footer "Showing first 20 — refine your search".
+### 2. Wiring — replaces every ad-hoc control
 
-**Trigger:** button showing resolved name or placeholder; `x` icon when `value && allowClear` calls `onChange(null)` without opening popover. `aria-expanded`, `aria-label` set.
+- **`VisitDetail.tsx`** — remove the status `Select` and `changeStatus`; keep the status pill in the top-right as a read-only `Badge`. Under the header: `<VisitActionRow visit layout="detail" onComplete={handleComplete} onChanged={refetch} />`. Remove the standalone bottom Delete button (now inside the action row, gated to CANCELED).
+- **`VisitRow.tsx` (quick actions in lists — YES, covered)** — replace the two inline icon buttons (`RescheduleVisitButton` + `XCircle` quick-cancel) with `<VisitActionRow visit={o} size="sm" onChanged={onChanged} />`. Same enable rules apply, so:
+  - SCHEDULED rows show: Check-In · Reschedule · Cancel (compact icons; Complete only on detail).
+  - IN_PROGRESS rows show: Cancel.
+  - CANCELED rows show: Rebook · Delete.
+  - COMPLETED rows show no action icons.
+  - Fixes the currently-broken quick-cancel (writes the now-existing `cancel_reason` column).
+- **`ServiceVisits.tsx`, `CustomerDetail.tsx`, `PropertyVisitsTab.tsx`** — all render through `VisitRow`, so they inherit the new quick actions with no page edits.
+- **`CreateAdHocVisitDialog.tsx`** — accept optional `initialVisit?: {customer_id, property_id, items[]}` prop for Rebook prefill; existing manual-create path unchanged.
 
-### `PropertyCombobox` specifics
+### 3. Migration
 
-Extra prop: `customerId?: string`.
+```sql
+ALTER TABLE public.service_orders
+  ADD COLUMN IF NOT EXISTS cancel_reason text,
+  ADD COLUMN IF NOT EXISTS checked_in_at timestamptz;
+```
 
-- With `customerId` → append `.eq("customer_id", customerId)`.
-- Without → also select `customers ( full_name )` and render list rows as `<PropertyName> — <CustomerName>` to disambiguate.
-- Defense-in-depth: in `useEffect([customerId])`, if `value` doesn't belong to the new `customerId`, call `onChange(null)` automatically.
+No RLS/GRANT changes — inherits existing policies.
 
-### Pilot — `src/components/provider/CreateAdHocVisitDialog.tsx`
+### 4. Email template
 
-- Customer `<Select>` → `<CustomerCombobox value={selectedCustomerId} onChange={handleCustomerChange} allowClear={false} />`.
-- Property `<Select>` → `<PropertyCombobox value={selectedPropertyId} onChange={setSelectedPropertyId} customerId={selectedCustomerId ?? undefined} allowClear={false} disabled={!selectedCustomerId} />`.
-- `handleCustomerChange` sets the customer AND explicitly resets `selectedPropertyId = null`.
-- Leave the service search untouched.
+- New `supabase/functions/_shared/transactional-email-templates/visit-checkin.tsx` mirroring `visit-report.tsx`. Props: `propertyName`, `providerName`, `timestamp`. Subject: `"Your service provider has arrived"`.
+- Register in `registry.ts` (`TEMPLATES` + `TEMPLATE_CATEGORY = 'visits'`).
+- Redeploy `send-transactional-email`.
 
----
+### 5. Data hygiene (via insert tool, not migration)
 
-## Data continuity — nothing to migrate
+```sql
+UPDATE public.service_orders
+SET status = 'SCHEDULED', needs_client_action = false
+WHERE status IN ('PENDING_APPROVAL','APPROVED','SENT_TO_CLIENT')
+  AND scheduled_date >= CURRENT_DATE;
+```
 
-Verified before writing this plan:
-- **No DB schema changes** — pure UI refactor of already-existing tables (`tenants`, `customers`, `properties`, `profiles`). Backing rows and RLS unchanged.
-- **No `localStorage` / `sessionStorage`** carries filter state anywhere in the app (grep confirmed).
-- **No saved-views / user-preferences table** stores tenant/customer/property selections.
-- **URL params** — the only persisted picker input is `Billing`'s `?customer=<uuid>` deep-link. The picker's "hydrate by id" step resolves that UUID to a name on mount, so existing bookmarked links keep working with zero user-visible mid-state.
-- **Cache** — React Query keys are namespaced (`picker-*`, `admin-global-users`, …); old entries expire naturally on the next fetch. No manual `queryClient.clear()` needed.
-- **In-flight sessions** — a user already sitting on `/admin/users` when the deploy lands loses their in-memory `tenantFilter` selection (Select was removed) and simply picks the tenant again in the new combobox. No data is lost.
+### Non-goals
+- Extracting the Complete-and-send-report flow out of `VisitDetail` (line-item coupling — future refactor).
+- Client-portal UI changes (client just receives the new check-in email).
 
-If Phase 2 later migrates surfaces that DO persist filter state (none exist today, but future ones might), the migration checklist for that PR is: (a) confirm any stored id still resolves via hydrate-by-id, (b) fall back to `null` if the row is gone (soft-deleted, RLS-hidden), (c) toast once if a stored filter is dropped so the user understands why.
-
----
-
-## Explicitly NOT in this plan
-
-Migrate later, one PR each:
-- `ServiceVisits` property filter
-- `Billing` customer chip
-- `ContractNew`, `OfferDetail`, `CreatePipelineItemDialog`, `CreateOpportunityDialog` customer/property pickers
-
-Skip entirely (small fixed enums): Tier, Status, License, Role, Frequency, Currency, per-customer Zone, Non-workday reason, Email template.
-
----
-
-## Verification
-
-Phase 1:
-- Type "Gabriel" with no tenant → matches across tenants.
-- Pick tenant "Serene" then type "Gabriel" → users named Gabriel within Serene only.
-- Tenant popover fires network requests only after ≥ 2 chars.
-- Clear resets all four filters.
-
-Phase 2:
-- `/provider/visits` → New visit → customer search returns after 2 chars, property list appears only after a customer is chosen, swapping customer clears property.
-- Preset `value` (dev override) shows the real name on first paint, never a UUID.
-- No `select *` payloads > 20 rows for either picker in the network tab.
-
-No schema, RPC, or route changes in either phase.
+### Files touched
+- **New:** `src/components/visits/VisitActionRow.tsx`, `supabase/functions/_shared/transactional-email-templates/visit-checkin.tsx`.
+- **Edit:** `src/pages/provider/VisitDetail.tsx`, `src/components/provider/visits/VisitRow.tsx`, `src/components/provider/CreateAdHocVisitDialog.tsx`, `supabase/functions/_shared/transactional-email-templates/registry.ts`, `src/i18n/locales/{ro,en}/provider.json`.
+- **Migration:** `cancel_reason`, `checked_in_at` on `service_orders`.
+- **Insert tool:** legacy-status normalization.
+- **Deploy:** `send-transactional-email`.
