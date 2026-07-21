@@ -88,7 +88,14 @@ export default function VisitDetail() {
       .order("source", { ascending: false });
     setItems(itms ?? []);
 
-    const { data: cat } = await supabase.from("service_catalog").select("*").eq("is_active", true);
+    const visitTenantId = (o?.properties as any)?.tenant_id ?? tenantId;
+    const { data: cat } = visitTenantId
+      ? await supabase
+          .from("service_catalog")
+          .select("*")
+          .eq("is_active", true)
+          .eq("tenant_id", visitTenantId)
+      : { data: [] as any[] };
     setCatalog(cat ?? []);
 
     // Load scope status if linked to contract
