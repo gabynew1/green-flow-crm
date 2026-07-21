@@ -356,11 +356,8 @@ export default function ContractDetail() {
     if (!selectedServiceId) { toast.error("Please select a service"); return; }
     const form = new FormData(e.currentTarget);
     const included = addFormIncluded;
-    // Included allowances have no per-unit price surfaced to the client;
-    // an overage price is optional (charged only when the client exceeds the cap).
-    const overagePrice = included
-      ? (addFormUnitPrice ? Number(addFormUnitPrice) : null)
-      : (addFormUnitPrice ? Number(addFormUnitPrice) : null);
+    // Included allowances are always priced at 0 — they're covered by the subscription fee.
+    const linePrice = included ? 0 : (addFormUnitPrice ? Number(addFormUnitPrice) : null);
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
@@ -370,7 +367,7 @@ export default function ContractDetail() {
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
       max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
-      unit_price: overagePrice,
+      unit_price: linePrice,
       is_included_in_base_fee: included,
       tenant_id: tenantId,
     }] as any);
@@ -691,22 +688,23 @@ export default function ContractDetail() {
                 {!addFormIncluded && (
                   <div className="space-y-2"><Label>Quantity *</Label><Input type="number" value={addFormQty} onChange={e => setAddFormQty(e.target.value)} required min="1" /></div>
                 )}
-                <div className="space-y-2">
-                  <Label>{addFormIncluded ? "Overage Price (optional)" : "Unit Price *"}</Label>
-                  <CurrencyInput
-                    currency={currency}
-                    required={!addFormIncluded}
-                    min="0"
-                    placeholder="0.00"
-                    value={addFormUnitPrice}
-                    onChange={e => setAddFormUnitPrice(e.target.value)}
-                  />
-                  {addFormIncluded && (
-                    <p className="text-xs text-muted-foreground">
-                      Leave empty if extras beyond the allowance should not be auto-billed.
-                    </p>
-                  )}
-                </div>
+                {addFormIncluded ? (
+                  <p className="text-xs text-muted-foreground rounded-md border border-dashed p-2">
+                    Price is fixed at 0 — this service is covered by the subscription fee.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Unit Price *</Label>
+                    <CurrencyInput
+                      currency={currency}
+                      required
+                      min="0"
+                      placeholder="0.00"
+                      value={addFormUnitPrice}
+                      onChange={e => setAddFormUnitPrice(e.target.value)}
+                    />
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Notes</Label><Input name="notes" /></div>
                 <Button type="submit" className="w-full">Add</Button>
               </form>
