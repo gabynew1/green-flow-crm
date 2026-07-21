@@ -1,17 +1,66 @@
-## Fix duplicate buttons at the bottom of the Visit page
+## Goal
 
-In `src/pages/provider/VisitDetail.tsx` (lines 770-806), there is a legacy footer row that renders both a "Save Changes" button and a "Delete Visit" button. This is why they still show even though the top action row already handles Delete for canceled visits.
+Produce a single authoritative Markdown document that explains how **Contracts → Line Items (Services) → Inventory → Pricing/Frequency/Quantity/Scope Consumption** actually work today, where each concept is managed and displayed, and a proposed model so a provider can confidently set up a recurring contract (e.g. yearly, 2 visits/month) and both sides see clearly what is in-scope, what is extra, and what has been consumed.
 
-### Changes
+## Deliverable
 
-1. **Move "Save Changes" up**, next to the top action row (the same header area that hosts Check-In / Reschedule / Cancel Visit / Complete & Send Report). It stays visible only when not COMPLETED — same rule as today. Placing it there keeps the primary "save the form" action close to the fields users just edited (notes, summary, edit-mode date pickers).
+New file: `docs/contracts-services-inventory.md`
 
-2. **Remove the standalone "Delete Visit" button from the footer.** Delete is now exclusively a CANCELED-state action inside the shared `VisitActionRow` (already wired in the top action row). Providers who want to delete an active visit must Cancel first, then Delete — this matches the state machine we agreed on and eliminates the confusing "delete a scheduled visit outright" path.
+## Document outline
 
-3. **Delete the now-empty footer div** (lines 770-806) so nothing renders below the Notes card.
+1. **TL;DR** — one-page mental model with a worked example: *"Yearly contract, 2 lawn maintenance visits per month, flat monthly fee"*. Shows exactly which fields to set (`billing_cycle`, `frequency_type`, `quantity`, `max_occurrences_per_period`, `unit_price`) and why.
 
-### Result
+2. **Core concepts & fields** — plain-language definitions of:
+   - `contracts.billing_cycle` (MONTHLY/YEARLY/…) — how the *client is charged*
+   - `contract_line_items.frequency_type` (PER_VISIT / PER_WEEK / PER_MONTH / PER_YEAR / PER_CONTRACT / ONE_TIME) — how *scope is measured*
+   - `quantity` vs `max_occurrences_per_period` — the difference and when each matters
+   - `unit_price` — meaning under a flat-fee contract vs pay-per-visit contract (including the "Included in flat fee = 0" rule already in the code)
+   - AD_HOC / extra items — items added to a visit that are *not* tied to a contract line
 
-- Header action row: `[Status Badge]` · Check-In · Reschedule · Complete & Send · Cancel Visit · **Save Changes**
-- When CANCELED, header action row: Rebook · Delete Visit · Save Changes (if still editable)
-- No buttons below the Notes card.
+3. **Scope consumption model** — how `getContractConsumption` and `getVisitScopeStatus` (`src/lib/contract-consumption.ts`) count what has been delivered:
+   - counts only `service_order_items.is_completed = true` on `service_orders.status = COMPLETED`
+   - period boundaries per frequency (week/month/year/contract lifetime)
+   - what makes an item "over scope" vs "in scope" vs "extra (ad-hoc)"
+
+4. **Recipes** — copy-pasteable setups for the common cases:
+   - Recurring flat-fee (yearly billing, 2 visits/month)
+   - Recurring flat-fee (monthly billing, weekly visit)
+   - Pay-per-visit (no cap, priced per unit)
+   - One-time project (ONE_TIME, fixed price)
+   - Mixed: flat-fee base + priced extras
+   - How inventory items attach to a visit and when they are billable vs included
+
+5. **Inventory relationship** — how `inventory_items` (property assets) relate to visits and to contract line items; clarifies that inventory tracks *what's on the property* (trees, equipment), separate from *services delivered* on `service_order_items`. Documents current gaps and the intended link.
+
+6. **Where each thing lives (single source of truth map)** — table listing every screen and the fields it reads/writes, so future edits update one place:
+
+   | Concept | DB source | Managed at | Displayed at |
+   |---|---|---|---|
+   | Contract header (billing_cycle, dates, status) | `contracts` | `ContractNew`, `ContractDetail` | `ContractDetail`, `PropertyContractsTab`, `ClientContracts`, `CustomerDashboard` |
+   | Contract line items (service, freq, qty, max, price) | `contract_line_items` | `ContractDetail` | same + `PropertyContractsTab`, `ClientContractDetail` |
+   | Consumption (in-scope vs over-scope) | derived via `contract-consumption.ts` | — | `ContractDetail`, `VisitDetail`, `Dashboard` (over-scope KPI) |
+   | Visit line items (delivered / extras) | `service_order_items` | `VisitDetail` | `VisitDetail`, `ClientVisitDetail`, `CustomerDetail` |
+   | Inventory (property assets) | `inventory_items` | `InventoryTab` | `PropertyDetail`, `VisitDetail` |
+   | Invoicing totals | `invoices`, `invoice_line_items` | auto on visit completion + `InvoiceDetail` | `/provider/billing`, `/client/billing`, `CustomerDashboard` |
+
+7. **Known disjoint areas & unification recommendations** — short list of the current friction points I find during exploration (e.g. price shown in USD `$` in `PropertyContractsTab` vs tenant currency elsewhere; "Included in flat fee" logic living only in `ContractDetail`; no visible per-line consumption on the client contract view; ad-hoc pricing UX). Each item flagged as "future unification" without changing behavior in this doc.
+
+8. **Glossary** — one-line definitions for every enum value used above.
+
+## Process
+
+1. Read the current implementations to make sure the doc matches reality — not assumptions:
+   - `src/pages/provider/ContractDetail.tsx`, `ContractNew.tsx`
+   - `src/lib/contract-consumption.ts` (already have)
+   - `src/components/provider/PropertyContractsTab.tsx` (already have)
+   - `src/pages/provider/VisitDetail.tsx`, `src/components/visits/VisitActionRow.tsx`
+   - `src/pages/client/ClientContractDetail.tsx`, `ClientVisitDetail.tsx`
+   - `src/components/provider/InventoryTab.tsx`, invoice generation in `src/lib/invoice-pdf.ts` and billing pages
+   - DB shape of `contract_line_items`, `service_order_items`, `inventory_items`, `invoices*` via `supabase--read_query`
+2. Write `docs/contracts-services-inventory.md` following the outline above, using the worked example as the anchor throughout.
+3. Add a link to it from `README.md` under the domain-model section.
+
+## Scope guardrails
+
+- **Documentation only.** No code, DB, or UI changes in this task.
+- Unification recommendations are captured as a section for a future task; nothing is implemented now.
