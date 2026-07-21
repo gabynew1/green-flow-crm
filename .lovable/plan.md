@@ -1,48 +1,49 @@
+## What you actually want
 
-## Goal
+In the **New Contract** flow (`/provider/contracts/new`), once you pick a Regular-Maintenance category and enter a flat fee, every auto-added service should inherit the **allowance** you already declared at the top of the form:
 
-Stop showing the `Flat fee — …` line under "Additional Billable Services". It represents the monthly/annual subscription price, not an add-on. Surface it as its own top-of-page section so the read order matches how the contract actually works:
+> `visit_frequency_count × visit_frequency_type` → each included line's `frequency_type` + `max_occurrences_per_period`.
 
-1. **Subscription Fee** (the flat-fee sibling row)
-2. **Included Allowances** (services covered by the subscription)
-3. **Additional Billable Services** (true pay-per-visit extras — only shown when non-empty)
+Example: `2 × MONTH` → every service = `PER_MONTH`, max `2`. With a 10-month start→end, that's ≈ 20 visits — surfaced as a helper line, not a new field.
 
-## Detection rule (shared)
+Today the flat-fee branch inserts every service with `frequency_type = "PER_VISIT"` (the `defaultCfg()`) and `max = NULL`, which reads as "Unlimited". That's the bug.
 
-A line is the "flat fee" sibling row when:
-`typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee")`
+## Changes — `src/pages/provider/ContractNew.tsx` only
 
-It stays a single row created by `ContractNew` / `recreateFromOffer`; we're only changing where it renders.
+### 1. Derive a single allowance preset from the header
+Add a memo:
+```
+allowancePreset = {
+  frequency_type: visitType === "WEEK"  ? "PER_WEEK"
+                 : visitType === "MONTH" ? "PER_MONTH"
+                 : visitType === "YEAR"  ? "PER_YEAR"
+                 : "PER_MONTH",
+  max: visitCount,
+}
+```
 
-## Changes
+### 2. Apply the preset when Regular-Maintenance auto-selects services
+In the existing `useEffect` that seeds `selectedServiceIds` for `isFlatFeeMode`, when initializing each `serviceConfig[id]`, set `frequency_type = allowancePreset.frequency_type` and `max_occurrences = String(allowancePreset.max)`.
 
-### 1. `src/pages/provider/ContractDetail.tsx`
-- Partition `filtered` into `flatFeeRows`, `included`, `billed`. `billed` excludes flat-fee rows.
-- Above the two existing tables, add a compact "Subscription Fee" section listing each flat-fee row with: Service label (`custom_name`), Billing cadence (`frequency_type` humanized, e.g. "per month"), and Amount (`formatCurrency(unit_price, currency)`). Keep the row's delete/edit affordances consistent with the other tables so providers can still adjust it.
-- Update `billedTotal` to sum only true billable extras (unchanged math, just a smaller set).
+### 3. Re-sync when the user changes visit frequency after selecting
+Second `useEffect` keyed on `[visitCount, visitType, isFlatFeeMode]`: for every service still holding the *current* preset (i.e. the user hasn't hand-edited it), overwrite `frequency_type` and `max_occurrences` with the new preset. Track "user-edited" with a small `overriddenServiceIds` Set updated inside `updateServiceConfig`.
 
-### 2. `src/pages/client/ClientContractDetail.tsx`
-- Same partition. Render a read-only "Subscription Fee" card at the top of the line-items area with the humanized cadence and `formatCurrency` amount.
-- Remove flat-fee rows from `billedLines`. If nothing else remains, hide the "Additional Billable Services" card entirely (already conditional on `.length > 0`).
+### 4. Fallback in the insert path
+Even if state gets out of sync, harden the flat-fee branch (line 265–277) to fall back to `allowancePreset` when `cfg.frequency_type === "PER_VISIT"` and `cfg.max_occurrences === ""`. Guarantees no more "Unlimited" surprises on save.
 
-### 3. `src/components/provider/PropertyContractsTab.tsx`
-- Totals already sum every non-included line, which correctly includes the flat-fee row — no math change. Only tweak the per-line summary list so the flat-fee row renders as "Subscription — {amount} / {cadence}" instead of the generic `qty × freq · price/unit` string.
+### 5. Helper text under the flat-fee card
+Under the flat-fee amount input, render a muted line:
+> *"Every included service inherits **{count}× {period}** ({months} months → ≈ **{totalVisits}** visits total). You can override per service below."*
 
-### 4. i18n
-Add EN/RO keys under the existing `entitlements` block and wire them in the three files above:
-- `subscription_fee` / `Abonament lunar`
-- `subscription_fee_note` / `Costul lunar al abonamentului — include alocările de mai jos`
-- `billing_cadence.per_month` / `pe lună`, `per_year` / `pe an`, `one_time` / `unic`
+`months` computed from `startDate` / `endDate`; if either is missing, show just the per-period line.
 
-(Reuse existing `included_allowances` / `additional_billable_services` keys.)
-
-## Out of scope
-- No schema changes; `is_included_in_base_fee` semantics untouched.
-- No changes to invoice generation, `finalizeVisit`, or contract creation logic — the flat-fee row is still created the same way.
-- No refactor of `ContractNew` line-item UI.
+## Explicitly out of scope
+- No DB migration, no schema changes.
+- `ContractDetail.tsx` "Add Line Item" defaults stay as-is (separate follow-up if you want the same behavior there).
+- No changes to invoice generation, scheduling engine, or the "Additional Billable Services" path.
+- Existing contracts already saved with unlimited allowance are **not** rewritten — this only fixes new contracts. Say the word if you want a one-shot backfill for existing DRAFT contracts.
 
 ## Verification
-- Contract with a `Flat fee — Regular Maintenance (Monthly)` row shows: top "Subscription Fee 400 RON / pe lună" card, then Included Allowances table, and the "Additional Billable Services" section is hidden (there are no true extras).
-- Adding an ad-hoc billable line makes the "Additional Billable Services" table reappear with only that line.
-- Client contract detail mirrors the same ordering.
-- Property list summary shows "Subscription — 400 RON / pe lună" for the flat-fee row and keeps total unchanged.
+- Pick `2 × MONTH`, category = Regular Maintenance, 10-month term → every auto-added row shows `PER_MONTH` / `2` in the per-service panel, and the helper reads "≈ 20 visits total".
+- Change to `1 × WEEK` afterwards → rows the user didn't touch flip to `PER_WEEK` / `1`; rows the user hand-edited stay put.
+- Save the contract → `contract_line_items.max_occurrences_per_period = 2`, `frequency_type = PER_MONTH` for each included service.
