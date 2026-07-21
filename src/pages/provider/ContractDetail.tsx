@@ -77,7 +77,14 @@ export default function ContractDetail() {
       .order("created_at");
     setLineItems(li ?? []);
 
-    const { data: cat } = await supabase.from("service_catalog").select("*").eq("is_active", true).order("name");
+    const { data: cat } = tenantId
+      ? await supabase
+          .from("service_catalog")
+          .select("*")
+          .eq("is_active", true)
+          .eq("tenant_id", tenantId)
+          .order("name")
+      : { data: [] as any[] };
     setCatalog(cat ?? []);
 
     // Load consumption data for active contracts
