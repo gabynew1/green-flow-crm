@@ -60,9 +60,18 @@ function statusDayProgress(tenant: {
     created_at: string;
     trial_expires_at: string | null;
     locked_at?: string | null;
+    subscription_status?: string | null;
+    grace_ends_at?: string | null;
 }): { day: number; total: number } | null {
     const DAY = 86_400_000;
     const now = Date.now();
+    if (tenant.subscription_status === "grace" && tenant.grace_ends_at) {
+        const end = new Date(tenant.grace_ends_at).getTime();
+        const total = 15;
+        const remaining = Math.max(0, Math.ceil((end - now) / DAY));
+        const day = Math.min(total, Math.max(1, total - remaining + 1));
+        return { day, total };
+    }
     if (tenant.status === "soft_locked" || tenant.status === "flagged_for_deletion") {
         const start = tenant.locked_at ? new Date(tenant.locked_at).getTime() : now;
         const day = Math.min(180, Math.max(1, Math.floor((now - start) / DAY) + 1));
@@ -95,6 +104,8 @@ type TenantRow = {
     trial_expires_at: string | null;
     locked_at?: string | null;
     scheduled_delete_at?: string | null;
+    subscription_status?: string | null;
+    grace_ends_at?: string | null;
     providerCount: number;
     clientCount: number;
     teamCount: number;
@@ -113,7 +124,7 @@ export default function TenantManagement() {
         queryFn: async () => {
             const { data: tenantsData, error } = await supabase
                 .from("tenants")
-                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, max_teams, trial_expires_at, locked_at, scheduled_delete_at`);
+                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, max_teams, trial_expires_at, locked_at, scheduled_delete_at, subscription_status, grace_ends_at`);
 
             if (error) throw error;
 
@@ -155,9 +166,9 @@ export default function TenantManagement() {
     const handleChangeTier = async () => {
         if (!changeTierTenant || !selectedTier) return;
         setIsProcessing(true);
-        const { error } = await supabase.rpc("apply_tier_limits" as never, {
-            _tenant_id: changeTierTenant.id,
-            _tier: selectedTier,
+        const { error } = await supabase.rpc("fn_change_subscription_tier" as never, {
+            p_tenant_id: changeTierTenant.id,
+            p_new_tier: selectedTier,
         } as never);
 
         if (error) {
@@ -173,15 +184,28 @@ export default function TenantManagement() {
 
     const handleExtendTrial15 = async (tenant: TenantRow) => {
         setIsProcessing(true);
-        const { data, error } = await supabase.rpc("extend_trial_15" as never, {
-            _tenant_id: tenant.id,
+        const { error } = await supabase.rpc("fn_grant_extra_trial" as never, {
+            p_tenant_id: tenant.id,
+            p_days: 30,
+            p_reason: "admin_extension",
         } as never);
         if (error) {
             toast.error(error.message);
         } else {
-            toast.success(`Trial extended by 15 days (now expires ${format(new Date(data as unknown as string), "MMM d, yyyy")})`);
+            toast.success(`Trial extended by 30 days`);
             refetch();
         }
+        setIsProcessing(false);
+    };
+
+    const handleFinalizeDowngrade = async (tenant: TenantRow) => {
+        setIsProcessing(true);
+        const { error } = await supabase.rpc("fn_finalize_downgrade" as never, {
+            p_tenant_id: tenant.id,
+            p_reason: "manual_downgrade",
+        } as never);
+        if (error) toast.error(error.message);
+        else { toast.success(`${tenant.name} downgraded to Patio`); refetch(); }
         setIsProcessing(false);
     };
 
@@ -362,16 +386,27 @@ export default function TenantManagement() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-1">
-                                        {isTrial(tenant.subscription_tier) && (
+                                        {tenant.subscription_status === "grace" ? (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 text-xs border-red-300 text-red-800 hover:bg-red-50"
+                                                onClick={() => handleFinalizeDowngrade(tenant)}
+                                                disabled={isProcessing}
+                                                title="Immediately drop to Patio (skip remaining grace)"
+                                            >
+                                                Finalize Downgrade
+                                            </Button>
+                                        ) : (isTrial(tenant.subscription_tier) || tenant.subscription_status === "trial_active") && (
                                             <Button
                                                 size="sm"
                                                 variant="outline"
                                                 className="h-8 text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-50"
                                                 onClick={() => handleExtendTrial15(tenant)}
                                                 disabled={isProcessing}
-                                                title="Extend trial by exactly 15 days"
+                                                title="Extend trial by 30 days"
                                             >
-                                                <Plus className="h-3 w-3 mr-1" />15 days
+                                                <Plus className="h-3 w-3 mr-1" />30 days
                                             </Button>
                                         )}
                                     <DropdownMenu>
@@ -398,8 +433,14 @@ export default function TenantManagement() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => handleExtendTrial15(tenant)} disabled={isProcessing}>
                                                 <Calendar className="h-4 w-4 mr-2" />
-                                                Extend Trial +15 days
+                                                Extend Trial +30 days
                                             </DropdownMenuItem>
+                                            {tenant.subscription_status === "grace" && (
+                                                <DropdownMenuItem onClick={() => handleFinalizeDowngrade(tenant)} disabled={isProcessing}>
+                                                    <AlertCircle className="h-4 w-4 mr-2 text-red-600" />
+                                                    Finalize Downgrade
+                                                </DropdownMenuItem>
+                                            )}
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="text-destructive font-semibold"
