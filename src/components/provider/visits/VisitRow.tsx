@@ -1,25 +1,10 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { XCircle } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import RescheduleVisitButton from "@/components/provider/RescheduleVisitButton";
 import { ZoneChip } from "@/components/provider/ZoneChip";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
+import { VisitActionRow } from "@/components/visits/VisitActionRow";
 
 export type VisitRowKind = "overdue" | "upcoming" | "past" | "neutral";
 
@@ -48,7 +33,7 @@ export function VisitRow({
   showTeamColor = false,
   showCustomerName = false,
   showAutoManual = true,
-  allowQuickCancel = true,
+  allowQuickCancel = true, // kept for API compat — action row already gates by status
   onChanged,
 }: VisitRowProps) {
   const navigate = useNavigate();
@@ -66,28 +51,6 @@ export function VisitRow({
   const propertyName = (o.properties as any)?.name;
   const customerName = (o.properties as any)?.customers?.name;
   const zone = (o.properties as any)?.service_zones;
-
-  const showCancel = allowQuickCancel && (kind === "overdue" || active);
-
-  const handleCancel = async () => {
-    const prevStatus = o.status;
-    const { error } = await supabase
-      .from("service_orders")
-      .update({ status: "CANCELED", cancel_reason: kind === "overdue" ? "Dismissed as overdue" : "Canceled from list" })
-      .eq("id", o.id);
-    if (error) return toast.error(error.message);
-    toast.success("Visit canceled", {
-      action: {
-        label: "Undo",
-        onClick: async () => {
-          await supabase.from("service_orders").update({ status: prevStatus, cancel_reason: null }).eq("id", o.id);
-          onChanged();
-        },
-      },
-      duration: 10000,
-    });
-    onChanged();
-  };
 
   return (
     <Card
@@ -133,30 +96,7 @@ export function VisitRow({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {active && (
-            <RescheduleVisitButton visitId={o.id} currentDate={o.scheduled_date} onRescheduled={onChanged} />
-          )}
-          {showCancel && active && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:text-destructive" title="Cancel visit">
-                  <XCircle className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancel this visit?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    It will be marked CANCELED and removed from the schedule. You can undo right after.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Keep it</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel}>Cancel visit</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          <VisitActionRow visit={o} size="sm" layout="row" onChanged={onChanged} />
           {o.needs_client_action && (
             <Badge variant="outline" className="text-[10px] border-warning text-warning">Needs review</Badge>
           )}

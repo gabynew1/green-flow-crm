@@ -31,6 +31,7 @@ export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
   'offer-response':        'contracts_offers',
   'visit-report':          'visits',
   'inspection-scheduled':  'inspections',
+  'visit-checkin':         'visits',
   'onboarding-day-0':      'lifecycle',
   'onboarding-day-2':      'lifecycle',
   'onboarding-day-7':      'lifecycle',
@@ -54,6 +55,7 @@ import { template as contractResponse } from './contract-response.tsx'
 import { template as offerSent } from './offer-sent.tsx'
 import { template as offerResponse } from './offer-response.tsx'
 import { template as visitReport } from './visit-report.tsx'
+import { template as visitCheckin } from './visit-checkin.tsx'
 import { template as inspectionScheduled } from './inspection-scheduled.tsx'
 import { template as connectionApproved } from './connection-approved.tsx'
 import { template as onboardingDay0 } from './onboarding-day-0.tsx'
@@ -81,6 +83,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'offer-sent': offerSent,
   'offer-response': offerResponse,
   'visit-report': visitReport,
+  'visit-checkin': visitCheckin,
   'inspection-scheduled': inspectionScheduled,
   'connection-approved': connectionApproved,
   'onboarding-day-0': onboardingDay0,
