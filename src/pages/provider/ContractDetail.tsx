@@ -754,7 +754,7 @@ export default function ContractDetail() {
                       <TableHead>Service</TableHead>
                       <TableHead>Allowance</TableHead>
                       <TableHead>Usage</TableHead>
-                      <TableHead>Overage Price</TableHead>
+                      <TableHead>Price</TableHead>
                       {editable && <TableHead />}
                     </TableRow>
                   </TableHeader>
@@ -778,25 +778,7 @@ export default function ContractDetail() {
                               </Badge>
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
-                          <TableCell>
-                            {editable ? (
-                              <CurrencyInput
-                                currency={currency}
-                                className="h-7 w-28 text-xs"
-                                placeholder="—"
-                                defaultValue={li.unit_price ?? ""}
-                                onBlur={async (e) => {
-                                  const val = e.target.value ? Number(e.target.value) : null;
-                                  if (val === li.unit_price) return;
-                                  await supabase.from("contract_line_items").update({ unit_price: val } as any).eq("id", li.id);
-                                  toast.success("Overage price updated");
-                                  load();
-                                }}
-                              />
-                            ) : (
-                              <span className="text-xs">{li.unit_price != null ? formatCurrency(Number(li.unit_price), currency) : "—"}</span>
-                            )}
-                          </TableCell>
+                          <TableCell className="text-xs italic text-muted-foreground">Included in flat fee</TableCell>
                           {editable && (
                             <TableCell>
                               <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
