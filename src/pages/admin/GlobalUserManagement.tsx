@@ -45,17 +45,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { TenantCombobox } from "@/components/pickers/TenantCombobox";
+import { useDebouncedValue } from "@/components/pickers/useDebouncedValue";
 
 export default function GlobalUserManagement() {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [tenantFilter, setTenantFilter] = useState<string>("all");
+    const [userSearchTerm, setUserSearchTerm] = useState("");
+    const debouncedUserSearch = useDebouncedValue(userSearchTerm, 250);
+    const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
     const [tierFilter, setTierFilter] = useState<string>("all");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [signupInfo, setSignupInfo] = useState<any | null>(null);
     const [signupInfoOpen, setSignupInfoOpen] = useState(false);
 
     const { data: users, isLoading, refetch } = useQuery({
-        queryKey: ["admin-global-users", searchTerm],
+        queryKey: ["admin-global-users", debouncedUserSearch, selectedTenantId],
         queryFn: async () => {
             let query = supabase
                 .from("profiles")
@@ -76,8 +79,12 @@ export default function GlobalUserManagement() {
           tenants (name, subscription_tier)
         `);
 
-            if (searchTerm) {
-                query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+            if (debouncedUserSearch.trim()) {
+                const term = debouncedUserSearch.trim();
+                query = query.or(`full_name.ilike.%${term}%,email.ilike.%${term}%`);
+            }
+            if (selectedTenantId) {
+                query = query.eq("tenant_id", selectedTenantId);
             }
 
             const { data, error } = await query.limit(500);
@@ -86,20 +93,11 @@ export default function GlobalUserManagement() {
         }
     });
 
-    const tenantOptions = Array.from(
-        new Map<string, string>(
-            (users || [])
-                .filter((u: any) => u.tenant_id && u.tenants?.name)
-                .map((u: any) => [u.tenant_id as string, u.tenants.name as string])
-        ).entries()
-    ).sort((a, b) => a[1].localeCompare(b[1]));
-
     const tierOptions = Array.from(
         new Set((users || []).map((u: any) => u.tenants?.subscription_tier).filter(Boolean))
     ).sort();
 
     const filteredUsers = (users || []).filter((u: any) => {
-        if (tenantFilter !== "all" && u.tenant_id !== tenantFilter) return false;
         if (tierFilter !== "all" && u.tenants?.subscription_tier !== tierFilter) return false;
         if (statusFilter === "active" && u.is_locked) return false;
         if (statusFilter === "locked" && !u.is_locked) return false;
@@ -107,12 +105,13 @@ export default function GlobalUserManagement() {
     });
 
     const clearFilters = () => {
-        setSearchTerm("");
-        setTenantFilter("all");
+        setUserSearchTerm("");
+        setSelectedTenantId(null);
         setTierFilter("all");
         setStatusFilter("all");
     };
-    const anyFilterActive = !!searchTerm || tenantFilter !== "all" || tierFilter !== "all" || statusFilter !== "all";
+    const anyFilterActive =
+        !!userSearchTerm || !!selectedTenantId || tierFilter !== "all" || statusFilter !== "all";
 
     const toggleLock = async (id: string, currentLock: boolean) => {
         const { error } = await supabase
@@ -179,22 +178,18 @@ export default function GlobalUserManagement() {
                 <div className="relative group flex-1 max-w-xl">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
-                        placeholder="Search by full name or email address..."
+                        placeholder="Search user name or email..."
                         className="pl-10 h-11 shadow-sm border-primary/20 focus:ring-primary/20"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
                     />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                    <Select value={tenantFilter} onValueChange={setTenantFilter}>
-                        <SelectTrigger className="w-[200px] h-11"><SelectValue placeholder="Tenant" /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All tenants</SelectItem>
-                            {tenantOptions.map(([id, name]) => (
-                                <SelectItem key={String(id)} value={String(id)}>{String(name)}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <TenantCombobox
+                        value={selectedTenantId}
+                        onChange={setSelectedTenantId}
+                        placeholder="Tenant: Any"
+                    />
                     <Select value={tierFilter} onValueChange={setTierFilter}>
                         <SelectTrigger className="w-[160px] h-11"><SelectValue placeholder="Tier" /></SelectTrigger>
                         <SelectContent>
