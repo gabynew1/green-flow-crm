@@ -1827,7 +1827,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -1839,7 +1839,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
-          tenant_id?: string | null
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -1851,7 +1851,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -1863,6 +1863,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      service_catalog_default_translations: {
+        Row: {
+          created_at: string
+          default_id: string
+          description: string | null
+          id: string
+          locale: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_id: string
+          description?: string | null
+          id?: string
+          locale: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_id?: string
+          description?: string | null
+          id?: string
+          locale?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_catalog_default_translations_default_id_fkey"
+            columns: ["default_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog_defaults"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_catalog_defaults: {
+        Row: {
+          code: string
+          created_at: string
+          default_price: number | null
+          default_unit: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_price?: number | null
+          default_unit?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_price?: number | null
+          default_unit?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       service_catalog_translations: {
         Row: {
