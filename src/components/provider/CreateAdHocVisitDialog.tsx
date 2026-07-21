@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CustomerCombobox } from "@/components/pickers/CustomerCombobox";
+import { PropertyCombobox } from "@/components/pickers/PropertyCombobox";
 import {
   Dialog,
   DialogContent,
@@ -117,28 +119,21 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const loadData = async () => {
     const [custRes, propRes, svcRes, teamRes] = await Promise.all([
-      tenantId ? supabase.from("customers").select("id, name, company_name").eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
-      tenantId ? supabase.from("properties").select("id, name, customer_id").eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
+      Promise.resolve({ data: [] }),
+      Promise.resolve({ data: [] }),
       tenantId ? supabase.from("service_catalog").select("id, name, code").eq("is_active", true).eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
       tenantId ? supabase.from("teams").select("id, name, color").eq("tenant_id", tenantId).order("created_at") : Promise.resolve({ data: [] }),
     ]);
-    const loadedCustomers = custRes.data ?? [];
-    const loadedProperties = propRes.data ?? [];
     const loadedTeams = (teamRes.data ?? []) as Team[];
-    setCustomers(loadedCustomers);
-    setProperties(loadedProperties);
+    setCustomers([]);
+    setProperties([]);
     setServices(svcRes.data ?? []);
     setTeams(loadedTeams);
     if (loadedTeams.length > 0 && !selectedTeamId) setSelectedTeamId(loadedTeams[0].id);
 
-    if (defaultCustomerId && loadedCustomers.some((c: any) => c.id === defaultCustomerId)) {
+    if (defaultCustomerId) {
       setSelectedCustomerId(defaultCustomerId);
-      const custProps = loadedProperties.filter((p: any) => p.customer_id === defaultCustomerId);
-      if (defaultPropertyId && custProps.some((p: any) => p.id === defaultPropertyId)) {
-        setSelectedPropertyId(defaultPropertyId);
-      } else if (custProps.length === 1) {
-        setSelectedPropertyId(custProps[0].id);
-      }
+      if (defaultPropertyId) setSelectedPropertyId(defaultPropertyId);
     }
   };
 
@@ -205,7 +200,6 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     }
   };
 
-  const filteredProperties = properties.filter((p) => p.customer_id === selectedCustomerId);
   const categories = [...new Set(services.map((s) => s.code as string))].sort();
   const filteredServices = services.filter(
     (s) =>
@@ -342,48 +336,26 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
           {/* Customer */}
           <div className="space-y-2">
             <Label>Customer *</Label>
-            <Select
-              value={selectedCustomerId}
-              onValueChange={(v) => {
-                setSelectedCustomerId(v);
+            <CustomerCombobox
+              value={selectedCustomerId || null}
+              onChange={(id) => {
+                setSelectedCustomerId(id || "");
                 setSelectedPropertyId("");
               }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select customer" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                    {c.company_name ? ` (${c.company_name})` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              allowClear={false}
+            />
           </div>
 
           {/* Property */}
           {selectedCustomerId && (
             <div className="space-y-2">
               <Label>Property *</Label>
-              <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select property" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredProperties.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                  {filteredProperties.length === 0 && (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      No properties for this customer
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
+              <PropertyCombobox
+                value={selectedPropertyId || null}
+                onChange={(id) => setSelectedPropertyId(id || "")}
+                customerId={selectedCustomerId || undefined}
+                allowClear={false}
+              />
             </div>
           )}
 
