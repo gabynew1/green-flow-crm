@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, CalendarClock, Bot, UserPlus, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, Bot, UserPlus, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -23,8 +23,9 @@ import { useWorkdays } from "@/hooks/useWorkdays";
 import { getVisitScopeStatus } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
-import { visitStatusColor, visitStatusLabel, VISIBLE_VISIT_STATUSES } from "@/lib/visit-status";
+import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
 import { ZoneChip } from "@/components/provider/ZoneChip";
+import VisitActionRow from "@/components/visits/VisitActionRow";
 
 const statusColor = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusColor(key),
@@ -32,7 +33,6 @@ const statusColor = new Proxy({} as Record<string, string>, {
 const statusLabels = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusLabel(key),
 });
-const visibleStatuses = VISIBLE_VISIT_STATUSES as readonly string[];
 
 export default function VisitDetail() {
   const { tenantId } = useAuth();
