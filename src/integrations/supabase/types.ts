@@ -2112,33 +2112,69 @@ export type Database = {
           },
         ]
       }
+      subscription_config: {
+        Row: {
+          grace_period_days: number
+          id: number
+          trial_length_days: number
+          updated_at: string
+        }
+        Insert: {
+          grace_period_days?: number
+          id: number
+          trial_length_days?: number
+          updated_at?: string
+        }
+        Update: {
+          grace_period_days?: number
+          id?: number
+          trial_length_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       super_admin_audit_logs: {
         Row: {
           action: string
-          admin_user_id: string
+          admin_user_id: string | null
           created_at: string
+          from_status: string | null
+          from_tier: string | null
           id: string
           metadata: Json | null
+          reason: string | null
           target_id: string | null
           target_type: string | null
+          to_status: string | null
+          to_tier: string | null
         }
         Insert: {
           action: string
-          admin_user_id: string
+          admin_user_id?: string | null
           created_at?: string
+          from_status?: string | null
+          from_tier?: string | null
           id?: string
           metadata?: Json | null
+          reason?: string | null
           target_id?: string | null
           target_type?: string | null
+          to_status?: string | null
+          to_tier?: string | null
         }
         Update: {
           action?: string
-          admin_user_id?: string
+          admin_user_id?: string | null
           created_at?: string
+          from_status?: string | null
+          from_tier?: string | null
           id?: string
           metadata?: Json | null
+          reason?: string | null
           target_id?: string | null
           target_type?: string | null
+          to_status?: string | null
+          to_tier?: string | null
         }
         Relationships: []
       }
@@ -2417,6 +2453,7 @@ export type Database = {
           currency: string
           feature_flags: Json
           flagged_for_deletion_at: string | null
+          grace_ends_at: string | null
           id: string
           last_admin_login_at: string | null
           locked_at: string | null
@@ -2428,6 +2465,7 @@ export type Database = {
           name: string
           scheduled_delete_at: string | null
           status: string
+          subscription_status: Database["public"]["Enums"]["subscription_status_t"]
           subscription_tier: string
           timezone: string
           trial_expires_at: string | null
@@ -2441,6 +2479,7 @@ export type Database = {
           currency?: string
           feature_flags?: Json
           flagged_for_deletion_at?: string | null
+          grace_ends_at?: string | null
           id?: string
           last_admin_login_at?: string | null
           locked_at?: string | null
@@ -2452,6 +2491,7 @@ export type Database = {
           name?: string
           scheduled_delete_at?: string | null
           status?: string
+          subscription_status: Database["public"]["Enums"]["subscription_status_t"]
           subscription_tier?: string
           timezone?: string
           trial_expires_at?: string | null
@@ -2465,6 +2505,7 @@ export type Database = {
           currency?: string
           feature_flags?: Json
           flagged_for_deletion_at?: string | null
+          grace_ends_at?: string | null
           id?: string
           last_admin_login_at?: string | null
           locked_at?: string | null
@@ -2476,6 +2517,7 @@ export type Database = {
           name?: string
           scheduled_delete_at?: string | null
           status?: string
+          subscription_status?: Database["public"]["Enums"]["subscription_status_t"]
           subscription_tier?: string
           timezone?: string
           trial_expires_at?: string | null
@@ -2919,7 +2961,6 @@ export type Database = {
       }
       expire_stale_action_tasks: { Args: never; Returns: number }
       expire_trials_to_patio: { Args: never; Returns: undefined }
-      extend_trial_15: { Args: { _tenant_id: string }; Returns: string }
       fn_add_entitlement_key: {
         Args: {
           p_category: string
@@ -2942,6 +2983,7 @@ export type Database = {
           currency: string
           feature_flags: Json
           flagged_for_deletion_at: string | null
+          grace_ends_at: string | null
           id: string
           last_admin_login_at: string | null
           locked_at: string | null
@@ -2953,6 +2995,7 @@ export type Database = {
           name: string
           scheduled_delete_at: string | null
           status: string
+          subscription_status: Database["public"]["Enums"]["subscription_status_t"]
           subscription_tier: string
           timezone: string
           trial_expires_at: string | null
@@ -2974,7 +3017,11 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      fn_expire_trials: { Args: never; Returns: number }
+      fn_expire_trials: { Args: never; Returns: Json }
+      fn_finalize_downgrade: {
+        Args: { p_reason?: string; p_tenant_id: string }
+        Returns: undefined
+      }
       fn_generate_invoice_for_contract_cycle: {
         Args: { _contract_id: string; _period_start: string }
         Returns: string
@@ -2993,6 +3040,19 @@ export type Database = {
       }
       fn_init_provider_tenant: {
         Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      fn_log_subscription_transition: {
+        Args: {
+          p_actor: string
+          p_from_status: string
+          p_from_tier: string
+          p_metadata?: Json
+          p_reason: string
+          p_tenant_id: string
+          p_to_status: string
+          p_to_tier: string
+        }
         Returns: undefined
       }
       fn_recompute_invoice_status: {
@@ -3260,6 +3320,13 @@ export type Database = {
         | "APPROVED"
         | "SENT_TO_CLIENT"
         | "CANCELED"
+      subscription_status_t:
+        | "trial_active"
+        | "grace"
+        | "active"
+        | "downgraded"
+        | "suspended"
+        | "cancelled"
       task_status: "pending" | "in_progress" | "completed"
     }
     CompositeTypes: {
@@ -3493,6 +3560,14 @@ export const Constants = {
         "APPROVED",
         "SENT_TO_CLIENT",
         "CANCELED",
+      ],
+      subscription_status_t: [
+        "trial_active",
+        "grace",
+        "active",
+        "downgraded",
+        "suspended",
+        "cancelled",
       ],
       task_status: ["pending", "in_progress", "completed"],
     },
