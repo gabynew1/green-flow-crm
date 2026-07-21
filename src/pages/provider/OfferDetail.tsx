@@ -42,10 +42,14 @@ export default function OfferDetail() {
   useEffect(() => { load(); }, [offerId]);
 
   const load = async () => {
+    const tenantId = profile?.tenant_id;
+    const catQuery = tenantId
+      ? supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tenantId).order("name")
+      : Promise.resolve({ data: [] as any[] });
     const [offerRes, liRes, catRes] = await Promise.all([
       supabase.from("offers").select("*, properties(id, name, tenant_id, customer_id, customers(id, name)), inspections(title)").eq("id", offerId!).single(),
       supabase.from("offer_line_items").select("*, service_catalog(name, code, default_price)").eq("offer_id", offerId!).order("created_at"),
-      supabase.from("service_catalog").select("*").eq("is_active", true).order("name"),
+      catQuery,
     ]);
     setOffer(offerRes.data);
     setLineItems(liRes.data ?? []);
