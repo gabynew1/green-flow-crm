@@ -87,12 +87,12 @@ export default function GlobalUserManagement() {
     });
 
     const tenantOptions = Array.from(
-        new Map(
+        new Map<string, string>(
             (users || [])
-                .map((u: any) => [u.tenant_id, u.tenants?.name])
-                .filter(([id, name]: any) => id && name)
+                .filter((u: any) => u.tenant_id && u.tenants?.name)
+                .map((u: any) => [u.tenant_id as string, u.tenants.name as string])
         ).entries()
-    ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+    ).sort((a, b) => a[1].localeCompare(b[1]));
 
     const tierOptions = Array.from(
         new Set((users || []).map((u: any) => u.tenants?.subscription_tier).filter(Boolean))
