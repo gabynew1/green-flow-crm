@@ -42,11 +42,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export default function GlobalUserManagement() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [tenantFilter, setTenantFilter] = useState<string>("all");
+    const [tierFilter, setTierFilter] = useState<string>("all");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
     const [signupInfo, setSignupInfo] = useState<any | null>(null);
     const [signupInfoOpen, setSignupInfoOpen] = useState(false);
 
@@ -76,11 +80,39 @@ export default function GlobalUserManagement() {
                 query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
             }
 
-            const { data, error } = await query.limit(50);
+            const { data, error } = await query.limit(500);
             if (error) throw error;
             return data;
         }
     });
+
+    const tenantOptions = Array.from(
+        new Map(
+            (users || [])
+                .map((u: any) => [u.tenant_id, u.tenants?.name])
+                .filter(([id, name]: any) => id && name)
+        ).entries()
+    ).sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+
+    const tierOptions = Array.from(
+        new Set((users || []).map((u: any) => u.tenants?.subscription_tier).filter(Boolean))
+    ).sort();
+
+    const filteredUsers = (users || []).filter((u: any) => {
+        if (tenantFilter !== "all" && u.tenant_id !== tenantFilter) return false;
+        if (tierFilter !== "all" && u.tenants?.subscription_tier !== tierFilter) return false;
+        if (statusFilter === "active" && u.is_locked) return false;
+        if (statusFilter === "locked" && !u.is_locked) return false;
+        return true;
+    });
+
+    const clearFilters = () => {
+        setSearchTerm("");
+        setTenantFilter("all");
+        setTierFilter("all");
+        setStatusFilter("all");
+    };
+    const anyFilterActive = !!searchTerm || tenantFilter !== "all" || tierFilter !== "all" || statusFilter !== "all";
 
     const toggleLock = async (id: string, currentLock: boolean) => {
         const { error } = await supabase
@@ -143,14 +175,47 @@ export default function GlobalUserManagement() {
                 </div>
             </div>
 
-            <div className="relative group max-w-2xl">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input
-                    placeholder="Search by full name or email address..."
-                    className="pl-10 h-12 text-lg shadow-sm border-primary/20 focus:ring-primary/20"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
+                <div className="relative group flex-1 max-w-xl">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                        placeholder="Search by full name or email address..."
+                        className="pl-10 h-11 shadow-sm border-primary/20 focus:ring-primary/20"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <Select value={tenantFilter} onValueChange={setTenantFilter}>
+                        <SelectTrigger className="w-[200px] h-11"><SelectValue placeholder="Tenant" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All tenants</SelectItem>
+                            {tenantOptions.map(([id, name]) => (
+                                <SelectItem key={String(id)} value={String(id)}>{String(name)}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={tierFilter} onValueChange={setTierFilter}>
+                        <SelectTrigger className="w-[160px] h-11"><SelectValue placeholder="Tier" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All tiers</SelectItem>
+                            {tierOptions.map((t) => (
+                                <SelectItem key={String(t)} value={String(t)}>{String(t)}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[150px] h-11"><SelectValue placeholder="Status" /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All statuses</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="locked">Locked</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {anyFilterActive && (
+                        <Button variant="ghost" onClick={clearFilters} className="h-11">Clear</Button>
+                    )}
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-4">
@@ -177,7 +242,7 @@ export default function GlobalUserManagement() {
                     <TableHeader className="bg-muted/50">
                         <TableRow>
                             <TableHead className="font-bold">User Identity</TableHead>
-                            <TableHead className="font-bold">Affiliation</TableHead>
+                            <TableHead className="font-bold">Tenant</TableHead>
                             <TableHead className="font-bold">License</TableHead>
                             <TableHead className="font-bold">Status</TableHead>
                             <TableHead className="text-right font-bold w-[250px]">Support Toolbox</TableHead>
@@ -185,10 +250,10 @@ export default function GlobalUserManagement() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={4} className="text-center py-8 animate-pulse">Searching global registry...</TableCell></TableRow>
-                        ) : users?.length === 0 ? (
-                            <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No users found matching your search.</TableCell></TableRow>
-                        ) : users?.map((user: any) => (
+                            <TableRow><TableCell colSpan={5} className="text-center py-8 animate-pulse">Searching global registry...</TableCell></TableRow>
+                        ) : filteredUsers.length === 0 ? (
+                            <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No users match the current filters.</TableCell></TableRow>
+                        ) : filteredUsers.map((user: any) => (
                             <TableRow key={user.id} className="group transition-colors hover:bg-primary/5">
                                 <TableCell>
                                     <div className="flex items-center gap-3">
