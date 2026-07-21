@@ -54,7 +54,12 @@ export function PropertyContractsTab({ propertyId }: { propertyId: string }) {
     <div className="space-y-3">
       {contracts.map(c => {
         const items = lineItemsByContract[c.id] || [];
-        const total = items.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0);
+        // Total billable value: exclude "covered by subscription" allowance rows.
+        const total = items.reduce((sum, li) => {
+          const included = (li as any).is_included_in_base_fee ?? (li.unit_price == null);
+          if (included) return sum;
+          return sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0);
+        }, 0);
         return (
           <Link key={c.id} to={`/provider/contracts/${c.id}`}>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer">
@@ -65,19 +70,23 @@ export function PropertyContractsTab({ propertyId }: { propertyId: string }) {
                     <p className="text-xs text-muted-foreground">{c.start_date} → {c.end_date || "Ongoing"} · {c.billing_cycle}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {total > 0 && <span className="text-xs font-medium">${total.toFixed(2)}</span>}
+                    {total > 0 && <span className="text-xs font-medium">{formatCurrency(total, currency)}</span>}
                     <Badge className={statusColor[c.status]} variant="secondary">{c.status}</Badge>
                   </div>
                 </div>
                 {items.length > 0 && (
                   <div className="pl-2 border-l-2 border-muted space-y-0.5">
-                    {items.map(li => (
-                      <p key={li.id} className="text-xs text-muted-foreground">
-                        {li.custom_name || (li.service_catalog as any)?.name} — {li.quantity} × {freqLabel[li.frequency_type] || li.frequency_type}
-                        {li.unit_price != null && ` · ${formatCurrency(Number(li.unit_price), currency)}/unit`}
-                        {li.max_occurrences_per_period != null && ` · max ${li.max_occurrences_per_period}`}
-                      </p>
-                    ))}
+                    {items.map(li => {
+                      const included = (li as any).is_included_in_base_fee ?? (li.unit_price == null);
+                      return (
+                        <p key={li.id} className="text-xs text-muted-foreground">
+                          {li.custom_name || (li.service_catalog as any)?.name}
+                          {included
+                            ? ` — Included${li.max_occurrences_per_period != null ? `, up to ${li.max_occurrences_per_period} ${freqLabel[li.frequency_type] || ""}` : ""}`
+                            : ` — ${li.quantity} × ${freqLabel[li.frequency_type] || li.frequency_type}${li.unit_price != null ? ` · ${formatCurrency(Number(li.unit_price), currency)}/unit` : ""}`}
+                        </p>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
