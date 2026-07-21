@@ -30,11 +30,13 @@ import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 import { GenerateNext30Dialog } from "@/components/provider/GenerateNext30Dialog";
+import { useTranslation } from "react-i18next";
 
 export default function ContractDetail() {
   const { contractId } = useParams();
   const { user, tenantId } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation("provider");
   const { isWorkday } = useWorkdays(tenantId);
   const currency = useTenantCurrency();
   const zoneDateMap = useZoneDateMap();

@@ -42,5 +42,15 @@
       "stable": "Stabil",
       "attention": "Atenție"
     }
+  },
+  "entitlements": {
+    "pricing_model": "Model de tarifare",
+    "covered_by_subscription": "Inclus în abonament",
+    "billed_separately": "Facturat separat",
+    "allowance_window": "Interval alocare",
+    "allowance_limit": "Limită alocare",
+    "overage_price": "Preț depășire",
+    "included_allowances": "Alocări incluse",
+    "additional_billable_services": "Servicii facturate suplimentar"
   }
 }
