@@ -6,6 +6,10 @@ export type EntitlementValue = number | boolean | string;
 
 export interface EntitlementsPayload {
   tier: string;
+  effective_tier?: string;
+  subscription_status?: "trial_active" | "grace" | "active" | "downgraded" | "suspended" | "cancelled";
+  grace_ends_at?: string | null;
+  trial_expires_at?: string | null;
   entitlements: Record<string, EntitlementValue>;
 }
 
@@ -29,6 +33,11 @@ export function useEntitlements() {
 
   const ent = q.data?.entitlements ?? {};
   const tier = q.data?.tier ?? "patio";
+  const effectiveTier = q.data?.effective_tier ?? tier;
+  const subscriptionStatus = q.data?.subscription_status ?? "active";
+  const graceEndsAt = q.data?.grace_ends_at ?? null;
+  const trialExpiresAt = q.data?.trial_expires_at ?? null;
+  const inGrace = subscriptionStatus === "grace";
 
   const limit = (key: string): number => {
     const v = ent[key];
@@ -47,5 +56,20 @@ export function useEntitlements() {
     return { allowed: current < max, remaining: Math.max(0, max - current), atCap: current >= max };
   };
 
-  return { tier, entitlements: ent, limit, has, value, isUnlimited, canAddMore, isLoading: q.isLoading, raw: q.data };
+  return {
+    tier,
+    effectiveTier,
+    subscriptionStatus,
+    graceEndsAt,
+    trialExpiresAt,
+    inGrace,
+    entitlements: ent,
+    limit,
+    has,
+    value,
+    isUnlimited,
+    canAddMore,
+    isLoading: q.isLoading,
+    raw: q.data,
+  };
 }
