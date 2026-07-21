@@ -698,6 +698,32 @@ export default function ContractNew() {
                       onChange={(e) => setFlatFee(e.target.value)}
                     />
                   </div>
+                  {(() => {
+                    const periodLabel =
+                      allowancePreset.frequency_type === "PER_WEEK" ? "week"
+                      : allowancePreset.frequency_type === "PER_YEAR" ? "year"
+                      : "month";
+                    let totalHint = "";
+                    if (startDate && endDate) {
+                      const start = new Date(startDate);
+                      const end = new Date(endDate);
+                      const ms = end.getTime() - start.getTime();
+                      if (ms > 0) {
+                        const days = ms / 86400000;
+                        const periods =
+                          periodLabel === "week" ? days / 7
+                          : periodLabel === "year" ? days / 365
+                          : days / 30;
+                        const total = Math.round(periods * allowancePreset.max);
+                        if (total > 0) totalHint = ` (${Math.max(1, Math.round(periods))} ${periodLabel}s → ≈ ${total} visits total)`;
+                      }
+                    }
+                    return (
+                      <p className="text-xs text-muted-foreground">
+                        Every included service inherits <span className="font-medium">{allowancePreset.max}× per {periodLabel}</span>{totalHint}. Override per service below if needed.
+                      </p>
+                    );
+                  })()}
                 </div>
               )}
 
