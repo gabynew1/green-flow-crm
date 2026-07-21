@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { getContractConsumption, type LineItemConsumption } from "@/lib/contract-consumption";
 import { useTranslation } from "react-i18next";
+import { formatCurrency } from "@/lib/currency";
+import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 
 const statusColors: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
   DRAFT: "secondary",
@@ -44,6 +46,7 @@ export default function ClientContractDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation("provider");
+  const currency = useTenantCurrency();
   const [contract, setContract] = useState<any>(null);
   const [lineItems, setLineItems] = useState<any[]>([]);
   const [upcomingVisits, setUpcomingVisits] = useState<any[]>([]);
@@ -147,11 +150,13 @@ export default function ClientContractDetail() {
   }
   if (!contract) return <p className="text-muted-foreground text-center py-12">Contract not found</p>;
 
+  const isFlatFeeRow = (li: any) => typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee");
   const isIncluded = (li: any) =>
     li.is_included_in_base_fee === true ||
-    (li.is_included_in_base_fee == null && li.unit_price == null && !(typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee")));
-  const includedLines = lineItems.filter(isIncluded);
-  const billedLines = lineItems.filter(li => !isIncluded(li));
+    (li.is_included_in_base_fee == null && li.unit_price == null && !isFlatFeeRow(li));
+  const flatFeeLines = lineItems.filter(isFlatFeeRow);
+  const includedLines = lineItems.filter(li => !isFlatFeeRow(li) && isIncluded(li));
+  const billedLines = lineItems.filter(li => !isFlatFeeRow(li) && !isIncluded(li));
   const billedTotal = billedLines.reduce((sum, li) => {
     const price = li.unit_price != null ? Number(li.unit_price) : (li.service_catalog?.default_price || 0);
     return sum + price * li.quantity;
@@ -230,6 +235,31 @@ export default function ClientContractDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {flatFeeLines.length > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">{t("entitlements.subscription_fee")}</p>
+                <p className="text-xs text-muted-foreground">{t("entitlements.subscription_fee_note")}</p>
+              </div>
+              <div className="text-right">
+                {flatFeeLines.map(li => {
+                  const amount = li.unit_price != null ? Number(li.unit_price) * Number(li.quantity || 1) : 0;
+                  const cadence = t(`entitlements.cadence.${li.frequency_type}`, { defaultValue: String(li.frequency_type || "").replace(/_/g, " ") });
+                  return (
+                    <div key={li.id}>
+                      <p className="text-lg font-bold">{formatCurrency(amount, currency)}</p>
+                      <p className="text-xs text-muted-foreground">{cadence}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {includedLines.length > 0 && (
         <Card>

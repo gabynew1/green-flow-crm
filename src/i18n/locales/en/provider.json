@@ -51,6 +51,17 @@
     "allowance_limit": "Allowance Limit",
     "overage_price": "Overage Price",
     "included_allowances": "Included Allowances",
-    "additional_billable_services": "Additional Billable Services"
+    "additional_billable_services": "Additional Billable Services",
+    "subscription_fee": "Subscription Fee",
+    "subscription_fee_note": "Base subscription price — includes the allowances below",
+    "subscription_short": "Subscription",
+    "cadence": {
+      "PER_MONTH": "per month",
+      "PER_YEAR": "per year",
+      "PER_WEEK": "per week",
+      "PER_VISIT": "per visit",
+      "PER_CONTRACT": "per contract",
+      "ONE_TIME": "one-time"
+    }
   }
 }

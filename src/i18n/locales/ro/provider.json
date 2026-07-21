@@ -51,6 +51,17 @@
     "allowance_limit": "Limită alocare",
     "overage_price": "Preț depășire",
     "included_allowances": "Alocări incluse",
-    "additional_billable_services": "Servicii facturate suplimentar"
+    "additional_billable_services": "Servicii facturate suplimentar",
+    "subscription_fee": "Abonament",
+    "subscription_fee_note": "Costul abonamentului — include alocările de mai jos",
+    "subscription_short": "Abonament",
+    "cadence": {
+      "PER_MONTH": "pe lună",
+      "PER_YEAR": "pe an",
+      "PER_WEEK": "pe săptămână",
+      "PER_VISIT": "pe vizită",
+      "PER_CONTRACT": "pe contract",
+      "ONE_TIME": "unic"
+    }
   }
 }

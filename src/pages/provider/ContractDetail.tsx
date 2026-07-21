@@ -721,11 +721,13 @@ export default function ContractDetail() {
       ) : (() => {
         const consumptionByLine = new Map(consumption.map(c => [c.lineItemId, c]));
         const filtered = lineItems.filter(li => categoryFilter === "ALL" || (li.service_catalog as any)?.code === categoryFilter);
+        const isFlatFeeRow = (li: any) => typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee");
         const isIncluded = (li: any) =>
           li.is_included_in_base_fee === true ||
-          (li.is_included_in_base_fee == null && li.unit_price == null && !(typeof li.custom_name === "string" && li.custom_name.startsWith("Flat fee")));
-        const included = filtered.filter(isIncluded);
-        const billed = filtered.filter(li => !isIncluded(li));
+          (li.is_included_in_base_fee == null && li.unit_price == null && !isFlatFeeRow(li));
+        const flatFeeRows = filtered.filter(isFlatFeeRow);
+        const included = filtered.filter(li => !isFlatFeeRow(li) && isIncluded(li));
+        const billed = filtered.filter(li => !isFlatFeeRow(li) && !isIncluded(li));
         const billedTotal = billed.reduce((sum, li) => sum + (li.unit_price != null ? Number(li.unit_price) * Number(li.quantity) : 0), 0);
 
         const rowCheckbox = (li: any) => editable && (
@@ -743,6 +745,37 @@ export default function ContractDetail() {
 
         return (
           <div className="space-y-4">
+            {flatFeeRows.length > 0 && (
+              <div className="rounded-lg border overflow-hidden">
+                <div className="border-b bg-primary/5 px-4 py-2 text-sm font-semibold flex items-center justify-between">
+                  <span>
+                    {t("entitlements.subscription_fee")}{" "}
+                    <span className="font-normal text-muted-foreground">— {t("entitlements.subscription_fee_note")}</span>
+                  </span>
+                </div>
+                <div className="divide-y">
+                  {flatFeeRows.map(li => {
+                    const amount = li.unit_price != null ? Number(li.unit_price) * Number(li.quantity || 1) : 0;
+                    const cadence = t(`entitlements.cadence.${li.frequency_type}`, { defaultValue: String(li.frequency_type || "").replace(/_/g, " ") });
+                    return (
+                      <div key={li.id} className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <p className="font-medium text-sm">{li.custom_name || (li.service_catalog as any)?.name || t("entitlements.subscription_short")}</p>
+                          <p className="text-xs text-muted-foreground">{cadence}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-base font-semibold">{formatCurrency(amount, currency)}</span>
+                          {editable && (
+                            <Button size="icon" variant="ghost" onClick={() => deleteLine(li.id)}><Trash2 className="h-3 w-3" /></Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {included.length > 0 && (
               <div className="rounded-lg border overflow-auto">
                 <div className="border-b bg-muted/40 px-4 py-2 text-sm font-semibold">
