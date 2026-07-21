@@ -720,7 +720,7 @@ export default function ContractNew() {
                     }
                     return (
                       <p className="text-xs text-muted-foreground">
-                        Every included service inherits <span className="font-medium">{allowancePreset.max}× per {periodLabel}</span>{totalHint}. Override per service below if needed.
+                        Every included service inherits <span className="font-medium">{allowancePreset.max}× per {periodLabel}</span>{totalHint}. Change the visit frequency above to adjust.
                       </p>
                     );
                   })()}
