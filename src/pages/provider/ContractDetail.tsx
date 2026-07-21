@@ -588,6 +588,7 @@ export default function ContractDetail() {
                   quantity: 1,
                   frequency_type: "PER_VISIT" as const,
                   unit: s.default_unit || "visit",
+                  is_included_in_base_fee: false,
                   tenant_id: tenantId,
                 }));
                 const { error } = await supabase.from("contract_line_items").insert(inserts);
