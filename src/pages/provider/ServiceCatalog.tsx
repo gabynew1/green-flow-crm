@@ -40,6 +40,7 @@ export default function ServiceCatalog() {
   const [sortField, setSortField] = useState<SortField>("code");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // Manage dialogs
   const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
@@ -95,6 +96,7 @@ export default function ServiceCatalog() {
     let result = services;
     if (activeFilter === "active") result = result.filter(s => s.is_active);
     if (activeFilter === "inactive") result = result.filter(s => !s.is_active);
+    if (categoryFilter !== "all") result = result.filter(s => s.code === categoryFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter(s =>
@@ -118,7 +120,7 @@ export default function ServiceCatalog() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
-  }, [services, search, sortField, sortDir, activeFilter]);
+  }, [services, search, sortField, sortDir, activeFilter, categoryFilter]);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -386,6 +388,17 @@ export default function ServiceCatalog() {
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="active">Active only</SelectItem>
             <SelectItem value="inactive">Inactive only</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All categories</SelectItem>
+            {categories.map(cat => (
+              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
