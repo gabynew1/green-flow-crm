@@ -53,6 +53,34 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { trialDayNumber, getTierConfig, isTrial } from "@/lib/tiers";
+
+function statusDayProgress(tenant: {
+    status: string;
+    subscription_tier: string;
+    created_at: string;
+    trial_expires_at: string | null;
+    locked_at?: string | null;
+}): { day: number; total: number } | null {
+    const DAY = 86_400_000;
+    const now = Date.now();
+    if (tenant.status === "soft_locked" || tenant.status === "flagged_for_deletion") {
+        const start = tenant.locked_at ? new Date(tenant.locked_at).getTime() : now;
+        const day = Math.min(180, Math.max(1, Math.floor((now - start) / DAY) + 1));
+        return { day, total: 180 };
+    }
+    if (isTrial(tenant.subscription_tier) || tenant.status === "trial") {
+        return trialDayNumber(tenant.created_at, tenant.trial_expires_at);
+    }
+    if (tenant.status === "active") {
+        const yearly = /year|annual/i.test(tenant.subscription_tier);
+        const total = yearly ? 365 : 30;
+        const start = new Date(tenant.created_at).getTime();
+        const elapsed = Math.max(0, Math.floor((now - start) / DAY));
+        const day = Math.min(total, (elapsed % total) + 1);
+        return { day, total };
+    }
+    return null;
+}
 import { Plus } from "lucide-react";
 
 type TenantRow = {
@@ -65,6 +93,8 @@ type TenantRow = {
     max_client_seats: number;
     max_teams: number;
     trial_expires_at: string | null;
+    locked_at?: string | null;
+    scheduled_delete_at?: string | null;
     providerCount: number;
     clientCount: number;
     teamCount: number;
@@ -83,7 +113,7 @@ export default function TenantManagement() {
         queryFn: async () => {
             const { data: tenantsData, error } = await supabase
                 .from("tenants")
-                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, max_teams, trial_expires_at`);
+                .select(`id, name, subscription_tier, status, created_at, max_provider_seats, max_client_seats, max_teams, trial_expires_at, locked_at, scheduled_delete_at`);
 
             if (error) throw error;
 
@@ -273,7 +303,7 @@ export default function TenantManagement() {
                             <TableHead className="font-bold">Organization</TableHead>
                             <TableHead className="font-bold">Tier</TableHead>
                             <TableHead className="font-bold">Status</TableHead>
-                            <TableHead className="font-bold">Trial Day</TableHead>
+                            <TableHead className="font-bold">Days</TableHead>
                             <TableHead className="font-bold">Teams</TableHead>
                             <TableHead className="font-bold">Providers</TableHead>
                             <TableHead className="font-bold">Created</TableHead>
@@ -294,20 +324,20 @@ export default function TenantManagement() {
                                 <TableCell>{getTierBadge(tenant.subscription_tier)}</TableCell>
                                 <TableCell>{getStatusBadge(tenant.status)}</TableCell>
                                 <TableCell>
-                                    {isTrial(tenant.subscription_tier) ? (
-                                        (() => {
-                                            const t = trialDayNumber(tenant.created_at, tenant.trial_expires_at);
-                                            if (!t) return <span className="text-muted-foreground">—</span>;
-                                            const expired = t.day >= t.total && new Date(tenant.trial_expires_at!).getTime() < Date.now();
-                                            return (
-                                                <span className={cn("text-sm font-semibold", expired ? "text-destructive" : "text-foreground")}>
-                                                    Day {t.day} / {t.total}
-                                                </span>
-                                            );
-                                        })()
-                                    ) : (
-                                        <span className="text-xs text-muted-foreground">—</span>
-                                    )}
+                                    {(() => {
+                                        const p = statusDayProgress(tenant);
+                                        if (!p) return <span className="text-xs text-muted-foreground">—</span>;
+                                        const overdue = p.day >= p.total;
+                                        const warn = !overdue && p.total - p.day <= 15;
+                                        return (
+                                            <span className={cn(
+                                                "text-sm font-semibold",
+                                                overdue ? "text-destructive" : warn ? "text-amber-600" : "text-foreground"
+                                            )}>
+                                                Day {p.day} / {p.total}
+                                            </span>
+                                        );
+                                    })()}
                                 </TableCell>
                                 <TableCell>
                                     <span className="text-sm font-semibold">{tenant.teamCount}</span>
