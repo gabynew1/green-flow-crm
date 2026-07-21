@@ -601,10 +601,18 @@ export default function ContractDetail() {
                 </div>
                 <div className="space-y-2">
                   <Label>Service *</Label>
-                  <Select value={selectedServiceId} onValueChange={handleServiceSelect} disabled={!selectedCategory}>
+                  <Select key={selectedCategory || "empty"} value={selectedServiceId} onValueChange={handleServiceSelect} disabled={!selectedCategory}>
                     <SelectTrigger><SelectValue placeholder={selectedCategory ? "Select service" : "Select category first"} /></SelectTrigger>
                     <SelectContent>
-                      {filteredServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}{s.default_price != null ? ` — ${formatCurrency(s.default_price, currency)}` : ""}</SelectItem>)}
+                      {filteredServices.length === 0 && selectedCategory ? (
+                        <div className="px-2 py-1.5 text-sm text-muted-foreground">No services in this category</div>
+                      ) : (
+                        filteredServices.map(s => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}{s.default_price != null ? ` — ${formatCurrency(s.default_price, currency)}` : ""}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
