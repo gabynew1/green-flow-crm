@@ -189,6 +189,42 @@ export type Database = {
           },
         ]
       }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          is_bot: boolean
+          meta: Json
+          path: string | null
+          referrer: string | null
+          session_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          is_bot?: boolean
+          meta?: Json
+          path?: string | null
+          referrer?: string | null
+          session_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          is_bot?: boolean
+          meta?: Json
+          path?: string | null
+          referrer?: string | null
+          session_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       client_connections: {
         Row: {
           client_user_id: string
@@ -3060,6 +3096,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_analytics_overview: { Args: { _days?: number }; Returns: Json }
       fn_change_subscription_tier: {
         Args: { p_new_tier: string; p_tenant_id: string }
         Returns: {
