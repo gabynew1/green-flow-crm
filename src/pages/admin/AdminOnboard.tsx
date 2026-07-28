@@ -291,6 +291,22 @@ export default function AdminOnboard() {
 
   const stepLabels = isPublic ? STEP_LABELS_PUBLIC : STEP_LABELS_FULL;
   const totalSteps = stepLabels.length;
+
+  // ── Signup funnel tracking (public self-serve wizard only) ──
+  useEffect(() => {
+    if (!isPublic) return;
+    void trackEvent("signup_started", { entry_step: STEP_LABELS_FULL[0] });
+  }, [isPublic]);
+
+  useEffect(() => {
+    if (!isPublic || step === 0 || step >= 4) return;
+    void trackEvent("signup_step", {
+      step,
+      step_label: STEP_LABELS_FULL[step] ?? String(step),
+      entity_type: entityType,
+    });
+  }, [isPublic, step, entityType]);
+
   // Map internal step to display step for progress
   const displayStep = isPublic && step > 1 ? step - 1 : step;
   const progressValue = ((displayStep + 1) / totalSteps) * 100;
@@ -393,6 +409,11 @@ export default function AdminOnboard() {
 
       setConfirmationData(data);
       setShowConfetti(true);
+      void trackEvent("signup_completed", {
+        entity_type: entityType,
+        public: isPublic,
+        company_name: entityType === "provider" ? providerData.companyName : customerData.name,
+      });
       goNext(4);
       toast.success(`${entityType === "provider" ? "Provider" : "Customer"} created successfully!`);
     } catch (err: any) {
