@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import { ProviderLayout } from "./components/provider/ProviderLayout";
 import { ClientLayout } from "./components/client/ClientLayout";
 import AdminLayout from "./components/admin/AdminLayout";
+import { PageViewTracker } from "./components/analytics/PageViewTracker";
 
 import Dashboard from "./pages/provider/Dashboard";
 import Customers from "./pages/provider/Customers";
@@ -230,6 +231,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <PageViewTracker />
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>
