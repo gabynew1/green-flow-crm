@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, Bot, UserPlus, Trash2, Send } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, Bot, UserPlus, Trash2, Send, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,9 @@ import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
 import { ZoneChip } from "@/components/provider/ZoneChip";
 import VisitActionRow from "@/components/visits/VisitActionRow";
+import { buildVisitReportPdf } from "@/lib/visit-report-pdf";
+import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { shareFile, downloadBlob, canShareFiles } from "@/lib/share-file";
 
 const statusColor = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusColor(key),
