@@ -159,16 +159,22 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     const contractIds = contracts.map((c) => c.id);
     const { data: lineItems } = await supabase
       .from("contract_line_items")
-      .select("contract_id, service_catalog_id")
+      .select("id, contract_id, service_catalog_id, custom_name, quantity, unit")
       .in("contract_id", contractIds);
 
     const enriched: ContractWithItems[] = contracts.map((c) => ({
       id: c.id,
       contract_name: c.contract_name,
       status: c.status,
-      serviceIds: (lineItems ?? [])
-        .filter((li) => li.contract_id === c.id)
-        .map((li) => li.service_catalog_id),
+      lines: (lineItems ?? [])
+        .filter((li) => li.contract_id === c.id && !(li.custom_name ?? "").startsWith("Flat fee"))
+        .map((li) => ({
+          id: li.id,
+          service_catalog_id: li.service_catalog_id,
+          custom_name: li.custom_name,
+          quantity: li.quantity,
+          unit: li.unit,
+        })),
     }));
 
     setPropertyContracts(enriched);
