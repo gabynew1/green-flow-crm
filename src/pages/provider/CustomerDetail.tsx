@@ -67,6 +67,7 @@ export default function CustomerDetail() {
   const [propOpen, setPropOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
   const [closeContractId, setCloseContractId] = useState<string | null>(null);
+  const [cancelContract, setCancelContract] = useState<{ id: string; name: string } | null>(null);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -401,12 +402,14 @@ export default function CustomerDetail() {
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          {c.status === "SENT_TO_CLIENT" && (
-                            <span className="text-xs text-muted-foreground">Awaiting client</span>
-                          )}
                           {c.status === "DRAFT" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "SENT_TO_CLIENT")}>
                               <Send className="h-3 w-3 mr-1" /> Send
+                            </Button>
+                          )}
+                          {c.status === "SENT_TO_CLIENT" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "SIGNED")}>
+                              <Check className="h-3 w-3 mr-1" /> Mark Signed
                             </Button>
                           )}
                           {c.status === "SIGNED" && (
@@ -419,10 +422,34 @@ export default function CustomerDetail() {
                               <XCircle className="h-3 w-3 mr-1" /> Close
                             </Button>
                           )}
-                          {c.status === "CLOSED" && (
+                          {(c.status === "CLOSED") && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => renewContract(c)}>
                               <RotateCcw className="h-3 w-3 mr-1" /> Renew
                             </Button>
+                          )}
+                          {["SENT_TO_CLIENT", "SIGNED", "REJECTED", "DRAFT"].includes(c.status) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {["SENT_TO_CLIENT", "SIGNED", "REJECTED"].includes(c.status) && (
+                                  <DropdownMenuItem onClick={() => updateContractStatus(c.id, "DRAFT")}>
+                                    <Undo2 className="h-3.5 w-3.5 mr-2" /> Revert to draft
+                                  </DropdownMenuItem>
+                                )}
+                                {["DRAFT", "SENT_TO_CLIENT", "SIGNED"].includes(c.status) && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setCancelContract({ id: c.id, name: c.contract_name })}
+                                  >
+                                    <Ban className="h-3.5 w-3.5 mr-2" /> Cancel contract
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </div>
@@ -469,6 +496,13 @@ export default function CustomerDetail() {
         open={!!closeContractId}
         onOpenChange={(o) => { if (!o) setCloseContractId(null); }}
         onClosed={load}
+      />
+
+      <CancelContractDialog
+        contractId={cancelContract?.id ?? null}
+        contractName={cancelContract?.name}
+        onOpenChange={(o) => { if (!o) setCancelContract(null); }}
+        onCancelled={load}
       />
     </div>
   );
