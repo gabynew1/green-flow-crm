@@ -163,9 +163,12 @@ export default function CustomerDetail() {
       setCloseContractId(contractId);
       return;
     }
-    const { error } = await supabase.from("contracts").update({ status }).eq("id", contractId);
+    const { error } = await supabase
+      .from("contracts")
+      .update({ status, rejection_comment: null } as any)
+      .eq("id", contractId);
     if (error) { toast.error(error.message); return; }
-    toast.success(`Contract ${status.toLowerCase()}`);
+    toast.success(`Contract ${status.replace(/_/g, " ").toLowerCase()}`);
     load();
   };
 
