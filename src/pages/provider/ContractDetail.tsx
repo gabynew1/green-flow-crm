@@ -18,7 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2, CalendarPlus } from "lucide-react";
+import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2, CalendarPlus, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
+import { CancelContractDialog } from "@/components/provider/CancelContractDialog";
 import { GenerateNext30Dialog } from "@/components/provider/GenerateNext30Dialog";
 import { useTranslation } from "react-i18next";
 
@@ -58,6 +59,7 @@ export default function ContractDetail() {
   const [addFormQty, setAddFormQty] = useState("1");
   const [addFormUnit, setAddFormUnit] = useState("visit");
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [addFormUnitPrice, setAddFormUnitPrice] = useState("");
   const [addFormFrequency, setAddFormFrequency] = useState("PER_VISIT");
@@ -488,6 +490,11 @@ export default function ContractDetail() {
             {contract.status === "DRAFT" && <Button size="sm" onClick={() => updateStatus("SENT_TO_CLIENT")}><Send className="h-3 w-3 mr-1" /> Send to Client</Button>}
             {contract.status === "SENT_TO_CLIENT" && <Button size="sm" onClick={() => updateStatus("SIGNED")}><Check className="h-3 w-3 mr-1" /> Mark Signed</Button>}
             {contract.status === "SENT_TO_CLIENT" && <Button size="sm" variant="outline" onClick={resendContractEmail}><Send className="h-3 w-3 mr-1" /> Resend Notification</Button>}
+            {["DRAFT", "SENT_TO_CLIENT", "SIGNED"].includes(contract.status) && (
+              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setCancelDialogOpen(true)}>
+                <Ban className="h-3 w-3 mr-1" /> Cancel
+              </Button>
+            )}
             {contract.status === "SIGNED" && (
               <Button size="sm" onClick={handleActivate} disabled={activating}>
                 {activating ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Scheduling…</> : <><Play className="h-3 w-3 mr-1" /> Activate</>}
@@ -528,6 +535,13 @@ export default function ContractDetail() {
         open={closeDialogOpen}
         onOpenChange={setCloseDialogOpen}
         onClosed={load}
+      />
+
+      <CancelContractDialog
+        contractId={cancelDialogOpen ? (contractId ?? null) : null}
+        contractName={contract.contract_name}
+        onOpenChange={setCancelDialogOpen}
+        onCancelled={load}
       />
 
       {contract && selectedTeamId && (

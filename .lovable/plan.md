@@ -1,49 +1,48 @@
-## What you actually want
+## What's happening
 
-In the **New Contract** flow (`/provider/contracts/new`), once you pick a Regular-Maintenance category and enter a flat fee, every auto-added service should inherit the **allowance** you already declared at the top of the form:
+On the customer page (`/provider/customers/...`), the contract list only offers a subset of actions. For a contract in "Sent to client" state (e.g. *Mentenanta _test 2*, currently `SENT_TO_CLIENT`) the row shows the text "Awaiting client" and nothing else — no way to mark it signed, revert it, or cancel it.
 
-> `visit_frequency_count × visit_frequency_type` → each included line's `frequency_type` + `max_occurrences_per_period`.
+Current buttons in the customer contract list:
+- Draft → Send
+- Sent to client → (text only, no actions)
+- Signed → Activate
+- Active → Close
+- Closed → Renew
 
-Example: `2 × MONTH` → every service = `PER_MONTH`, max `2`. With a 10-month start→end, that's ≈ 20 visits — surfaced as a helper line, not a new field.
+The contract detail page has more (Mark Signed, Revert to Draft), but there is no Cancel anywhere for a contract that is not yet Active — a draft or sent contract can only sit there or be reverted.
 
-Today the flat-fee branch inserts every service with `frequency_type = "PER_VISIT"` (the `defaultCfg()`) and `max = NULL`, which reads as "Unlimited". That's the bug.
+## The fix
 
-## Changes — `src/pages/provider/ContractNew.tsx` only
+### 1. Complete the action set in the customer contract list
 
-### 1. Derive a single allowance preset from the header
-Add a memo:
-```
-allowancePreset = {
-  frequency_type: visitType === "WEEK"  ? "PER_WEEK"
-                 : visitType === "MONTH" ? "PER_MONTH"
-                 : visitType === "YEAR"  ? "PER_YEAR"
-                 : "PER_MONTH",
-  max: visitCount,
-}
-```
+For each contract row, show the actions that make sense for its state:
 
-### 2. Apply the preset when Regular-Maintenance auto-selects services
-In the existing `useEffect` that seeds `selectedServiceIds` for `isFlatFeeMode`, when initializing each `serviceConfig[id]`, set `frequency_type = allowancePreset.frequency_type` and `max_occurrences = String(allowancePreset.max)`.
+| Status | Actions |
+|---|---|
+| Draft | Send to client, Cancel |
+| Sent to client | Mark Signed, Revert to Draft, Cancel |
+| Signed | Activate, Revert to Draft, Cancel |
+| Active | Close |
+| Rejected | Revert to Draft |
+| Closed / Cancelled | Renew |
 
-### 3. Re-sync when the user changes visit frequency after selecting
-Second `useEffect` keyed on `[visitCount, visitType, isFlatFeeMode]`: for every service still holding the *current* preset (i.e. the user hasn't hand-edited it), overwrite `frequency_type` and `max_occurrences` with the new preset. Track "user-edited" with a small `overriddenServiceIds` Set updated inside `updateServiceConfig`.
+To keep the row from getting crowded, the primary action (Send / Mark Signed / Activate / Close / Renew) stays a visible button; the secondary ones (Revert to Draft, Cancel) move into a small "…" dropdown menu at the end of the row.
 
-### 4. Fallback in the insert path
-Even if state gets out of sync, harden the flat-fee branch (line 265–277) to fall back to `allowancePreset` when `cfg.frequency_type === "PER_VISIT"` and `cfg.max_occurrences === ""`. Guarantees no more "Unlimited" surprises on save.
+Marking as signed uses the same status update the contract page uses, so behaviour stays identical between the two screens.
 
-### 5. Helper text under the flat-fee card
-Under the flat-fee amount input, render a muted line:
-> *"Every included service inherits **{count}× {period}** ({months} months → ≈ **{totalVisits}** visits total). You can override per service below."*
+### 2. Add a real Cancel for not-yet-active contracts
 
-`months` computed from `startDate` / `endDate`; if either is missing, show just the per-period line.
+Cancelling a draft/sent/signed contract sets its status to `REJECTED` (the existing "cancelled before it started" state) with a short reason captured in the existing rejection comment field, shown behind a confirmation dialog so it can't be hit by accident. It does not touch visits or invoices, because none exist yet at those stages. Active contracts keep using the existing Close flow (reason + audit + cancelling future visits) — unchanged.
 
-## Explicitly out of scope
-- No DB migration, no schema changes.
-- `ContractDetail.tsx` "Add Line Item" defaults stay as-is (separate follow-up if you want the same behavior there).
-- No changes to invoice generation, scheduling engine, or the "Additional Billable Services" path.
-- Existing contracts already saved with unlimited allowance are **not** rewritten — this only fixes new contracts. Say the word if you want a one-shot backfill for existing DRAFT contracts.
+The same Cancel action is also added to the contract detail page header for Draft / Sent to client / Signed, so both screens agree.
 
-## Verification
-- Pick `2 × MONTH`, category = Regular Maintenance, 10-month term → every auto-added row shows `PER_MONTH` / `2` in the per-service panel, and the helper reads "≈ 20 visits total".
-- Change to `1 × WEEK` afterwards → rows the user didn't touch flip to `PER_WEEK` / `1`; rows the user hand-edited stay put.
-- Save the contract → `contract_line_items.max_occurrences_per_period = 2`, `frequency_type = PER_MONTH` for each included service.
+### 3. Revert to Draft from the customer list
+
+Reuses the existing status update to `DRAFT` and clears any rejection comment, matching what the contract page already does.
+
+## Technical notes
+
+- `src/pages/provider/CustomerDetail.tsx`: extend `updateContractStatus` to also clear `rejection_comment` when moving to `DRAFT`, add a `cancelContract(id, reason)` helper writing `status: "REJECTED"` + `rejection_comment`, and replace the inline action block (lines ~397-419) with a status-driven action group plus a `DropdownMenu` for secondary actions and an `AlertDialog` for cancel confirmation.
+- `src/pages/provider/ContractDetail.tsx`: add a Cancel button (with the same confirm dialog) for `DRAFT`, `SENT_TO_CLIENT`, `SIGNED`; `canRevert` already covers Revert to Draft.
+- No database or RLS changes: `contract_status` already includes `REJECTED`, and providers can already update their own contracts (the existing edit/send actions work).
+- Status label/colour maps in both files already handle `REJECTED`.

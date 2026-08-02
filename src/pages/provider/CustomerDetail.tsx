@@ -12,13 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw, CalendarClock } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw, CalendarClock, Check, Undo2, Ban, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
+import { CancelContractDialog } from "@/components/provider/CancelContractDialog";
 import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHistoryTab";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
@@ -50,7 +52,9 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   PENDING_NEW: "Pending Approval",
-  REJECTED: "Rejected",
+  REJECTED: "Cancelled",
+  SENT_TO_CLIENT: "Sent to client",
+  SIGNED: "Signed",
 };
 
 export default function CustomerDetail() {
@@ -63,6 +67,7 @@ export default function CustomerDetail() {
   const [propOpen, setPropOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
   const [closeContractId, setCloseContractId] = useState<string | null>(null);
+  const [cancelContract, setCancelContract] = useState<{ id: string; name: string } | null>(null);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -159,9 +164,12 @@ export default function CustomerDetail() {
       setCloseContractId(contractId);
       return;
     }
-    const { error } = await supabase.from("contracts").update({ status }).eq("id", contractId);
+    const { error } = await supabase
+      .from("contracts")
+      .update({ status, rejection_comment: null } as any)
+      .eq("id", contractId);
     if (error) { toast.error(error.message); return; }
-    toast.success(`Contract ${status.toLowerCase()}`);
+    toast.success(`Contract ${status.replace(/_/g, " ").toLowerCase()}`);
     load();
   };
 
@@ -394,12 +402,14 @@ export default function CustomerDetail() {
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEdit(c)}>
                             <Pencil className="h-3 w-3" />
                           </Button>
-                          {c.status === "SENT_TO_CLIENT" && (
-                            <span className="text-xs text-muted-foreground">Awaiting client</span>
-                          )}
                           {c.status === "DRAFT" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "SENT_TO_CLIENT")}>
                               <Send className="h-3 w-3 mr-1" /> Send
+                            </Button>
+                          )}
+                          {c.status === "SENT_TO_CLIENT" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateContractStatus(c.id, "SIGNED")}>
+                              <Check className="h-3 w-3 mr-1" /> Mark Signed
                             </Button>
                           )}
                           {c.status === "SIGNED" && (
@@ -412,10 +422,34 @@ export default function CustomerDetail() {
                               <XCircle className="h-3 w-3 mr-1" /> Close
                             </Button>
                           )}
-                          {c.status === "CLOSED" && (
+                          {(c.status === "CLOSED") && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => renewContract(c)}>
                               <RotateCcw className="h-3 w-3 mr-1" /> Renew
                             </Button>
+                          )}
+                          {["SENT_TO_CLIENT", "SIGNED", "REJECTED", "DRAFT"].includes(c.status) && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {["SENT_TO_CLIENT", "SIGNED", "REJECTED"].includes(c.status) && (
+                                  <DropdownMenuItem onClick={() => updateContractStatus(c.id, "DRAFT")}>
+                                    <Undo2 className="h-3.5 w-3.5 mr-2" /> Revert to draft
+                                  </DropdownMenuItem>
+                                )}
+                                {["DRAFT", "SENT_TO_CLIENT", "SIGNED"].includes(c.status) && (
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => setCancelContract({ id: c.id, name: c.contract_name })}
+                                  >
+                                    <Ban className="h-3.5 w-3.5 mr-2" /> Cancel contract
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </div>
@@ -462,6 +496,13 @@ export default function CustomerDetail() {
         open={!!closeContractId}
         onOpenChange={(o) => { if (!o) setCloseContractId(null); }}
         onClosed={load}
+      />
+
+      <CancelContractDialog
+        contractId={cancelContract?.id ?? null}
+        contractName={cancelContract?.name}
+        onOpenChange={(o) => { if (!o) setCancelContract(null); }}
+        onCancelled={load}
       />
     </div>
   );
