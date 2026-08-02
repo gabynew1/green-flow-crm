@@ -48,6 +48,7 @@ type Line = {
   line_total: number;
   contract_line_item_id: string | null;
   service_order_item_id: string | null;
+  line_group?: string | null;
 };
 
 const STATUS_STYLE: Record<Invoice["status"], string> = {
@@ -86,7 +87,7 @@ export default function InvoiceDetail() {
     setNotes((data as any).notes ?? "");
     const { data: l } = await supabase
       .from("invoice_line_items")
-      .select("id, description, quantity, unit_price, line_total, contract_line_item_id, service_order_item_id")
+      .select("id, description, quantity, unit_price, line_total, contract_line_item_id, service_order_item_id, line_group")
       .eq("invoice_id", invoiceId)
       .order("created_at", { ascending: true });
     setLines((l as any) ?? []);
