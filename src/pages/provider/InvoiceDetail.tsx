@@ -15,7 +15,8 @@ import {
 import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { generateInvoicePdf } from "@/lib/invoice-pdf";
+import { generateInvoicePdf, buildInvoicePdf } from "@/lib/invoice-pdf";
+import { shareFile, canShareFiles } from "@/lib/share-file";
 
 type Invoice = {
   id: string;
@@ -208,6 +209,23 @@ export default function InvoiceDetail() {
     if (error) { toast.error(error.message); return; }
     toast.success("Marcată încasat");
     load();
+  };
+
+  const pdfParties = () => {
+    const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
+    const t = tenantInfo ?? {};
+    const c = customerInfo ?? {};
+    return {
+      seller: { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      buyer: { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+    };
+  };
+
+  const sharePdf = async () => {
+    if (!invoice) return;
+    const { seller, buyer } = pdfParties();
+    const { blob, filename } = buildInvoicePdf(invoice as any, lines as any, seller, buyer);
+    await shareFile(blob, filename, "Factură", invoice.invoice_number || "Factură");
   };
 
   const downloadPdf = () => {
