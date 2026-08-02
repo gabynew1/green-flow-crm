@@ -116,3 +116,12 @@ the UI path is blocked. Never destructive.
   - B4: Localize sidebar labels — add an RO/EN diff check on nav.
   - B5: Customer detail is sections, not tabs — decide spec vs code and
     update §11 accordingly.
+## One-time project contracts
+
+1. Create a contract with **One-time project** ticked — verify visit frequency locks to `1 / per Contract` and billing cycle to `Ad hoc`, both greyed out.
+2. Send → Mark signed → Activate. Contract detail shows the "One-time project" badge and the project card (Contract services / Additional / Grand total).
+3. Add an ad-hoc visit against the contract, complete it with at least one priced ad-hoc service. Verify no per-visit draft invoice is auto-created.
+4. Step 1 "Mark project completed" → close dialog with reason → status becomes CLOSED, leftover scheduled visits cleaned up.
+5. Step 2 "Send report to client" → client receives the project completion email listing contract services, ad-hoc extras, both subtotals and the grand total.
+6. Step 3 "Generate invoice" → single draft invoice opens with two tables ("Servicii contract" and "Servicii suplimentare") each with a subtotal, plus TOTAL GENERAL. Re-running returns the same invoice (no duplicates).
+7. Download the PDF — the same two tables and grand total appear.
