@@ -12,10 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { generateInvoicePdf } from "@/lib/invoice-pdf";
+import { generateInvoicePdf, buildInvoicePdf } from "@/lib/invoice-pdf";
+import { shareFile, canShareFiles } from "@/lib/share-file";
 
 type Invoice = {
   id: string;
@@ -210,6 +211,23 @@ export default function InvoiceDetail() {
     load();
   };
 
+  const pdfParties = () => {
+    const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
+    const t = tenantInfo ?? {};
+    const c = customerInfo ?? {};
+    return {
+      seller: { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      buyer: { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+    };
+  };
+
+  const sharePdf = async () => {
+    if (!invoice) return;
+    const { seller, buyer } = pdfParties();
+    const { blob, filename } = buildInvoicePdf(invoice as any, lines as any, seller, buyer);
+    await shareFile(blob, filename, "Factură", invoice.invoice_number || "Factură");
+  };
+
   const downloadPdf = () => {
     if (!invoice) return;
     const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
@@ -245,6 +263,11 @@ export default function InvoiceDetail() {
           {invoice.status !== "DRAFT" && (
             <Button variant="outline" size="sm" onClick={downloadPdf}>
               <Download className="h-4 w-4 mr-1" /> Descarcă PDF
+            </Button>
+          )}
+          {invoice.status !== "DRAFT" && canShareFiles() && (
+            <Button variant="outline" size="sm" onClick={sharePdf}>
+              <Share2 className="h-4 w-4 mr-1" /> Partajează
             </Button>
           )}
           {isDraft && invoice.service_order_id && (

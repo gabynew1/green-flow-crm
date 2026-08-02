@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Check, FileText, Send, Wallet, AlertCircle, Clock, Download, X } from "lucide-react";
+import { Check, FileText, Send, Wallet, AlertCircle, Clock, Download, X, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { generateInvoicePdf } from "@/lib/invoice-pdf";
+import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { shareFile, canShareFiles } from "@/lib/share-file";
 
 type Invoice = {
   id: string;
@@ -145,7 +146,7 @@ export default function Billing() {
     load();
   };
 
-  const downloadPdf = async (inv: Invoice) => {
+  const invoicePdf = async (inv: Invoice) => {
     const [invRes, linesRes, tenantRes, customerRes] = await Promise.all([
       supabase.from("invoices").select("*").eq("id", inv.id).maybeSingle(),
       supabase.from("invoice_line_items").select("description, quantity, unit_price, line_total")
@@ -153,16 +154,35 @@ export default function Billing() {
       supabase.from("tenants").select("company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone").eq("id", tenantId!).maybeSingle(),
       supabase.from("customers").select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone").eq("id", inv.customer_id).maybeSingle(),
     ]);
-    if (!invRes.data) { toast.error("Factură negăsită"); return; }
+    if (!invRes.data) { toast.error("Factură negăsită"); return null; }
     const t: any = tenantRes.data ?? {};
     const c: any = customerRes.data ?? {};
     const addr = (o: any) => [o.address_street, o.address_number, o.address_city].filter(Boolean).join(", ") || null;
-    generateInvoicePdf(
+    return buildInvoicePdf(
       invRes.data as any,
       (linesRes.data as any) ?? [],
       { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
     );
+  };
+
+  const downloadPdf = async (inv: Invoice) => {
+    const doc = await invoicePdf(inv);
+    if (!doc) return;
+    const url = URL.createObjectURL(doc.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = doc.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+
+  const sharePdf = async (inv: Invoice) => {
+    const doc = await invoicePdf(inv);
+    if (!doc) return;
+    await shareFile(doc.blob, doc.filename, "Factură", inv.invoice_number || "Factură");
   };
 
   return (
@@ -248,6 +268,11 @@ export default function Billing() {
                         {inv.status !== "DRAFT" && (
                           <Button size="sm" variant="ghost" title="Descarcă PDF" onClick={() => downloadPdf(inv)}>
                             <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {inv.status !== "DRAFT" && canShareFiles() && (
+                          <Button size="sm" variant="ghost" title="Partajează" onClick={() => sharePdf(inv)}>
+                            <Share2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         {inv.status === "DRAFT" && (

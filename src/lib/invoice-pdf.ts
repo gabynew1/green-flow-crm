@@ -56,12 +56,12 @@ function partyBlock(doc: jsPDF, title: string, p: PdfParty, x: number, y: number
   push(p.phone || null);
 }
 
-export function generateInvoicePdf(
+export function buildInvoicePdf(
   invoice: PdfInvoice,
   lines: PdfLine[],
   seller: PdfParty,
   buyer: PdfParty,
-) {
+): { blob: Blob; filename: string } {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const currency = (invoice.currency || "RON") as CurrencyCode;
   const fmt = (n: number) => formatCurrency(n, currency, 2);
@@ -140,5 +140,22 @@ export function generateInvoicePdf(
   doc.text("Generat din GreenGrassCRM", 105, 290, { align: "center" });
 
   const filename = `Factura-${(invoice.invoice_number || "draft").replace(/[^A-Za-z0-9._-]/g, "_")}.pdf`;
-  doc.save(filename);
+  return { blob: doc.output("blob"), filename };
+}
+
+export function generateInvoicePdf(
+  invoice: PdfInvoice,
+  lines: PdfLine[],
+  seller: PdfParty,
+  buyer: PdfParty,
+) {
+  const { blob, filename } = buildInvoicePdf(invoice, lines, seller, buyer);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }

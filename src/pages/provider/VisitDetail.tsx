@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, Bot, UserPlus, Trash2, Send } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Plus, Save, CalendarIcon, Pencil, CheckCircle2, Bot, UserPlus, Trash2, Send, Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,9 @@ import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
 import { ZoneChip } from "@/components/provider/ZoneChip";
 import VisitActionRow from "@/components/visits/VisitActionRow";
+import { buildVisitReportPdf } from "@/lib/visit-report-pdf";
+import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { shareFile, downloadBlob, canShareFiles } from "@/lib/share-file";
 
 const statusColor = new Proxy({} as Record<string, string>, {
   get: (_t, key: string) => visitStatusColor(key),
@@ -63,6 +67,9 @@ export default function VisitDetail() {
   const [editPeriodType, setEditPeriodType] = useState("");
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
   const [contractFlatFee, setContractFlatFee] = useState<{ isFlat: boolean; amount: number; frequency: string | null }>({ isFlat: false, amount: 0, frequency: null });
+  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
+  const canShare = canShareFiles();
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -91,6 +98,23 @@ export default function VisitDetail() {
     setItems(itms ?? []);
 
     const visitTenantId = (o?.properties as any)?.tenant_id ?? tenantId;
+    if (visitTenantId) {
+      const { data: t } = await supabase
+        .from("tenants")
+        .select("name, company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone")
+        .eq("id", visitTenantId)
+        .maybeSingle();
+      setTenantInfo(t ?? null);
+    }
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("service_order_id", visitId!)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLinkedInvoiceId(inv?.id ?? null);
+
     const { data: cat } = visitTenantId
       ? await supabase
           .from("service_catalog")
@@ -314,6 +338,69 @@ export default function VisitDetail() {
     : contractFlatFee.frequency === "ONE_TIME" ? ""
     : "/ month";
 
+  // ---- PDF export / share ----
+  const makeVisitReportPdf = () =>
+    buildVisitReportPdf({
+      providerName: tenantInfo?.company_name || tenantInfo?.name || null,
+      propertyName: (order.properties as any)?.name ?? null,
+      customerName: (order.properties as any)?.customers?.name ?? null,
+      zoneName: (order.properties as any)?.service_zones?.name ?? null,
+      contractName: (order.contracts as any)?.contract_name ?? null,
+      status: statusLabels[order.status] || order.status,
+      performedDate: order.performed_date,
+      scheduledDate: order.scheduled_date,
+      periodLabel: order.period_label,
+      summary: clientSummary || order.client_summary || order.notes,
+      currency,
+      flatFee: { isFlat: contractFlatFee.isFlat, amount: flatFeeAmount, suffix: flatFeeSuffix },
+      items: items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity || 1,
+        unit: i.unit,
+        source: i.source,
+        price: getItemPrice(i),
+        total: getItemCost(i),
+      })),
+    });
+
+  const makeInvoicePdf = async () => {
+    if (!linkedInvoiceId) return null;
+    const [invRes, linesRes, customerRes] = await Promise.all([
+      supabase.from("invoices").select("*").eq("id", linkedInvoiceId).maybeSingle(),
+      supabase.from("invoice_line_items").select("description, quantity, unit_price, line_total")
+        .eq("invoice_id", linkedInvoiceId).order("created_at", { ascending: true }),
+      supabase.from("customers")
+        .select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone")
+        .eq("id", (order.properties as any)?.customers?.id).maybeSingle(),
+    ]);
+    if (!invRes.data) { toast.error("Factura nu a fost găsită"); return null; }
+    const t: any = tenantInfo ?? {};
+    const c: any = customerRes.data ?? {};
+    const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
+    return buildInvoicePdf(
+      invRes.data as any,
+      (linesRes.data as any) ?? [],
+      { name: t.company_name || t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+    );
+  };
+
+  const handleExport = async (kind: "report" | "invoice", mode: "download" | "share") => {
+    const doc = kind === "report" ? makeVisitReportPdf() : await makeInvoicePdf();
+    if (!doc) return;
+    if (mode === "download") {
+      downloadBlob(doc.blob, doc.filename);
+      toast.success("PDF descărcat");
+    } else {
+      await shareFile(
+        doc.blob,
+        doc.filename,
+        kind === "report" ? "Raport vizită" : "Factură",
+        `${(order.properties as any)?.name ?? ""}`,
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -360,9 +447,49 @@ export default function VisitDetail() {
             <p className="text-sm font-medium text-success">✓ Visit Completed</p>
             <p className="text-xs text-muted-foreground">Performed on {order.performed_date || "—"}. This visit is closed and cannot be reopened.</p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2" onClick={sendReportToClient}>
-            <Send className="h-3.5 w-3.5" /> Send Report to Client
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={sendReportToClient}>
+              <Send className="h-3.5 w-3.5" /> Send Report to Client
+            </Button>
+
+            {linkedInvoiceId ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-3.5 w-3.5" /> Download PDF
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport("report", "download")}>Visit report</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("invoice", "download")}>Invoice</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => handleExport("report", "download")}>
+                <Download className="h-3.5 w-3.5" /> Download PDF
+              </Button>
+            )}
+
+            {canShare && (
+              linkedInvoiceId ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Share2 className="h-3.5 w-3.5" /> Share
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleExport("report", "share")}>Visit report</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport("invoice", "share")}>Invoice</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleExport("report", "share")}>
+                  <Share2 className="h-3.5 w-3.5" /> Share
+                </Button>
+              )
+            )}
+          </div>
         </div>
       )}
 
