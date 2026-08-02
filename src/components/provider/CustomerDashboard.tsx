@@ -26,6 +26,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const [tenantCurrency, setTenantCurrency] = useState<CurrencyCode>("RON");
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [invoiceLines, setInvoiceLines] = useState<any[]>([]);
   const [nextInvoiceDate, setNextInvoiceDate] = useState<string | null>(null);
 
   const activeContracts = useMemo(
@@ -95,8 +96,14 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
         .select("invoice_id, amount, paid_at")
         .in("invoice_id", ids);
       setPayments((pays as any) ?? []);
+      const { data: lines } = await supabase
+        .from("invoice_line_items")
+        .select("invoice_id, line_group, line_total")
+        .in("invoice_id", ids);
+      setInvoiceLines((lines as any) ?? []);
     } else {
       setPayments([]);
+      setInvoiceLines([]);
     }
 
     // Next automatic cycle invoice across active recurring contracts
