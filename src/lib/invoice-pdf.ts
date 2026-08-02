@@ -102,7 +102,10 @@ export function buildInvoicePdf(
 
   // Line items — contract scope vs extra (ad-hoc) work
   const adhocLines = lines.filter((l) => l.line_group === "ADHOC");
-  const contractLines = lines.filter((l) => l.line_group !== "ADHOC");
+  const allContractLines = lines.filter((l) => l.line_group !== "ADHOC");
+  // Only cost-bearing lines are billed; flat-fee inclusions become a footnote.
+  const contractLines = allContractLines.filter((l) => Number(l.line_total || 0) !== 0);
+  const includedLines = allContractLines.filter((l) => Number(l.line_total || 0) === 0);
   const sum = (arr: PdfLine[]) => arr.reduce((s, l) => s + Number(l.line_total || 0), 0);
 
   const section = (title: string, rows: PdfLine[], startY: number) => {
@@ -141,6 +144,18 @@ export function buildInvoicePdf(
   } else {
     if (contractLines.length > 0) cursorY = section("Servicii contract", contractLines, cursorY);
     cursorY = section("Servicii suplimentare (in afara contractului)", adhocLines, cursorY);
+  }
+
+  if (includedLines.length > 0) {
+    doc.setFontSize(8);
+    doc.setTextColor(110);
+    const note = `Include ${includedLines.length} servicii din contract, fara cost suplimentar: ${includedLines
+      .map((l) => l.description)
+      .join(", ")}.`;
+    const wrappedNote = doc.splitTextToSize(note, 180);
+    doc.text(wrappedNote, 15, cursorY);
+    cursorY += wrappedNote.length * 4 + 4;
+    doc.setTextColor(0);
   }
 
   const endY = cursorY;
