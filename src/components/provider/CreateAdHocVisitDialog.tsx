@@ -193,36 +193,24 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setDaySlotCount(count ?? 0);
   };
 
+  /** Categories (service codes) covered by a contract's own line items. */
+  const contractCategories = (contract: ContractWithItems): string[] => {
+    const ids = new Set(contract.lines.map((l) => l.service_catalog_id));
+    return [...new Set(services.filter((s) => ids.has(s.id)).map((s) => s.code as string))].sort();
+  };
+
   const applyContractServices = (contract: ContractWithItems) => {
-    setSelectedServiceIds(contract.serviceIds);
-    const contractServiceSet = new Set(contract.serviceIds);
-    const firstMatchingCategory = services.find((s) => contractServiceSet.has(s.id))?.code;
-    if (firstMatchingCategory) setSelectedCategory(firstMatchingCategory);
+    setSelectedCategories(contractCategories(contract));
   };
 
   const handleSourceChange = (value: string) => {
     setSelectedSource(value);
     if (value === "ad_hoc") {
-      setSelectedServiceIds([]);
-      setSelectedCategory("");
+      setSelectedCategories([]);
     } else {
       const contract = propertyContracts.find((c) => c.id === value);
       if (contract) applyContractServices(contract);
     }
-  };
-
-  const categories = [...new Set(services.map((s) => s.code as string))].sort();
-  const filteredServices = services.filter(
-    (s) =>
-      s.code === selectedCategory &&
-      (!serviceSearch.trim() ||
-        s.name?.toLowerCase().includes(serviceSearch.trim().toLowerCase())),
-  );
-
-  const toggleService = (id: string) => {
-    setSelectedServiceIds((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
   };
 
   const resetForm = () => {
@@ -233,9 +221,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setSlotMode("preset");
     setCustomStart("09:00");
     setCustomEnd("11:00");
-    setSelectedServiceIds([]);
-    setSelectedCategory("");
-    setServiceSearch("");
+    setSelectedCategories([]);
     setNotes("");
     setPropertyContracts([]);
     setSelectedSource("ad_hoc");
@@ -245,6 +231,21 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   const isContractSource = selectedSource !== "ad_hoc";
   const activeContract = propertyContracts.find((c) => c.id === selectedSource);
   const isHeavyDay = daySlotCount >= TEAM_DAY_WARNING_THRESHOLD;
+  const availableCategories = activeContract ? contractCategories(activeContract) : [];
+  const codeById = new Map(services.map((s) => [s.id, s.code as string]));
+  const nameById = new Map(services.map((s) => [s.id, s.name as string]));
+  /** Contract lines that fall inside the selected categories — these become the visit's items. */
+  const linesToAdd = activeContract
+    ? activeContract.lines.filter((l) =>
+        l.service_catalog_id ? selectedCategories.includes(codeById.get(l.service_catalog_id) ?? "") : false,
+      )
+    : [];
+
+  const toggleCategory = (code: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+    );
+  };
 
   const getSlotEnd = (start: string) => {
     const [h, m] = start.split(":").map(Number);
@@ -252,8 +253,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   };
 
   const handleCreate = async () => {
-    if (!selectedPropertyId || !selectedCustomerId || !selectedDate || selectedServiceIds.length === 0) {
-      toast.error("Please fill in all required fields and select at least one service");
+    if (!selectedPropertyId || !selectedCustomerId || !selectedDate) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (isContractSource && linesToAdd.length === 0) {
+      toast.error("Select at least one service category from the contract");
       return;
     }
     if (slotMode === "custom") {
@@ -302,24 +307,25 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
       if (error) throw error;
 
-      const itemSource = isContractSource ? "CONTRACT" as const : "AD_HOC" as const;
-      const serviceItems = selectedServiceIds.map((svcId) => {
-        const svc = services.find((s) => s.id === svcId);
-        return {
+      // Ad-hoc visits start empty — services are added on the visit detail page.
+      if (linesToAdd.length > 0) {
+        const serviceItems = linesToAdd.map((l) => ({
           service_order_id: order.id,
-          service_catalog_id: svcId,
-          name: svc?.name ?? "Service",
-          quantity: 1,
-          source: itemSource,
+          service_catalog_id: l.service_catalog_id,
+          contract_line_item_id: l.id,
+          name: l.custom_name || nameById.get(l.service_catalog_id ?? "") || "Service",
+          quantity: l.quantity ?? 1,
+          unit: l.unit,
+          source: "CONTRACT" as const,
           tenant_id: tenantId,
-        };
-      });
+        }));
 
-      const { error: itemsError } = await supabase
-        .from("service_order_items")
-        .insert(serviceItems);
+        const { error: itemsError } = await supabase
+          .from("service_order_items")
+          .insert(serviceItems);
 
-      if (itemsError) throw itemsError;
+        if (itemsError) throw itemsError;
+      }
 
       toast.success("Visit created!");
       resetForm();
