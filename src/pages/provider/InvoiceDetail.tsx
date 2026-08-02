@@ -37,7 +37,8 @@ type Invoice = {
   paid_at: string | null;
   notes: string | null;
   customers?: { id: string; name: string | null; company_name: string | null } | null;
-  contracts?: { id: string; contract_name: string | null } | null;
+  contracts?: { id: string; contract_name: string | null; is_one_time_project?: boolean | null } | null;
+  properties?: { name: string | null } | null;
 };
 
 type Line = {
@@ -76,7 +77,7 @@ export default function InvoiceDetail() {
     if (!invoiceId) return;
     const { data, error } = await supabase
       .from("invoices")
-      .select("*, customers(id,name,company_name), contracts(id,contract_name)")
+      .select("*, customers(id,name,company_name), contracts(id,contract_name,is_one_time_project), properties(name)")
       .eq("id", invoiceId)
       .maybeSingle();
     if (error || !data) {
@@ -222,11 +223,18 @@ export default function InvoiceDetail() {
     };
   };
 
+  const pdfMeta = () => ({
+    vendorName: (tenantInfo ?? {}).company_name ?? null,
+    propertyName: invoice?.properties?.name ?? null,
+    contractName: invoice?.contracts?.contract_name ?? null,
+    isOneTimeProject: invoice?.contracts?.is_one_time_project ?? false,
+  });
+
   const sharePdf = async () => {
     if (!invoice) return;
     const { seller, buyer } = pdfParties();
-    const { blob, filename } = buildInvoicePdf(invoice as any, lines as any, seller, buyer);
-    await shareFile(blob, filename, "Factură", invoice.invoice_number || "Factură");
+    const { blob, filename } = buildInvoicePdf(invoice as any, lines as any, seller, buyer, pdfMeta());
+    await shareFile(blob, filename, filename.replace(/\.pdf$/, ""), invoice.invoice_number || "Factură");
   };
 
   const downloadPdf = () => {
@@ -239,6 +247,7 @@ export default function InvoiceDetail() {
       lines as any,
       { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+      pdfMeta(),
     );
   };
 
