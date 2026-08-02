@@ -19,6 +19,7 @@ export type VisitPdfData = {
   customerName?: string | null;
   zoneName?: string | null;
   contractName?: string | null;
+  isOneTimeProject?: boolean | null;
   status: string;
   performedDate?: string | null;
   scheduledDate?: string | null;
