@@ -12,13 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw, CalendarClock } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, FileText, Play, XCircle, Clock, Pencil, Save, X, Send, CalendarPlus, RotateCcw, CalendarClock, Check, Undo2, Ban, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format, addYears } from "date-fns";
 import { CustomerDashboard } from "@/components/provider/CustomerDashboard";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
+import { CancelContractDialog } from "@/components/provider/CancelContractDialog";
 import { CustomerEmailHistoryTab } from "@/components/provider/CustomerEmailHistoryTab";
 
 function getTimeRemaining(endDate: string | null): { label: string; urgent: boolean } | null {
@@ -50,7 +52,9 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   PENDING_NEW: "Pending Approval",
-  REJECTED: "Rejected",
+  REJECTED: "Cancelled",
+  SENT_TO_CLIENT: "Sent to client",
+  SIGNED: "Signed",
 };
 
 export default function CustomerDetail() {
