@@ -15,7 +15,7 @@ import {
 import { Check, FileText, Send, Wallet, AlertCircle, Clock, Download, X, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { generateInvoicePdf, buildInvoicePdf } from "@/lib/invoice-pdf";
+import { buildInvoicePdf } from "@/lib/invoice-pdf";
 import { shareFile, canShareFiles } from "@/lib/share-file";
 
 type Invoice = {
