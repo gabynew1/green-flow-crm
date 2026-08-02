@@ -159,6 +159,14 @@ export default function VisitDetail() {
     load();
   };
 
+  // Ad-hoc extras are always considered delivered — a mistake is removed, not unticked.
+  const deleteAdHocItem = async (itemId: string) => {
+    const { error } = await supabase.from("service_order_items").delete().eq("id", itemId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Additional service removed");
+    load();
+  };
+
   const isAutoBooked = !!order?.contract_id && !!order?.created_by_user_id === false;
   const isManual = !order?.contract_id || !!order?.created_by_user_id;
 
@@ -308,6 +316,7 @@ export default function VisitDetail() {
         quantity: 1,
         unit: svc?.default_unit || "visit",
         source: "AD_HOC" as const,
+        is_completed: true,
         tenant_id: tenantId,
       };
     });
