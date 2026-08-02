@@ -1206,6 +1206,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "invoices_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_service_order_id_fkey"
             columns: ["service_order_id"]
             isOneToOne: false
