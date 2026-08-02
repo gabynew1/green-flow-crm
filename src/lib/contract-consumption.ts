@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
   startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, parseISO,
+  differenceInCalendarWeeks, differenceInCalendarMonths, differenceInCalendarYears,
 } from "date-fns";
 
 export interface LineItemConsumption {
@@ -11,6 +12,103 @@ export interface LineItemConsumption {
   consumed: number;
   isOverScope: boolean;
   periodLabel: string;
+}
+
+export interface LineItemLifetimeUsage {
+  lineItemId: string;
+  serviceName: string;
+  /** Total allowance for the whole contract term. null = legacy unlimited line. */
+  allocated: number | null;
+  /** Delivered lines across the whole contract term (scheduled + in progress + completed). */
+  consumed: number;
+}
+
+/** Number of whole periods between start and end for a given frequency. Minimum 1. */
+function wholePeriods(frequencyType: string, start: Date, end: Date): number {
+  let n = 0;
+  switch (frequencyType) {
+    case "PER_WEEK":
+      n = differenceInCalendarWeeks(end, start, { weekStartsOn: 1 });
+      break;
+    case "PER_MONTH":
+      n = differenceInCalendarMonths(end, start);
+      break;
+    case "PER_YEAR":
+      n = differenceInCalendarYears(end, start);
+      break;
+    default:
+      return 1;
+  }
+  return Math.max(1, Math.floor(n));
+}
+
+/**
+ * Lifetime (whole contract term) allocation + consumption per contract line item.
+ *
+ * allocated = max_occurrences_per_period × whole periods in the term (floored).
+ * ONE_TIME / PER_CONTRACT → the limit as-is (1 when null).
+ * PER_VISIT with no limit (legacy) → null: no total, only a running delivered count.
+ *
+ * consumed counts delivered (is_completed) service order items over the whole term,
+ * including SCHEDULED and IN_PROGRESS visits so providers cannot silently overbook.
+ * Canceled visits are excluded.
+ */
+export async function getContractLifetimeUsage(
+  contractId: string,
+  contractStart?: string | null,
+  contractEnd?: string | null,
+): Promise<Map<string, LineItemLifetimeUsage>> {
+  const result = new Map<string, LineItemLifetimeUsage>();
+
+  const { data: lineItems } = await supabase
+    .from("contract_line_items")
+    .select("id, custom_name, frequency_type, max_occurrences_per_period, service_catalog(name)")
+    .eq("contract_id", contractId);
+
+  if (!lineItems || lineItems.length === 0) return result;
+
+  const start = contractStart ? parseISO(contractStart) : null;
+  const end = contractEnd ? parseISO(contractEnd) : new Date();
+
+  const lineItemIds = lineItems.map(li => li.id);
+  const { data: allItems } = await supabase
+    .from("service_order_items")
+    .select("contract_line_item_id, service_orders!inner(status)")
+    .in("contract_line_item_id", lineItemIds)
+    .eq("is_completed", true)
+    .in("service_orders.status", ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "PENDING_APPROVAL", "APPROVED", "SENT_TO_CLIENT"]);
+
+  const consumedByLine = new Map<string, number>();
+  for (const item of allItems ?? []) {
+    const key = item.contract_line_item_id as string | null;
+    if (!key) continue;
+    consumedByLine.set(key, (consumedByLine.get(key) ?? 0) + 1);
+  }
+
+  for (const li of lineItems) {
+    const serviceName = li.custom_name || (li.service_catalog as any)?.name || "Service";
+    const max = li.max_occurrences_per_period;
+    let allocated: number | null;
+
+    if (li.frequency_type === "ONE_TIME" || li.frequency_type === "PER_CONTRACT") {
+      allocated = max ?? 1;
+    } else if (max === null || max === undefined) {
+      allocated = null; // legacy unlimited line — delivered count only
+    } else if (start) {
+      allocated = max * wholePeriods(li.frequency_type, start, end);
+    } else {
+      allocated = max;
+    }
+
+    result.set(li.id, {
+      lineItemId: li.id,
+      serviceName,
+      allocated,
+      consumed: consumedByLine.get(li.id) ?? 0,
+    });
+  }
+
+  return result;
 }
 
 /**

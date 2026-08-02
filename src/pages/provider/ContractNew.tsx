@@ -256,7 +256,14 @@ export default function ContractNew() {
       const next = prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id];
       if (!prev.includes(id)) {
         const svc = services.find((s) => s.id === id);
-        setServiceConfig((cfg) => ({ ...cfg, [id]: defaultCfg(svc?.default_price) }));
+        setServiceConfig((cfg) => ({
+          ...cfg,
+          [id]: {
+            ...defaultCfg(svc?.default_price),
+            frequency_type: allowancePreset.frequency_type,
+            max_occurrences: String(allowancePreset.max),
+          },
+        }));
       }
       return next;
     });
@@ -288,9 +295,12 @@ export default function ContractNew() {
     } else {
       for (const svcId of selectedServiceIds) {
         const cfg = serviceConfig[svcId];
+        const svcName = services.find((s) => s.id === svcId)?.name || "service";
         if (!cfg?.unit_price || Number(cfg.unit_price) < 0) {
-          const svc = services.find((s) => s.id === svcId);
-          return toast.error(`Set a unit price for ${svc?.name || "service"}`);
+          return toast.error(`Set a unit price for ${svcName}`);
+        }
+        if (!cfg?.max_occurrences || Number(cfg.max_occurrences) <= 0) {
+          return toast.error(`Set the allowance per period for ${svcName}`);
         }
       }
     }
@@ -769,8 +779,8 @@ export default function ContractNew() {
                               onChange={(e) => updateServiceConfig(id, "unit_price", e.target.value)} />
                           </div>
                           <div className="space-y-1">
-                            <Label className="text-xs">Max / period</Label>
-                            <Input type="number" placeholder="∞"
+                            <Label className="text-xs">Allowance / period *</Label>
+                            <Input type="number" min="1" placeholder="e.g. 2"
                               value={cfg.max_occurrences}
                               onChange={(e) => updateServiceConfig(id, "max_occurrences", e.target.value)} />
                           </div>

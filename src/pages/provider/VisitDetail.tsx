@@ -21,7 +21,7 @@ import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
-import { getVisitScopeStatus } from "@/lib/contract-consumption";
+import { getVisitScopeStatus, getContractLifetimeUsage, type LineItemLifetimeUsage } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
@@ -66,6 +66,7 @@ export default function VisitDetail() {
   const [editPeriodLabel, setEditPeriodLabel] = useState("");
   const [editPeriodType, setEditPeriodType] = useState("");
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
+  const [lifetimeMap, setLifetimeMap] = useState<Map<string, LineItemLifetimeUsage>>(new Map());
   const [contractFlatFee, setContractFlatFee] = useState<{ isFlat: boolean; amount: number; frequency: string | null }>({ isFlat: false, amount: 0, frequency: null });
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
   const [tenantInfo, setTenantInfo] = useState<any>(null);
@@ -129,6 +130,7 @@ export default function VisitDetail() {
       const { data: ctr } = await supabase.from("contracts").select("start_date, end_date").eq("id", o.contract_id).single();
       const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
       setScopeMap(sm);
+      setLifetimeMap(await getContractLifetimeUsage(o.contract_id, ctr?.start_date, ctr?.end_date));
 
       // Detect flat-fee contract. Prefer the SSOT flag `is_included_in_base_fee`
       // on any linked contract line; fall back to the legacy "Flat fee — …"
@@ -313,7 +315,19 @@ export default function VisitDetail() {
       <div className="p-8 text-center text-muted-foreground">Loading…</div>
     );
 
-  const contractItems = items.filter(i => i.source === "CONTRACT");
+  // Most-used services first: the provider ticks the frequent tasks at the top.
+  const contractItems = items
+    .filter(i => i.source === "CONTRACT")
+    .slice()
+    .sort((a, b) => {
+      const aa = lifetimeMap.get(a.contract_line_item_id)?.allocated ?? null;
+      const bb = lifetimeMap.get(b.contract_line_item_id)?.allocated ?? null;
+      if (aa === null && bb === null) return (a.name || "").localeCompare(b.name || "");
+      if (aa === null) return 1;
+      if (bb === null) return -1;
+      if (bb !== aa) return bb - aa;
+      return (a.name || "").localeCompare(b.name || "");
+    });
   const adHocItems = items.filter(i => i.source === "AD_HOC");
   const isCompleted = order.status === "COMPLETED";
   const canMarkDone = ["SCHEDULED", "IN_PROGRESS"].includes(order.status);
@@ -787,6 +801,7 @@ export default function VisitDetail() {
           </p>
           {contractItems.map(item => {
             const scope = scopeMap.get(item.id);
+            const life = lifetimeMap.get(item.contract_line_item_id);
             return (
               <Card key={item.id}>
               <CardContent className="pt-4 pb-4 flex items-center gap-3">
@@ -800,6 +815,10 @@ export default function VisitDetail() {
                     <p className="text-xs text-muted-foreground">
                       {item.quantity} {item.unit}
                       {scope?.max != null && <span className="ml-1">· {scope.consumed}/{scope.max} {scope.periodLabel}</span>}
+                      {life && (life.allocated != null
+                        ? <span className="ml-1">· {life.consumed} | {life.allocated} total</span>
+                        : <span className="ml-1">· {life.consumed} delivered</span>
+                      )}
                       {item.is_completed && <span className="ml-1 text-success">· Delivered</span>}
                       {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
                     </p>

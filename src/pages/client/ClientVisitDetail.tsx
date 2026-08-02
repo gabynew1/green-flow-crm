@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Check, Star } from "lucide-react";
 import { toast } from "sonner";
-import { getVisitScopeStatus } from "@/lib/contract-consumption";
+import { getVisitScopeStatus, getContractLifetimeUsage, type LineItemLifetimeUsage } from "@/lib/contract-consumption";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
 import { ZoneChip } from "@/components/provider/ZoneChip";
 
@@ -21,6 +21,7 @@ export default function ClientVisitDetail() {
   const [comment, setComment] = useState("");
   const [existingFeedback, setExistingFeedback] = useState<any>(null);
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
+  const [lifetimeMap, setLifetimeMap] = useState<Map<string, LineItemLifetimeUsage>>(new Map());
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -48,6 +49,7 @@ export default function ClientVisitDetail() {
       const { data: ctr } = await supabase.from("contracts").select("start_date, end_date").eq("id", o.contract_id).single();
       const sm = await getVisitScopeStatus(visitId!, o.contract_id, ctr?.start_date, ctr?.end_date);
       setScopeMap(sm);
+      setLifetimeMap(await getContractLifetimeUsage(o.contract_id, ctr?.start_date, ctr?.end_date));
     }
 
     if (fb) {
@@ -72,7 +74,18 @@ export default function ClientVisitDetail() {
 
   if (!order) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
 
-  const contractItems = items.filter(i => i.source === "CONTRACT");
+  const contractItems = items
+    .filter(i => i.source === "CONTRACT")
+    .slice()
+    .sort((a, b) => {
+      const aa = lifetimeMap.get(a.contract_line_item_id)?.allocated ?? null;
+      const bb = lifetimeMap.get(b.contract_line_item_id)?.allocated ?? null;
+      if (aa === null && bb === null) return (a.name || "").localeCompare(b.name || "");
+      if (aa === null) return 1;
+      if (bb === null) return -1;
+      if (bb !== aa) return bb - aa;
+      return (a.name || "").localeCompare(b.name || "");
+    });
   const adHocItems = items.filter(i => i.source === "AD_HOC");
   const displayStatus = visitStatusLabel(order.status);
 
@@ -140,6 +153,7 @@ export default function ClientVisitDetail() {
           <CardContent className="space-y-2">
             {contractItems.map(i => {
               const scope = scopeMap.get(i.id);
+              const life = lifetimeMap.get(i.contract_line_item_id);
               return (
                 <div key={i.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
                   <div className="flex items-center gap-2">
@@ -157,6 +171,10 @@ export default function ClientVisitDetail() {
                   <span className="text-muted-foreground">
                     {i.quantity} {i.unit}
                     {scope?.max != null && <span className="ml-1 text-xs">({scope.consumed}/{scope.max})</span>}
+                    {life && (life.allocated != null
+                      ? <span className="ml-1 text-xs">· {life.consumed} | {life.allocated} total</span>
+                      : <span className="ml-1 text-xs">· {life.consumed} delivered</span>
+                    )}
                   </span>
                 </div>
               );

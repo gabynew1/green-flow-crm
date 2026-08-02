@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import { Search } from "lucide-react";
+import { X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -45,11 +44,19 @@ interface Props {
   defaultPropertyId?: string;
 }
 
+interface ContractLine {
+  id: string;
+  service_catalog_id: string | null;
+  custom_name: string | null;
+  quantity: number | null;
+  unit: string | null;
+}
+
 interface ContractWithItems {
   id: string;
   contract_name: string;
   status: string;
-  serviceIds: string[];
+  lines: ContractLine[];
 }
 
 interface Team {
@@ -85,9 +92,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   const [customStart, setCustomStart] = useState("09:00");
   const [customEnd, setCustomEnd] = useState("11:00");
   const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
 
   // Contract-aware state
@@ -154,16 +159,22 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     const contractIds = contracts.map((c) => c.id);
     const { data: lineItems } = await supabase
       .from("contract_line_items")
-      .select("contract_id, service_catalog_id")
+      .select("id, contract_id, service_catalog_id, custom_name, quantity, unit")
       .in("contract_id", contractIds);
 
     const enriched: ContractWithItems[] = contracts.map((c) => ({
       id: c.id,
       contract_name: c.contract_name,
       status: c.status,
-      serviceIds: (lineItems ?? [])
-        .filter((li) => li.contract_id === c.id)
-        .map((li) => li.service_catalog_id),
+      lines: (lineItems ?? [])
+        .filter((li) => li.contract_id === c.id && !(li.custom_name ?? "").startsWith("Flat fee"))
+        .map((li) => ({
+          id: li.id,
+          service_catalog_id: li.service_catalog_id,
+          custom_name: li.custom_name,
+          quantity: li.quantity,
+          unit: li.unit,
+        })),
     }));
 
     setPropertyContracts(enriched);
@@ -182,36 +193,24 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setDaySlotCount(count ?? 0);
   };
 
+  /** Categories (service codes) covered by a contract's own line items. */
+  const contractCategories = (contract: ContractWithItems): string[] => {
+    const ids = new Set(contract.lines.map((l) => l.service_catalog_id));
+    return [...new Set(services.filter((s) => ids.has(s.id)).map((s) => s.code as string))].sort();
+  };
+
   const applyContractServices = (contract: ContractWithItems) => {
-    setSelectedServiceIds(contract.serviceIds);
-    const contractServiceSet = new Set(contract.serviceIds);
-    const firstMatchingCategory = services.find((s) => contractServiceSet.has(s.id))?.code;
-    if (firstMatchingCategory) setSelectedCategory(firstMatchingCategory);
+    setSelectedCategories(contractCategories(contract));
   };
 
   const handleSourceChange = (value: string) => {
     setSelectedSource(value);
     if (value === "ad_hoc") {
-      setSelectedServiceIds([]);
-      setSelectedCategory("");
+      setSelectedCategories([]);
     } else {
       const contract = propertyContracts.find((c) => c.id === value);
       if (contract) applyContractServices(contract);
     }
-  };
-
-  const categories = [...new Set(services.map((s) => s.code as string))].sort();
-  const filteredServices = services.filter(
-    (s) =>
-      s.code === selectedCategory &&
-      (!serviceSearch.trim() ||
-        s.name?.toLowerCase().includes(serviceSearch.trim().toLowerCase())),
-  );
-
-  const toggleService = (id: string) => {
-    setSelectedServiceIds((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
   };
 
   const resetForm = () => {
@@ -222,9 +221,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
     setSlotMode("preset");
     setCustomStart("09:00");
     setCustomEnd("11:00");
-    setSelectedServiceIds([]);
-    setSelectedCategory("");
-    setServiceSearch("");
+    setSelectedCategories([]);
     setNotes("");
     setPropertyContracts([]);
     setSelectedSource("ad_hoc");
@@ -234,6 +231,21 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   const isContractSource = selectedSource !== "ad_hoc";
   const activeContract = propertyContracts.find((c) => c.id === selectedSource);
   const isHeavyDay = daySlotCount >= TEAM_DAY_WARNING_THRESHOLD;
+  const availableCategories = activeContract ? contractCategories(activeContract) : [];
+  const codeById = new Map(services.map((s) => [s.id, s.code as string]));
+  const nameById = new Map(services.map((s) => [s.id, s.name as string]));
+  /** Contract lines that fall inside the selected categories — these become the visit's items. */
+  const linesToAdd = activeContract
+    ? activeContract.lines.filter((l) =>
+        l.service_catalog_id ? selectedCategories.includes(codeById.get(l.service_catalog_id) ?? "") : false,
+      )
+    : [];
+
+  const toggleCategory = (code: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+    );
+  };
 
   const getSlotEnd = (start: string) => {
     const [h, m] = start.split(":").map(Number);
@@ -241,8 +253,12 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   };
 
   const handleCreate = async () => {
-    if (!selectedPropertyId || !selectedCustomerId || !selectedDate || selectedServiceIds.length === 0) {
-      toast.error("Please fill in all required fields and select at least one service");
+    if (!selectedPropertyId || !selectedCustomerId || !selectedDate) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (isContractSource && linesToAdd.length === 0) {
+      toast.error("Select at least one service category from the contract");
       return;
     }
     if (slotMode === "custom") {
@@ -291,24 +307,25 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
       if (error) throw error;
 
-      const itemSource = isContractSource ? "CONTRACT" as const : "AD_HOC" as const;
-      const serviceItems = selectedServiceIds.map((svcId) => {
-        const svc = services.find((s) => s.id === svcId);
-        return {
+      // Ad-hoc visits start empty — services are added on the visit detail page.
+      if (linesToAdd.length > 0) {
+        const serviceItems = linesToAdd.map((l) => ({
           service_order_id: order.id,
-          service_catalog_id: svcId,
-          name: svc?.name ?? "Service",
-          quantity: 1,
-          source: itemSource,
+          service_catalog_id: l.service_catalog_id,
+          contract_line_item_id: l.id,
+          name: l.custom_name || nameById.get(l.service_catalog_id ?? "") || "Service",
+          quantity: l.quantity ?? 1,
+          unit: l.unit,
+          source: "CONTRACT" as const,
           tenant_id: tenantId,
-        };
-      });
+        }));
 
-      const { error: itemsError } = await supabase
-        .from("service_order_items")
-        .insert(serviceItems);
+        const { error: itemsError } = await supabase
+          .from("service_order_items")
+          .insert(serviceItems);
 
-      if (itemsError) throw itemsError;
+        if (itemsError) throw itemsError;
+      }
 
       toast.success("Visit created!");
       resetForm();
@@ -494,94 +511,52 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
           {/* Services */}
           <div className="space-y-2">
-            <Label>Services * <span className="text-xs text-muted-foreground font-normal">(select category, then check services)</span></Label>
-            
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {selectedCategory && (
-              <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
-                <div className="relative mb-2">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={serviceSearch}
-                    onChange={(e) => setServiceSearch(e.target.value)}
-                    placeholder="Search services…"
-                    className="pl-7 h-8 text-xs"
-                  />
-                </div>
-                <div className="flex items-center justify-between px-2 pb-1 border-b mb-1">
-                  <span className="text-xs font-medium text-muted-foreground">{filteredServices.length} services</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="text-xs text-primary hover:underline"
-                      onClick={() => {
-                        const ids = filteredServices.map(s => s.id);
-                        setSelectedServiceIds(prev => [...new Set([...prev, ...ids])]);
-                      }}
-                    >
-                      Select all
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:underline"
-                      onClick={() => {
-                        const ids = new Set(filteredServices.map(s => s.id));
-                        setSelectedServiceIds(prev => prev.filter(id => !ids.has(id)));
-                      }}
-                    >
-                      Unselect all
-                    </button>
-                  </div>
-                </div>
-                {filteredServices.length > 0 ? filteredServices.map((svc) => (
-                  <label
-                    key={svc.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                  >
-                    <Checkbox
-                      checked={selectedServiceIds.includes(svc.id)}
-                      onCheckedChange={() => toggleService(svc.id)}
-                    />
-                    <span className="flex-1">{svc.name}</span>
-                  </label>
-                )) : (
-                  <p className="text-xs text-muted-foreground text-center py-2">No services in this category</p>
-                )}
-              </div>
-            )}
-
-            {selectedServiceIds.length > 0 && (
-              <div className="border rounded-md p-2 space-y-1 bg-muted/30">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Selected services ({selectedServiceIds.length})</p>
-                {selectedServiceIds.map((id) => {
-                  const svc = services.find((s) => s.id === id);
-                  return (
-                    <div key={id} className="flex items-center justify-between text-sm px-2 py-1 rounded hover:bg-muted">
-                      <span>{svc?.name}</span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{svc?.code}</span>
+            {isContractSource ? (
+              <>
+                <Label>
+                  Service categories *{" "}
+                  <span className="text-xs text-muted-foreground font-normal">
+                    (only services included in this contract are added)
+                  </span>
+                </Label>
+                {availableCategories.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {availableCategories.map((cat) => {
+                      const active = selectedCategories.includes(cat);
+                      return (
                         <button
+                          key={cat}
                           type="button"
-                          className="text-xs text-destructive hover:underline"
-                          onClick={() => toggleService(id)}
+                          onClick={() => toggleCategory(cat)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full border text-xs transition-colors",
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background hover:bg-muted border-border",
+                          )}
                         >
-                          Remove
+                          {cat}
+                          {active && <X className="inline h-3 w-3 ml-1" />}
                         </button>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    This contract has no service lines yet.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {linesToAdd.length} contract service{linesToAdd.length === 1 ? "" : "s"} will be added to this visit.
+                </p>
+              </>
+            ) : (
+              <>
+                <Label>Services</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ad-hoc visits are created empty — add the services you deliver on the visit page.
+                </p>
+              </>
             )}
           </div>
 
