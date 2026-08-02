@@ -1,28 +1,20 @@
-# Simplify invoice lines
+## Goal
+On the customer Financial Summary, show a real Contract vs Ad-hoc split in Monthly Billing, and move the "Next automatic invoice" note to the Contracted value tile.
 
-Verified on invoice `ea08770b…`: it has 11 lines — 1 flat fee (350), 1 ad-hoc (200) and 9 contract services at 0.00 that come from the visit report. Only the two priced lines matter for billing.
+## Problem (verified)
+The split is computed from the *invoice source* (`CONTRACT_CYCLE` vs other). Cycle invoices carry both the contract flat fee and extra ad-hoc services on the same invoice — e.g. the 550 RON invoice for this customer holds a `CONTRACT` flat-fee line plus a 200 RON `ADHOC` line — so everything lands in "Contract" and Ad-hoc always reads 0.
 
-## Rule
-An invoice shows only lines that carry cost. Services included in the flat fee are not billable lines.
+## Changes (frontend only, `src/components/provider/CustomerDashboard.tsx`)
 
-## Changes
+1. **Fetch line-level data**: after loading invoices, fetch `invoice_line_items` (`invoice_id, line_group, line_total`) for those invoice IDs, in the same `loadInvoices` flow.
+2. **Compute the split safely**, per invoice:
+   - `contractPart` = sum of lines with `line_group = 'CONTRACT'` (many are 0.00 for included services — that is correct).
+   - `adhocPart` = `invoice.total − contractPart`, clamped at 0, so the two chips always reconcile to the headline number even if line rows are missing or rounded.
+   - If an invoice has no line rows at all, fall back to today's source-based classification.
+3. **Apply to Monthly Billing and YTD Revenue** so both tiles use the same, consistent definition.
+4. **Move the next-invoice note**: remove `Next automatic invoice {date} (draft)` from the Monthly Billing tile; render it in the Contracted value tile beneath the `N active contract · X / month` line.
 
-1. **Generation (SQL migration)**
-   - `fn_ensure_cycle_invoice` / cycle + project + visit invoice functions: skip inserting contract line items where the resulting `line_total` is 0 and the item is included in the base fee. The flat-fee line and any priced contract line are still inserted; ad-hoc lines are unchanged.
-   - One-off cleanup: delete existing 0-value `CONTRACT` lines from invoices still in `DRAFT`, then recompute subtotal/total (values unchanged since they were 0).
-
-2. **Provider invoice view (`src/pages/provider/InvoiceDetail.tsx`)**
-   - Filter out zero-total contract lines from the "Servicii contract" table.
-   - Under that table, add a muted single line: "Include N servicii din contract, fără cost suplimentar" with an expandable list, so the scope stays visible without polluting the invoice.
-   - Totals block unchanged (contract total / ad-hoc total / grand total).
-
-3. **PDF (`src/lib/invoice-pdf.ts`)**
-   - Same filter; print the included-services list as a compact footnote line rather than table rows.
-
-4. **Client billing view**
-   - Apply the same filtering so client-facing invoices match the provider view and the PDF.
-
-## Result for this invoice
-Servicii contract: Flat fee — Regular Maintenance (Monthly) 350 RON.
-Servicii suplimentare: Consulting in choosing plants and materials 200 RON.
-Total general: 550 RON, plus a note listing the 9 included services.
+## Risks / non-goals
+- Headline totals, invoices, and PDFs are unchanged — only the breakdown and the note's placement.
+- The "In draft (not yet invoiced)" figure stays a single total, not split.
+- No database or trigger changes.
