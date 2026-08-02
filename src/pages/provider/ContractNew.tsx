@@ -562,6 +562,11 @@ export default function ContractNew() {
                       <SelectItem value="YEARLY">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!isOneTimeProject && billingCycle !== "ONE_TIME" && (
+                    <p className="text-xs text-muted-foreground">
+                      Next invoice: {nextInvoicePreview} (draft, end of billing period)
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
