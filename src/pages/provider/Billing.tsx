@@ -64,7 +64,7 @@ export default function Billing() {
     setLoading(true);
     const { data, error } = await supabase
       .from("invoices")
-      .select("id, invoice_number, customer_id, contract_id, total, currency, status, due_date, issue_date, paid_at, period_start, period_end, customers(name,company_name), contracts(contract_name)")
+      .select("id, invoice_number, customer_id, contract_id, total, currency, status, due_date, issue_date, paid_at, period_start, period_end, customers(name,company_name), contracts(contract_name, is_one_time_project), properties(name)")
       .eq("tenant_id", tenantId)
       .order("issue_date", { ascending: false })
       .limit(500);
@@ -163,6 +163,12 @@ export default function Billing() {
       (linesRes.data as any) ?? [],
       { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+      {
+        vendorName: t.company_name,
+        propertyName: (inv as any).properties?.name ?? null,
+        contractName: (inv as any).contracts?.contract_name ?? null,
+        isOneTimeProject: (inv as any).contracts?.is_one_time_project ?? false,
+      },
     );
   };
 
@@ -182,7 +188,7 @@ export default function Billing() {
   const sharePdf = async (inv: Invoice) => {
     const doc = await invoicePdf(inv);
     if (!doc) return;
-    await shareFile(doc.blob, doc.filename, "Factură", inv.invoice_number || "Factură");
+    await shareFile(doc.blob, doc.filename, doc.filename.replace(/\.pdf$/, ""), inv.invoice_number || "Factură");
   };
 
   return (
