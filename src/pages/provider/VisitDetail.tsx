@@ -21,7 +21,7 @@ import { format, parseISO, isSunday, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
-import { getVisitScopeStatus } from "@/lib/contract-consumption";
+import { getVisitScopeStatus, getContractLifetimeUsage, type LineItemLifetimeUsage } from "@/lib/contract-consumption";
 import { formatCurrency } from "@/lib/currency";
 import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { visitStatusColor, visitStatusLabel } from "@/lib/visit-status";
