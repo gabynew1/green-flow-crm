@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateInvoicePdf, buildInvoicePdf } from "@/lib/invoice-pdf";
