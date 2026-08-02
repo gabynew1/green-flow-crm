@@ -73,9 +73,9 @@ const queryClient = new QueryClient();
 
 
 function AppRoutes(): JSX.Element {
-  const { user, isProvider, isClient, isSuperAdmin, isLoading, signOut, profile, isLocked } = useAuth();
+  const { user, isProvider, isClient, isSuperAdmin, isLoading, identityLoaded, signOut, profile, isLocked } = useAuth();
 
-  if (isLoading) {
+  if (isLoading || (user && !identityLoaded)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading…</div>

@@ -41,6 +41,7 @@ export default function VisitDetail() {
   const navigate = useNavigate();
   const currency = useTenantCurrency();
   const [order, setOrder] = useState<any>(null);
+  const [notFound, setNotFound] = useState(false);
   const [items, setItems] = useState<any[]>([]);
   const [catalog, setCatalog] = useState<any[]>([]);
   const [notes, setNotes] = useState("");
@@ -70,8 +71,9 @@ export default function VisitDetail() {
       .from("service_orders")
       .select("*, properties(name, tenant_id, customers(name, id), service_zones(id, name, color)), contracts(contract_name)")
       .eq("id", visitId!)
-      .single();
+      .maybeSingle();
     setOrder(o);
+    setNotFound(!o);
     setNotes(o?.notes || "");
     setClientSummary(o?.client_summary || "");
     if (o) {
@@ -277,7 +279,15 @@ export default function VisitDetail() {
     load();
   };
 
-  if (!order) return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
+  if (!order)
+    return notFound ? (
+      <div className="p-8 text-center space-y-4">
+        <p className="text-muted-foreground">This visit no longer exists.</p>
+        <Button variant="outline" onClick={() => navigate("/provider/visits")}>Back to visits</Button>
+      </div>
+    ) : (
+      <div className="p-8 text-center text-muted-foreground">Loading…</div>
+    );
 
   const contractItems = items.filter(i => i.source === "CONTRACT");
   const adHocItems = items.filter(i => i.source === "AD_HOC");
@@ -429,6 +439,7 @@ export default function VisitDetail() {
         <VisitActionRow
           visit={order}
           onChanged={load}
+          onDeleted={() => navigate("/provider/visits")}
           // Complete flow lives in the dedicated Complete & Send Report dialog above,
           // so we don't pass onComplete here to avoid duplicate buttons.
         />

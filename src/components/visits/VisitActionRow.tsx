@@ -54,6 +54,8 @@ interface Props {
   onChanged: () => void | Promise<void>;
   /** Provided by pages that own a Complete-and-send-report flow (VisitDetail). */
   onComplete?: () => void;
+  /** Called after the visit is deleted (page-level navigation). */
+  onDeleted?: () => void;
   size?: "sm" | "default";
   /** `row` = compact icon buttons for lists; `detail` = full labeled buttons. */
   layout?: "row" | "detail";
@@ -71,6 +73,7 @@ export function VisitActionRow({
   visit,
   onChanged,
   onComplete,
+  onDeleted,
   size = "default",
   layout = "detail",
 }: Props) {
@@ -211,6 +214,10 @@ export function VisitActionRow({
     const { error } = await supabase.from("service_orders").delete().eq("id", visit.id);
     if (error) return toast.error(error.message);
     toast.success("Visit deleted");
+    if (onDeleted) {
+      onDeleted();
+      return;
+    }
     await onChanged();
   };
 

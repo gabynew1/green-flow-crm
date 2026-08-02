@@ -41,6 +41,7 @@ interface AuthContextType {
   isLocked: boolean;
   lockedSubject: { kind: 'tenant' | 'client'; status: string; scheduled_delete_at: string | null } | null;
   isLoading: boolean;
+  identityLoaded: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -57,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [lockedSubject, setLockedSubject] = useState<{ kind: 'tenant' | 'client'; status: string; scheduled_delete_at: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  /** True once roles + profile + super-admin checks have resolved for the current user. */
+  const [identityLoaded, setIdentityLoaded] = useState(false);
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase
@@ -134,6 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) await fetchProfile(user.id);
   };
 
+  const loadIdentity = async (userId: string) => {
+    try {
+      await Promise.all([fetchRoles(userId), fetchProfile(userId), fetchSuperAdmin(userId)]);
+    } finally {
+      setIdentityLoaded(true);
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -141,9 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           setTimeout(() => {
-            fetchRoles(session.user.id);
-            fetchProfile(session.user.id);
-            fetchSuperAdmin(session.user.id);
+            loadIdentity(session.user.id);
             if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') {
               touchAndCheckLock();
             }
@@ -153,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setIsSuperAdmin(false);
           setLockedSubject(null);
+          setIdentityLoaded(true);
         }
         setIsLoading(false);
       }
@@ -162,10 +172,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRoles(session.user.id);
-        fetchProfile(session.user.id);
-        fetchSuperAdmin(session.user.id);
+        loadIdentity(session.user.id);
         touchAndCheckLock();
+      } else {
+        setIdentityLoaded(true);
       }
       setIsLoading(false);
     });
@@ -200,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLocked = !!lockedSubject;
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLocked, lockedSubject, isLoading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLocked, lockedSubject, isLoading, identityLoaded, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
