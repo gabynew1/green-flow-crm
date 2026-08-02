@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { formatCurrency, CurrencyCode } from "@/lib/currency";
+import { buildDocFilename, resolveServiceType } from "@/lib/doc-filename";
 
 export type PdfInvoice = {
   invoice_number: string | null;
@@ -62,6 +63,12 @@ export function buildInvoicePdf(
   lines: PdfLine[],
   seller: PdfParty,
   buyer: PdfParty,
+  meta?: {
+    vendorName?: string | null;
+    propertyName?: string | null;
+    contractName?: string | null;
+    isOneTimeProject?: boolean | null;
+  },
 ): { blob: Blob; filename: string } {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const currency = (invoice.currency || "RON") as CurrencyCode;
@@ -160,7 +167,18 @@ export function buildInvoicePdf(
   doc.setTextColor(140);
   doc.text("Generat din GreenGrassCRM", 105, 290, { align: "center" });
 
-  const filename = `Factura-${(invoice.invoice_number || "draft").replace(/[^A-Za-z0-9._-]/g, "_")}.pdf`;
+  const filename = buildDocFilename({
+    prefix: "Factura",
+    vendor: meta?.vendorName ?? seller.name,
+    property: meta?.propertyName,
+    serviceType: resolveServiceType({
+      contractName: meta?.contractName,
+      isOneTimeProject: meta?.isOneTimeProject,
+      fallback: "Invoice",
+    }),
+    date: invoice.issue_date,
+    suffix: invoice.invoice_number || "draft",
+  });
   return { blob: doc.output("blob"), filename };
 }
 
@@ -169,8 +187,9 @@ export function generateInvoicePdf(
   lines: PdfLine[],
   seller: PdfParty,
   buyer: PdfParty,
+  meta?: Parameters<typeof buildInvoicePdf>[4],
 ) {
-  const { blob, filename } = buildInvoicePdf(invoice, lines, seller, buyer);
+  const { blob, filename } = buildInvoicePdf(invoice, lines, seller, buyer, meta);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

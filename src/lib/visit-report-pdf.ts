@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { formatCurrency, CurrencyCode } from "@/lib/currency";
+import { buildDocFilename, resolveServiceType } from "@/lib/doc-filename";
 
 export type VisitPdfItem = {
   name: string;
@@ -18,6 +19,7 @@ export type VisitPdfData = {
   customerName?: string | null;
   zoneName?: string | null;
   contractName?: string | null;
+  isOneTimeProject?: boolean | null;
   status: string;
   performedDate?: string | null;
   scheduledDate?: string | null;
@@ -152,10 +154,16 @@ export function buildVisitReportPdf(data: VisitPdfData): { blob: Blob; filename:
   doc.setTextColor(140);
   doc.text("Generat din GreenGrassCRM", 105, 290, { align: "center" });
 
-  const datePart = performed ? format(new Date(performed), "yyyy-MM-dd") : "raport";
-  const propPart = (data.propertyName || "vizita").replace(/[^A-Za-z0-9._-]/g, "_");
   return {
     blob: doc.output("blob"),
-    filename: `Raport-vizita-${propPart}-${datePart}.pdf`,
+    filename: buildDocFilename({
+      vendor: data.providerName,
+      property: data.propertyName,
+      serviceType: resolveServiceType({
+        contractName: data.contractName,
+        isOneTimeProject: data.isOneTimeProject,
+      }),
+      date: performed ?? null,
+    }),
   };
 }
