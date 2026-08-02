@@ -511,94 +511,52 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
           {/* Services */}
           <div className="space-y-2">
-            <Label>Services * <span className="text-xs text-muted-foreground font-normal">(select category, then check services)</span></Label>
-            
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {selectedCategory && (
-              <div className="border rounded-md max-h-48 overflow-y-auto p-2 space-y-1">
-                <div className="relative mb-2">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={serviceSearch}
-                    onChange={(e) => setServiceSearch(e.target.value)}
-                    placeholder="Search services…"
-                    className="pl-7 h-8 text-xs"
-                  />
-                </div>
-                <div className="flex items-center justify-between px-2 pb-1 border-b mb-1">
-                  <span className="text-xs font-medium text-muted-foreground">{filteredServices.length} services</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      className="text-xs text-primary hover:underline"
-                      onClick={() => {
-                        const ids = filteredServices.map(s => s.id);
-                        setSelectedServiceIds(prev => [...new Set([...prev, ...ids])]);
-                      }}
-                    >
-                      Select all
-                    </button>
-                    <button
-                      type="button"
-                      className="text-xs text-muted-foreground hover:underline"
-                      onClick={() => {
-                        const ids = new Set(filteredServices.map(s => s.id));
-                        setSelectedServiceIds(prev => prev.filter(id => !ids.has(id)));
-                      }}
-                    >
-                      Unselect all
-                    </button>
-                  </div>
-                </div>
-                {filteredServices.length > 0 ? filteredServices.map((svc) => (
-                  <label
-                    key={svc.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                  >
-                    <Checkbox
-                      checked={selectedServiceIds.includes(svc.id)}
-                      onCheckedChange={() => toggleService(svc.id)}
-                    />
-                    <span className="flex-1">{svc.name}</span>
-                  </label>
-                )) : (
-                  <p className="text-xs text-muted-foreground text-center py-2">No services in this category</p>
-                )}
-              </div>
-            )}
-
-            {selectedServiceIds.length > 0 && (
-              <div className="border rounded-md p-2 space-y-1 bg-muted/30">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Selected services ({selectedServiceIds.length})</p>
-                {selectedServiceIds.map((id) => {
-                  const svc = services.find((s) => s.id === id);
-                  return (
-                    <div key={id} className="flex items-center justify-between text-sm px-2 py-1 rounded hover:bg-muted">
-                      <span>{svc?.name}</span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{svc?.code}</span>
+            {isContractSource ? (
+              <>
+                <Label>
+                  Service categories *{" "}
+                  <span className="text-xs text-muted-foreground font-normal">
+                    (only services included in this contract are added)
+                  </span>
+                </Label>
+                {availableCategories.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {availableCategories.map((cat) => {
+                      const active = selectedCategories.includes(cat);
+                      return (
                         <button
+                          key={cat}
                           type="button"
-                          className="text-xs text-destructive hover:underline"
-                          onClick={() => toggleService(id)}
+                          onClick={() => toggleCategory(cat)}
+                          className={cn(
+                            "px-3 py-1.5 rounded-full border text-xs transition-colors",
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background hover:bg-muted border-border",
+                          )}
                         >
-                          Remove
+                          {cat}
+                          {active && <X className="inline h-3 w-3 ml-1" />}
                         </button>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    This contract has no service lines yet.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {linesToAdd.length} contract service{linesToAdd.length === 1 ? "" : "s"} will be added to this visit.
+                </p>
+              </>
+            ) : (
+              <>
+                <Label>Services</Label>
+                <p className="text-xs text-muted-foreground">
+                  Ad-hoc visits are created empty — add the services you deliver on the visit page.
+                </p>
+              </>
             )}
           </div>
 
