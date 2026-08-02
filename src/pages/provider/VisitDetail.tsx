@@ -77,7 +77,7 @@ export default function VisitDetail() {
   const load = async () => {
     const { data: o } = await supabase
       .from("service_orders")
-      .select("*, properties(name, tenant_id, customers(name, id), service_zones(id, name, color)), contracts(contract_name)")
+      .select("*, properties(name, tenant_id, customers(name, id), service_zones(id, name, color)), contracts(contract_name, is_one_time_project)")
       .eq("id", visitId!)
       .maybeSingle();
     setOrder(o);
@@ -375,6 +375,7 @@ export default function VisitDetail() {
       customerName: (order.properties as any)?.customers?.name ?? null,
       zoneName: (order.properties as any)?.service_zones?.name ?? null,
       contractName: (order.contracts as any)?.contract_name ?? null,
+      isOneTimeProject: (order.contracts as any)?.is_one_time_project ?? false,
       status: statusLabels[order.status] || order.status,
       performedDate: order.performed_date,
       scheduledDate: order.scheduled_date,
@@ -411,6 +412,12 @@ export default function VisitDetail() {
       (linesRes.data as any) ?? [],
       { name: t.company_name || t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+      {
+        vendorName: t.company_name || t.name,
+        propertyName: (order.properties as any)?.name ?? null,
+        contractName: (order.contracts as any)?.contract_name ?? null,
+        isOneTimeProject: (order.contracts as any)?.is_one_time_project ?? false,
+      },
     );
   };
 
