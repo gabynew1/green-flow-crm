@@ -51,6 +51,7 @@ export default function ContractNew() {
   const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY" | "ONE_TIME">("MONTHLY");
   const [visitCount, setVisitCount] = useState(1);
   const [visitType, setVisitType] = useState("WEEK");
+  const [isOneTimeProject, setIsOneTimeProject] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [serviceConfig, setServiceConfig] = useState<Record<string, ServiceCfg>>({});
@@ -315,6 +316,7 @@ export default function ContractNew() {
         billing_cycle: billingCycle,
         visit_frequency_count: visitCount,
         visit_frequency_type: visitType,
+        is_one_time_project: isOneTimeProject,
         status: "DRAFT" as const,
         tenant_id: profile?.tenant_id,
       } as any));
@@ -495,6 +497,27 @@ export default function ContractNew() {
                 <div className="space-y-2"><Label>Start date *</Label><Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} /></div>
                 <div className="space-y-2"><Label>End date *</Label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} /></div>
               </div>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <Checkbox
+                  id="one-time-project"
+                  checked={isOneTimeProject}
+                  onCheckedChange={(v) => {
+                    const on = v === true;
+                    setIsOneTimeProject(on);
+                    if (on) {
+                      setVisitType("CONTRACT");
+                      setVisitCount(1);
+                      setBillingCycle("ONE_TIME");
+                    }
+                  }}
+                />
+                <div className="space-y-0.5">
+                  <Label htmlFor="one-time-project" className="cursor-pointer">One-time project</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Fixed-price project — one visit cycle, billed once at completion.
+                  </p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Visit frequency</Label>
@@ -502,7 +525,7 @@ export default function ContractNew() {
                     <Select
                       value={String(visitCount)}
                       onValueChange={(v) => setVisitCount(Number(v))}
-                      disabled={visitType === "CONTRACT"}
+                      disabled={isOneTimeProject || visitType === "CONTRACT"}
                     >
                       <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -513,6 +536,7 @@ export default function ContractNew() {
                     </Select>
                     <Select
                       value={visitType}
+                      disabled={isOneTimeProject}
                       onValueChange={(v) => {
                         setVisitType(v);
                         if (v === "CONTRACT") setVisitCount(1);
@@ -530,7 +554,7 @@ export default function ContractNew() {
                 </div>
                 <div className="space-y-2">
                   <Label>Billing cycle</Label>
-                  <Select value={billingCycle} onValueChange={(v) => setBillingCycle(v as any)}>
+                  <Select value={billingCycle} disabled={isOneTimeProject} onValueChange={(v) => setBillingCycle(v as any)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="MONTHLY">Monthly</SelectItem>
