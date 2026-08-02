@@ -447,9 +447,49 @@ export default function VisitDetail() {
             <p className="text-sm font-medium text-success">✓ Visit Completed</p>
             <p className="text-xs text-muted-foreground">Performed on {order.performed_date || "—"}. This visit is closed and cannot be reopened.</p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2" onClick={sendReportToClient}>
-            <Send className="h-3.5 w-3.5" /> Send Report to Client
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-2" onClick={sendReportToClient}>
+              <Send className="h-3.5 w-3.5" /> Send Report to Client
+            </Button>
+
+            {linkedInvoiceId ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-3.5 w-3.5" /> Download PDF
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExport("report", "download")}>Visit report</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExport("invoice", "download")}>Invoice</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => handleExport("report", "download")}>
+                <Download className="h-3.5 w-3.5" /> Download PDF
+              </Button>
+            )}
+
+            {canShare && (
+              linkedInvoiceId ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Share2 className="h-3.5 w-3.5" /> Share
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleExport("report", "share")}>Visit report</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport("invoice", "share")}>Invoice</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => handleExport("report", "share")}>
+                  <Share2 className="h-3.5 w-3.5" /> Share
+                </Button>
+              )
+            )}
+          </div>
         </div>
       )}
 
