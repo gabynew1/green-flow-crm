@@ -148,6 +148,16 @@ export default function ContractNew() {
     billingCycle === "MONTHLY" ? "Monthly" : billingCycle === "YEARLY" ? "Yearly" : "Ad hoc";
   const billingCyclePeriod =
     billingCycle === "MONTHLY" ? "month" : billingCycle === "YEARLY" ? "year" : "cycle";
+  // Invoices are drafted at the end of the billing period.
+  const nextInvoicePreview = (() => {
+    const base = startDate ? new Date(startDate) : new Date();
+    const ref = base > new Date() ? base : new Date();
+    const end =
+      billingCycle === "YEARLY"
+        ? new Date(ref.getFullYear() + 1, base.getMonth(), base.getDate() - 1)
+        : new Date(ref.getFullYear(), ref.getMonth() + 1, 0);
+    return end.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+  })();
   const flatFeeFrequency: FrequencyType =
     billingCycle === "YEARLY" ? "PER_YEAR" : billingCycle === "ONE_TIME" ? "ONE_TIME" : "PER_MONTH";
 
@@ -562,6 +572,11 @@ export default function ContractNew() {
                       <SelectItem value="YEARLY">Yearly</SelectItem>
                     </SelectContent>
                   </Select>
+                  {!isOneTimeProject && billingCycle !== "ONE_TIME" && (
+                    <p className="text-xs text-muted-foreground">
+                      Next invoice: {nextInvoicePreview} (draft, end of billing period)
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>

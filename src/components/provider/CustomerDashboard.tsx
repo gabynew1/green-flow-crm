@@ -26,6 +26,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const [tenantCurrency, setTenantCurrency] = useState<CurrencyCode>("RON");
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [nextInvoiceDate, setNextInvoiceDate] = useState<string | null>(null);
 
   const activeContracts = useMemo(
     () => contracts.filter(c => c.status === "ACTIVE" || c.status === "SIGNED"),
@@ -83,9 +84,9 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     const yearStartIso = format(startOfYear(new Date()), "yyyy-MM-dd");
     const { data: invs } = await supabase
       .from("invoices")
-      .select("id, total, status, source, contract_id, issue_date, due_date, paid_at")
+      .select("id, total, status, source, contract_id, issue_date, due_date, paid_at, period_start, period_end")
       .eq("customer_id", customerId)
-      .or(`issue_date.gte.${yearStartIso},status.in.(ISSUED,OVERDUE)`);
+      .or(`issue_date.gte.${yearStartIso},period_start.gte.${yearStartIso},status.in.(ISSUED,OVERDUE,DRAFT)`);
     setInvoices((invs as any) ?? []);
     const ids = ((invs as any) ?? []).map((i: any) => i.id);
     if (ids.length > 0) {
@@ -97,6 +98,15 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     } else {
       setPayments([]);
     }
+
+    // Next automatic cycle invoice across active recurring contracts
+    const recurring = activeContracts.filter(
+      (c: any) => !c.is_one_time_project && c.billing_cycle !== "ONE_TIME" && c.next_invoice_date,
+    );
+    const nearest = recurring
+      .map((c: any) => c.next_invoice_date as string)
+      .sort()[0];
+    setNextInvoiceDate(nearest ?? null);
   };
 
   const now = new Date();
@@ -219,12 +229,6 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     }
   }
 
-  // Count ad-hoc items from completed visits this month/year
-  const getAdHocItemCount = (visitList: any[]) => {
-    // We'll approximate — proper calculation would need service_order_items
-    return visitList.filter(v => v.status === "COMPLETED").length;
-  };
-
   // Consumption overview per service
   const allConsumption: LineItemConsumption[] = [];
   for (const [_, items] of consumptionData) {
@@ -237,12 +241,14 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
 
   // ── Real invoice-based metrics ──
   const isBillable = (s: string) => s === "ISSUED" || s === "PAID" || s === "OVERDUE";
-  const inMonth = (d: string | null | undefined) =>
-    !!d && isWithinInterval(parseISO(d), { start: monthStart, end: monthEnd });
-  const inYear = (d: string | null | undefined) =>
-    !!d && isWithinInterval(parseISO(d), { start: yearStart, end: yearEnd });
+  const inRange = (d: string | null | undefined, start: Date, end: Date) =>
+    !!d && isWithinInterval(parseISO(d), { start, end });
+  // Bucket by billing period when present, fall back to issue date.
+  const invoiceBucketDate = (i: any) => i.period_start || i.issue_date;
+  const inMonth = (d: string | null | undefined) => inRange(d, monthStart, monthEnd);
+  const inYear = (d: string | null | undefined) => inRange(d, yearStart, yearEnd);
 
-  const monthInvoices = invoices.filter((i) => isBillable(i.status) && inMonth(i.issue_date));
+  const monthInvoices = invoices.filter((i) => isBillable(i.status) && inMonth(invoiceBucketDate(i)));
   const monthContract = monthInvoices
     .filter((i) => i.source === "CONTRACT_CYCLE")
     .reduce((s, i) => s + Number(i.total || 0), 0);
@@ -250,13 +256,19 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     .filter((i) => i.source !== "CONTRACT_CYCLE")
     .reduce((s, i) => s + Number(i.total || 0), 0);
   const monthTotal = monthContract + monthAdHoc;
+  const monthDraft = invoices
+    .filter((i) => i.status === "DRAFT" && inMonth(invoiceBucketDate(i)))
+    .reduce((s, i) => s + Number(i.total || 0), 0);
 
-  const ytdBillable = invoices.filter((i) => isBillable(i.status) && inYear(i.issue_date));
+  const ytdBillable = invoices.filter((i) => isBillable(i.status) && inYear(invoiceBucketDate(i)));
   const ytdInvoiced = ytdBillable.reduce((s, i) => s + Number(i.total || 0), 0);
   const ytdContract = ytdBillable
     .filter((i) => i.source === "CONTRACT_CYCLE")
     .reduce((s, i) => s + Number(i.total || 0), 0);
   const ytdAdHoc = ytdInvoiced - ytdContract;
+  const ytdDraft = invoices
+    .filter((i) => i.status === "DRAFT" && inYear(invoiceBucketDate(i)))
+    .reduce((s, i) => s + Number(i.total || 0), 0);
   const ytdCollected = payments
     .filter((p) => inYear(p.paid_at))
     .reduce((s, p) => s + Number(p.amount || 0), 0);
@@ -370,9 +382,11 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* Total Contract Value */}
             <div className="rounded-lg border p-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total Contract Value</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Contracted value</p>
               <p className="text-xl font-bold mt-1 text-primary">{fmt(totalContractValue)}</p>
-              <p className="text-xs text-muted-foreground">{activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""}</p>
+              <p className="text-xs text-muted-foreground">
+                {activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""} · {fmt(monthlyContractValue)} / month
+              </p>
             </div>
 
             {/* Monthly Billing */}
@@ -389,6 +403,16 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
                   Ad-hoc {fmt(monthAdHoc)}
                 </span>
               </div>
+              {monthDraft > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  In draft (not yet invoiced) {fmt(monthDraft)}
+                </p>
+              )}
+              {nextInvoiceDate && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Next automatic invoice {format(parseISO(nextInvoiceDate), "dd MMM yyyy")} (draft)
+                </p>
+              )}
               {!hasInvoices && (
                 <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
               )}
@@ -414,6 +438,11 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
                   Ad-hoc {fmt(ytdAdHoc)}
                 </span>
               </div>
+              {ytdDraft > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  In draft (not yet invoiced) {fmt(ytdDraft)}
+                </p>
+              )}
               {!hasInvoices && (
                 <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
               )}

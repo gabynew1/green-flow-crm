@@ -125,3 +125,23 @@ the UI path is blocked. Never destructive.
 5. Step 2 "Send report to client" → client receives the project completion email listing contract services, ad-hoc extras, both subtotals and the grand total.
 6. Step 3 "Generate invoice" → single draft invoice opens with two tables ("Servicii contract" and "Servicii suplimentare") each with a subtotal, plus TOTAL GENERAL. Re-running returns the same invoice (no duplicates).
 7. Download the PDF — the same two tables and grand total appear.
+
+## Recurring billing engine (2026-08-02)
+
+1. Complete two visits in the same month on a MONTHLY contract → exactly ONE
+   `CONTRACT_CYCLE` invoice for that month, base/flat-fee lines present once,
+   both visits' extra services appended as `ADHOC` lines.
+2. Cancel that cycle invoice, then complete another visit in the same month →
+   a new DRAFT invoice is created (the unique index excludes CANCELED).
+3. Add an extra service on a visit → it has no checkbox and is always billed;
+   the Delete (trash) button removes the `service_order_items` row entirely.
+4. Contract detail and contract creation show "Next invoice: <end of billing
+   period>"; hidden for one-time projects / ad-hoc billing.
+5. Run `SELECT public.fn_generate_due_cycle_invoices();` twice on a contract
+   whose `next_invoice_date` has passed → draft created once, no duplicates,
+   `next_invoice_date` rolled forward one cycle.
+6. Customer dashboard: Monthly Billing and YTD Revenue keep issued/paid as the
+   headline and show "In draft (not yet invoiced)" separately; an August draft
+   buckets into August via `period_start`.
+7. Force an invoice-generation failure → an `activity_log` row of type
+   `invoice_generation_failed` appears (no silent failure).

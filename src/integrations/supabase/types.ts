@@ -387,6 +387,7 @@ export type Database = {
           end_date: string | null
           id: string
           is_one_time_project: boolean
+          next_invoice_date: string | null
           offer_id: string | null
           property_id: string
           rejection_comment: string | null
@@ -405,6 +406,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_one_time_project?: boolean
+          next_invoice_date?: string | null
           offer_id?: string | null
           property_id: string
           rejection_comment?: string | null
@@ -423,6 +425,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           is_one_time_project?: boolean
+          next_invoice_date?: string | null
           offer_id?: string | null
           property_id?: string
           rejection_comment?: string | null
@@ -3150,15 +3153,24 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      fn_contract_period_bounds: {
+        Args: { _contract_id: string; _ref_date: string }
+        Returns: Record<string, unknown>
+      }
       fn_emit_signup_completed: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      fn_ensure_cycle_invoice: {
+        Args: { _contract_id: string; _period_start?: string }
+        Returns: string
       }
       fn_expire_trials: { Args: never; Returns: Json }
       fn_finalize_downgrade: {
         Args: { p_reason?: string; p_tenant_id: string }
         Returns: undefined
       }
+      fn_generate_due_cycle_invoices: { Args: never; Returns: number }
       fn_generate_invoice_for_contract_cycle: {
         Args: { _contract_id: string; _period_start: string }
         Returns: string

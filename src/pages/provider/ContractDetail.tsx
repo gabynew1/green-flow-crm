@@ -20,7 +20,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Plus, Play, XCircle, Send, Check, Undo2, Trash2, RefreshCw, Loader2, CalendarPlus, Ban } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/useAuth";
 import { useWorkdays } from "@/hooks/useWorkdays";
 import { generateSchedule, ExistingVisitMap } from "@/lib/schedule-engine";
@@ -449,6 +449,13 @@ export default function ContractDetail() {
         <CardContent className="pt-6 flex flex-wrap gap-4 text-sm">
           <div><span className="text-muted-foreground">Period:</span> {contract.start_date} → {contract.end_date || "Ongoing"}</div>
           <div><span className="text-muted-foreground">Billing:</span> {contract.billing_cycle}</div>
+          {contract.next_invoice_date && !contract.is_one_time_project && contract.billing_cycle !== "ONE_TIME" && (
+            <div>
+              <span className="text-muted-foreground">Next invoice:</span>{" "}
+              {format(parseISO(contract.next_invoice_date), "dd MMM yyyy")}
+              <span className="text-muted-foreground"> (draft)</span>
+            </div>
+          )}
           <div><span className="text-muted-foreground">Frequency:</span> {contract.visit_frequency_count ?? 1}x / {contract.visit_frequency_type || "WEEK"}</div>
           <div className="flex gap-2 ml-auto flex-wrap items-center">
             {/* Team selector for activation */}
