@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
-import { Search } from "lucide-react";
+import { X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -45,11 +44,19 @@ interface Props {
   defaultPropertyId?: string;
 }
 
+interface ContractLine {
+  id: string;
+  service_catalog_id: string | null;
+  custom_name: string | null;
+  quantity: number | null;
+  unit: string | null;
+}
+
 interface ContractWithItems {
   id: string;
   contract_name: string;
   status: string;
-  serviceIds: string[];
+  lines: ContractLine[];
 }
 
 interface Team {
@@ -85,9 +92,7 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
   const [customStart, setCustomStart] = useState("09:00");
   const [customEnd, setCustomEnd] = useState("11:00");
   const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
 
   // Contract-aware state
