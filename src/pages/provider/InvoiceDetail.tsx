@@ -257,7 +257,10 @@ export default function InvoiceDetail() {
 
   const fmt = (n: number) => formatCurrency(n, (invoice.currency as any) || currency);
   const adhocLines = lines.filter((l) => l.line_group === "ADHOC" || (!l.line_group && l.service_order_item_id));
-  const contractLines = lines.filter((l) => !adhocLines.includes(l));
+  const allContractLines = lines.filter((l) => !adhocLines.includes(l));
+  // An invoice only lists what carries a cost; services covered by the flat fee are shown as a note.
+  const contractLines = allContractLines.filter((l) => Number(l.line_total || 0) !== 0);
+  const includedLines = allContractLines.filter((l) => Number(l.line_total || 0) === 0);
   const sum = (arr: Line[]) => arr.reduce((s, l) => s + Number(l.line_total || 0), 0);
 
   const renderLines = (rows: Line[]) => (
@@ -434,6 +437,18 @@ export default function InvoiceDetail() {
                     </div>
                   )}
                 </div>
+              )}
+              {includedLines.length > 0 && (
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer select-none">
+                    Include {includedLines.length} servicii din contract, fără cost suplimentar
+                  </summary>
+                  <ul className="mt-2 ml-4 list-disc space-y-0.5">
+                    {includedLines.map((l) => (
+                      <li key={l.id}>{l.description}</li>
+                    ))}
+                  </ul>
+                </details>
               )}
               {adhocLines.length > 0 && (
                 <div className="space-y-2">
