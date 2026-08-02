@@ -901,22 +901,19 @@ export default function VisitDetail() {
             Additional Services
             <Badge variant="secondary" className="text-xs text-warning">Extra billing</Badge>
           </p>
+          <p className="text-[11px] text-muted-foreground">
+            Additional services are always invoiced. Remove the line if it was added by mistake.
+          </p>
           {adHocItems.map(item => {
             const cost = getItemCost(item);
             return (
               <Card key={item.id}>
                 <CardContent className="pt-4 pb-4 flex items-center gap-3">
-                  <Checkbox
-                    checked={item.is_completed}
-                    onCheckedChange={() => toggleItem(item.id, item.is_completed)}
-                    disabled={isCompleted}
-                  />
                   <div className="flex-1">
                     <p className="font-medium">{item.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {item.quantity} {item.unit}
-                      {item.is_completed && <span className="ml-1 text-success">· Delivered</span>}
-                      {!item.is_completed && isCompleted && <span className="ml-1 text-warning">· Not done</span>}
+                      <span className="ml-1 text-success">· Delivered</span>
                     </p>
                   </div>
                   {!isCompleted ? (
@@ -936,6 +933,19 @@ export default function VisitDetail() {
                     <span className="text-sm font-medium text-warning">{formatCurrency(cost, currency)}</span>
                   )}
                   <Badge variant="outline" className="text-xs text-warning border-warning/30">AD_HOC</Badge>
+                  {!isCompleted && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      title="Remove additional service"
+                      onClick={() => {
+                        if (confirm(`Remove "${item.name}" from this visit?`)) deleteAdHocItem(item.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
