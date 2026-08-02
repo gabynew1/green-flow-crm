@@ -265,6 +265,11 @@ export default function InvoiceDetail() {
               <Download className="h-4 w-4 mr-1" /> Descarcă PDF
             </Button>
           )}
+          {invoice.status !== "DRAFT" && canShareFiles() && (
+            <Button variant="outline" size="sm" onClick={sharePdf}>
+              <Share2 className="h-4 w-4 mr-1" /> Partajează
+            </Button>
+          )}
           {isDraft && invoice.service_order_id && (
             <Button variant="outline" size="sm" onClick={regenerate} disabled={busy}>
               <RefreshCw className="h-4 w-4 mr-1" /> Regenerează din vizită
