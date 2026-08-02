@@ -417,7 +417,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {/* Total Contract Value */}
             <div className="rounded-lg border p-3">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Contracted value</p>
@@ -432,8 +432,72 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               )}
             </div>
 
-            {/* Monthly Billing */}
+            {/* YTD Revenue */}
             <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">YTD Revenue</p>
+              <div className="flex items-baseline gap-2 mt-1">
+                <p className="text-xl font-bold">{fmt(ytdCollected)}</p>
+                <span className="text-[10px] text-muted-foreground">collected</span>
+              </div>
+              <div className="flex gap-3 mt-1.5">
+                <span className="flex items-center gap-1 text-[10px]">
+                  <span className="h-2 w-2 rounded-full bg-primary inline-block" />
+                  Contract {fmt(ytdContract)}
+                </span>
+                <span className="flex items-center gap-1 text-[10px]">
+                  <span className="h-2 w-2 rounded-full bg-warning inline-block" />
+                  Ad-hoc {fmt(ytdAdHoc)}
+                </span>
+              </div>
+              {ytdDraft > 0 && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  In draft (not yet invoiced) {fmt(ytdDraft)}
+                </p>
+              )}
+              {!hasInvoices && (
+                <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
+              )}
+            </div>
+
+            {/* Invoiced (YTD) */}
+            <div className="rounded-lg border p-3">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Invoiced</p>
+              <p className="text-xl font-bold mt-1">{fmt(ytdInvoiced)}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">year to date</p>
+              {!hasInvoices && (
+                <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
+              )}
+            </div>
+
+            {/* Outstanding — De încasat */}
+            <Link
+              to={`/provider/billing?customer=${customerId}&status=${overdueTotal > 0 ? "OVERDUE" : "ISSUED"}`}
+              className={`rounded-lg border p-3 block transition-colors hover:bg-muted/40 ${
+                overdueTotal > 0
+                  ? "border-destructive/40 bg-destructive/5"
+                  : outstandingTotal > 0
+                    ? "border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10"
+                    : ""
+              }`}
+            >
+              <p className="text-[11px] uppercase tracking-wide flex items-center gap-1 text-muted-foreground">
+                <Wallet className="h-3 w-3" /> Pending Invoices
+              </p>
+              <p className={`text-xl font-bold mt-1 ${overdueTotal > 0 ? "text-destructive" : ""}`}>
+                {fmt(outstandingTotal)}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {outstandingInvoices.length} factur{outstandingInvoices.length === 1 ? "ă" : "i"} neîncasate
+              </p>
+              {overdueTotal > 0 && (
+                <p className="text-[10px] text-destructive mt-1 font-medium">
+                  din care {fmt(overdueTotal)} restanțe
+                </p>
+              )}
+            </Link>
+
+            {/* Monthly Billing */}
+            <div className="rounded-lg border p-3 col-span-2 sm:col-span-1">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Monthly Billing</p>
               <p className="text-xl font-bold mt-1">{fmt(monthTotal)}</p>
               <div className="flex gap-3 mt-1.5">
@@ -455,63 +519,6 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
                 <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
               )}
             </div>
-
-            {/* YTD Revenue */}
-            <div className="rounded-lg border p-3 col-span-2 sm:col-span-1">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide">YTD Revenue</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <p className="text-xl font-bold">{fmt(ytdCollected)}</p>
-                <span className="text-[10px] text-muted-foreground">collected</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Invoiced {fmt(ytdInvoiced)}
-              </p>
-              <div className="flex gap-3 mt-1.5">
-                <span className="flex items-center gap-1 text-[10px]">
-                  <span className="h-2 w-2 rounded-full bg-primary inline-block" />
-                  Contract {fmt(ytdContract)}
-                </span>
-                <span className="flex items-center gap-1 text-[10px]">
-                  <span className="h-2 w-2 rounded-full bg-warning inline-block" />
-                  Ad-hoc {fmt(ytdAdHoc)}
-                </span>
-              </div>
-              {ytdDraft > 0 && (
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  In draft (not yet invoiced) {fmt(ytdDraft)}
-                </p>
-              )}
-              {!hasInvoices && (
-                <p className="text-[10px] text-muted-foreground mt-1">No invoices yet</p>
-              )}
-            </div>
-
-            {/* Outstanding — De încasat */}
-            <Link
-              to={`/provider/billing?customer=${customerId}&status=${overdueTotal > 0 ? "OVERDUE" : "ISSUED"}`}
-              className={`rounded-lg border p-3 block transition-colors hover:bg-muted/40 ${
-                overdueTotal > 0
-                  ? "border-destructive/40 bg-destructive/5"
-                  : outstandingTotal > 0
-                    ? "border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10"
-                    : ""
-              }`}
-            >
-              <p className="text-[11px] uppercase tracking-wide flex items-center gap-1 text-muted-foreground">
-                <Wallet className="h-3 w-3" /> De încasat
-              </p>
-              <p className={`text-xl font-bold mt-1 ${overdueTotal > 0 ? "text-destructive" : ""}`}>
-                {fmt(outstandingTotal)}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {outstandingInvoices.length} factur{outstandingInvoices.length === 1 ? "ă" : "i"} neîncasate
-              </p>
-              {overdueTotal > 0 && (
-                <p className="text-[10px] text-destructive mt-1 font-medium">
-                  din care {fmt(overdueTotal)} restanțe
-                </p>
-              )}
-            </Link>
           </div>
         </CardContent>
       </Card>
