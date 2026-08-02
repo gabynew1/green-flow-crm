@@ -67,6 +67,9 @@ export default function VisitDetail() {
   const [editPeriodType, setEditPeriodType] = useState("");
   const [scopeMap, setScopeMap] = useState<Map<string, { inScope: boolean; consumed: number; max: number | null; periodLabel: string }>>(new Map());
   const [contractFlatFee, setContractFlatFee] = useState<{ isFlat: boolean; amount: number; frequency: string | null }>({ isFlat: false, amount: 0, frequency: null });
+  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
+  const [tenantInfo, setTenantInfo] = useState<any>(null);
+  const canShare = canShareFiles();
 
   useEffect(() => { load(); }, [visitId]);
 
@@ -95,6 +98,23 @@ export default function VisitDetail() {
     setItems(itms ?? []);
 
     const visitTenantId = (o?.properties as any)?.tenant_id ?? tenantId;
+    if (visitTenantId) {
+      const { data: t } = await supabase
+        .from("tenants")
+        .select("name, company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone")
+        .eq("id", visitTenantId)
+        .maybeSingle();
+      setTenantInfo(t ?? null);
+    }
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("id")
+      .eq("service_order_id", visitId!)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLinkedInvoiceId(inv?.id ?? null);
+
     const { data: cat } = visitTenantId
       ? await supabase
           .from("service_catalog")
