@@ -173,7 +173,8 @@ export default function VisitDetail() {
     if (newStatus === "COMPLETED" && !order.performed_date) {
       updates.performed_date = new Date().toISOString().split("T")[0];
     }
-    await supabase.from("service_orders").update(updates).eq("id", visitId!);
+    const { error: statusErr } = await supabase.from("service_orders").update(updates).eq("id", visitId!);
+    if (statusErr) { toast.error(`Could not change status: ${statusErr.message}`); return; }
     toast.success(`Status changed to ${statusLabels[newStatus] || newStatus}`);
     load();
   };
@@ -220,7 +221,21 @@ export default function VisitDetail() {
       performed_date: format(completionDate, "yyyy-MM-dd"),
       client_summary: clientSummary || null,
     };
-    await supabase.from("service_orders").update(updates).eq("id", visitId!);
+    const { data: updated, error: completeErr } = await supabase
+      .from("service_orders")
+      .update(updates)
+      .eq("id", visitId!)
+      .select("id, status")
+      .maybeSingle();
+    if (completeErr) {
+      toast.error(`Could not complete the visit: ${completeErr.message}`);
+      return;
+    }
+    if (!updated || updated.status !== "COMPLETED") {
+      toast.error("Could not complete the visit — please refresh and try again.");
+      load();
+      return;
+    }
     toast.success("Visit completed and report sent to client!");
     // Surface the auto-generated draft invoice, if any
     try {
