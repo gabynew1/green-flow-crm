@@ -41,6 +41,7 @@ interface AuthContextType {
   isLocked: boolean;
   lockedSubject: { kind: 'tenant' | 'client'; status: string; scheduled_delete_at: string | null } | null;
   isLoading: boolean;
+  identityLoaded: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -209,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLocked = !!lockedSubject;
 
   return (
-    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLocked, lockedSubject, isLoading, signIn, signUp, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, roles, profile, isProvider, isClient, isSuperAdmin, tenantId, isLocked, lockedSubject, isLoading, identityLoaded, signIn, signUp, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
