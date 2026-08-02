@@ -82,8 +82,7 @@ export function VisitActionRow({
   const isScheduled = status === "SCHEDULED";
   const isInProgress = status === "IN_PROGRESS";
   const isCanceled = status === "CANCELED";
-  // COMPLETED is terminal → render nothing.
-  if (status === "COMPLETED") return null;
+  const isCompleted = status === "COMPLETED";
 
   // ─── Reschedule popover ──────────────────────────────────────────────
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
@@ -219,6 +218,9 @@ export function VisitActionRow({
   const [rebookOpen, setRebookOpen] = useState(false);
 
   // ─── Render ──────────────────────────────────────────────────────────
+  // COMPLETED is terminal → render nothing (after all hooks have run).
+  if (isCompleted) return null;
+
   return (
     <div className="flex items-center gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
       {isScheduled && (
