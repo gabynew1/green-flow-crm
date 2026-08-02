@@ -26,6 +26,7 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
   const [tenantCurrency, setTenantCurrency] = useState<CurrencyCode>("RON");
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [nextInvoiceDate, setNextInvoiceDate] = useState<string | null>(null);
 
   const activeContracts = useMemo(
     () => contracts.filter(c => c.status === "ACTIVE" || c.status === "SIGNED"),
@@ -83,9 +84,9 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     const yearStartIso = format(startOfYear(new Date()), "yyyy-MM-dd");
     const { data: invs } = await supabase
       .from("invoices")
-      .select("id, total, status, source, contract_id, issue_date, due_date, paid_at")
+      .select("id, total, status, source, contract_id, issue_date, due_date, paid_at, period_start, period_end")
       .eq("customer_id", customerId)
-      .or(`issue_date.gte.${yearStartIso},status.in.(ISSUED,OVERDUE)`);
+      .or(`issue_date.gte.${yearStartIso},period_start.gte.${yearStartIso},status.in.(ISSUED,OVERDUE,DRAFT)`);
     setInvoices((invs as any) ?? []);
     const ids = ((invs as any) ?? []).map((i: any) => i.id);
     if (ids.length > 0) {
@@ -97,6 +98,15 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
     } else {
       setPayments([]);
     }
+
+    // Next automatic cycle invoice across active recurring contracts
+    const recurring = activeContracts.filter(
+      (c: any) => !c.is_one_time_project && c.billing_cycle !== "ONE_TIME" && c.next_invoice_date,
+    );
+    const nearest = recurring
+      .map((c: any) => c.next_invoice_date as string)
+      .sort()[0];
+    setNextInvoiceDate(nearest ?? null);
   };
 
   const now = new Date();
