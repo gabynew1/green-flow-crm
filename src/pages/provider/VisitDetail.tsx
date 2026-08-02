@@ -431,7 +431,7 @@ export default function VisitDetail() {
       await shareFile(
         doc.blob,
         doc.filename,
-        kind === "report" ? "Raport vizită" : "Factură",
+        doc.filename.replace(/\.pdf$/, ""),
         `${(order.properties as any)?.name ?? ""}`,
       );
     }
