@@ -386,6 +386,7 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          is_one_time_project: boolean
           offer_id: string | null
           property_id: string
           rejection_comment: string | null
@@ -403,6 +404,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_one_time_project?: boolean
           offer_id?: string | null
           property_id: string
           rejection_comment?: string | null
@@ -420,6 +422,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          is_one_time_project?: boolean
           offer_id?: string | null
           property_id?: string
           rejection_comment?: string | null
@@ -1010,6 +1013,7 @@ export type Database = {
           description: string
           id: string
           invoice_id: string
+          line_group: string
           line_total: number
           quantity: number
           service_order_id: string | null
@@ -1023,6 +1027,7 @@ export type Database = {
           description: string
           id?: string
           invoice_id: string
+          line_group?: string
           line_total?: number
           quantity?: number
           service_order_id?: string | null
@@ -1036,6 +1041,7 @@ export type Database = {
           description?: string
           id?: string
           invoice_id?: string
+          line_group?: string
           line_total?: number
           quantity?: number
           service_order_id?: string | null
@@ -3148,6 +3154,10 @@ export type Database = {
       }
       fn_generate_invoice_for_contract_cycle: {
         Args: { _contract_id: string; _period_start: string }
+        Returns: string
+      }
+      fn_generate_invoice_for_project: {
+        Args: { _contract_id: string }
         Returns: string
       }
       fn_generate_invoice_for_visit: {
