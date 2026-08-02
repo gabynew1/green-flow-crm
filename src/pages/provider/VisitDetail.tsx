@@ -338,6 +338,69 @@ export default function VisitDetail() {
     : contractFlatFee.frequency === "ONE_TIME" ? ""
     : "/ month";
 
+  // ---- PDF export / share ----
+  const makeVisitReportPdf = () =>
+    buildVisitReportPdf({
+      providerName: tenantInfo?.company_name || tenantInfo?.name || null,
+      propertyName: (order.properties as any)?.name ?? null,
+      customerName: (order.properties as any)?.customers?.name ?? null,
+      zoneName: (order.properties as any)?.service_zones?.name ?? null,
+      contractName: (order.contracts as any)?.contract_name ?? null,
+      status: statusLabels[order.status] || order.status,
+      performedDate: order.performed_date,
+      scheduledDate: order.scheduled_date,
+      periodLabel: order.period_label,
+      summary: clientSummary || order.client_summary || order.notes,
+      currency,
+      flatFee: { isFlat: contractFlatFee.isFlat, amount: flatFeeAmount, suffix: flatFeeSuffix },
+      items: items.map((i) => ({
+        name: i.name,
+        quantity: i.quantity || 1,
+        unit: i.unit,
+        source: i.source,
+        price: getItemPrice(i),
+        total: getItemCost(i),
+      })),
+    });
+
+  const makeInvoicePdf = async () => {
+    if (!linkedInvoiceId) return null;
+    const [invRes, linesRes, customerRes] = await Promise.all([
+      supabase.from("invoices").select("*").eq("id", linkedInvoiceId).maybeSingle(),
+      supabase.from("invoice_line_items").select("description, quantity, unit_price, line_total")
+        .eq("invoice_id", linkedInvoiceId).order("created_at", { ascending: true }),
+      supabase.from("customers")
+        .select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone")
+        .eq("id", (order.properties as any)?.customers?.id).maybeSingle(),
+    ]);
+    if (!invRes.data) { toast.error("Factura nu a fost găsită"); return null; }
+    const t: any = tenantInfo ?? {};
+    const c: any = customerRes.data ?? {};
+    const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
+    return buildInvoicePdf(
+      invRes.data as any,
+      (linesRes.data as any) ?? [],
+      { name: t.company_name || t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
+    );
+  };
+
+  const handleExport = async (kind: "report" | "invoice", mode: "download" | "share") => {
+    const doc = kind === "report" ? makeVisitReportPdf() : await makeInvoicePdf();
+    if (!doc) return;
+    if (mode === "download") {
+      downloadBlob(doc.blob, doc.filename);
+      toast.success("PDF descărcat");
+    } else {
+      await shareFile(
+        doc.blob,
+        doc.filename,
+        kind === "report" ? "Raport vizită" : "Factură",
+        `${(order.properties as any)?.name ?? ""}`,
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
