@@ -362,6 +362,9 @@ export default function ContractDetail() {
     const included = addFormIncluded;
     // Included allowances are always priced at 0 — they're covered by the subscription fee.
     const linePrice = included ? 0 : (addFormUnitPrice ? Number(addFormUnitPrice) : null);
+    // Allowance is required for recurring lines so consumption counters always have a denominator.
+    const allowance = addFormFrequency === "ONE_TIME" ? 1 : (Number(addFormTimesPerFreq) || 0);
+    if (allowance <= 0) { toast.error("Set the allowance per period for this service"); return; }
     const { error } = await supabase.from("contract_line_items").insert([{
       contract_id: contractId!,
       service_catalog_id: selectedServiceId,
@@ -370,7 +373,7 @@ export default function ContractDetail() {
       quantity: included ? 1 : (Number(addFormQty) || 1),
       unit: addFormUnit,
       notes: (form.get("notes") as string) || null,
-      max_occurrences_per_period: addFormFrequency !== "ONE_TIME" && addFormFrequency !== "PER_VISIT" ? (Number(addFormTimesPerFreq) || 1) : null,
+      max_occurrences_per_period: allowance,
       unit_price: linePrice,
       is_included_in_base_fee: included,
       tenant_id: tenantId,
@@ -894,11 +897,13 @@ export default function ContractDetail() {
                           {editable ? (
                             <Input
                               type="number"
+                              min="1"
                               className="h-7 w-16 text-xs"
-                              placeholder="∞"
+                              placeholder="e.g. 2"
                               defaultValue={li.max_occurrences_per_period ?? ""}
                               onBlur={async (e) => {
                                 const val = e.target.value ? Number(e.target.value) : null;
+                                if (val !== null && val <= 0) { toast.error("Allowance must be at least 1"); return; }
                                 if (val === li.max_occurrences_per_period) return;
                                 await supabase.from("contract_line_items").update({ max_occurrences_per_period: val } as any).eq("id", li.id);
                                 toast.success("Max updated");
