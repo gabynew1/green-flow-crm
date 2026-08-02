@@ -429,6 +429,7 @@ export default function VisitDetail() {
         <VisitActionRow
           visit={order}
           onChanged={load}
+          onDeleted={() => navigate("/provider/visits")}
           // Complete flow lives in the dedicated Complete & Send Report dialog above,
           // so we don't pass onComplete here to avoid duplicate buttons.
         />
