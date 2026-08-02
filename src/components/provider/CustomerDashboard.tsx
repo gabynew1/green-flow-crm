@@ -425,6 +425,11 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               <p className="text-xs text-muted-foreground">
                 {activeContracts.length} active contract{activeContracts.length !== 1 ? "s" : ""} · {fmt(monthlyContractValue)} / month
               </p>
+              {nextInvoiceDate && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Next automatic invoice {format(parseISO(nextInvoiceDate), "dd MMM yyyy")} (draft)
+                </p>
+              )}
             </div>
 
             {/* Monthly Billing */}
@@ -444,11 +449,6 @@ export function CustomerDashboard({ customerId, contracts, visits }: CustomerDas
               {monthDraft > 0 && (
                 <p className="text-[10px] text-muted-foreground mt-1">
                   In draft (not yet invoiced) {fmt(monthDraft)}
-                </p>
-              )}
-              {nextInvoiceDate && (
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  Next automatic invoice {format(parseISO(nextInvoiceDate), "dd MMM yyyy")} (draft)
                 </p>
               )}
               {!hasInvoices && (
