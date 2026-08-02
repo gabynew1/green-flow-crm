@@ -26,6 +26,7 @@ export const TEMPLATE_CATEGORY: Record<string, EmailCategory> = {
   'connection-approved':   'account',
   'password-reset':        'account',
   'contract-sent':         'contracts_offers',
+  'project-report':        'contracts_offers',
   'contract-response':     'contracts_offers',
   'offer-sent':            'contracts_offers',
   'offer-response':        'contracts_offers',
@@ -65,6 +66,7 @@ import { template as superAdminNewSignup } from './super-admin-new-signup.tsx'
 import { template as welcomeProvider } from './welcome-provider.tsx'
 import { template as welcomeClient } from './welcome-client.tsx'
 import { template as visitRequestCreated } from './visit-request-created.tsx'
+import { template as projectReport } from './project-report.tsx'
 import {
   prelock as lifecyclePrelock,
   locked as lifecycleLocked,
@@ -79,6 +81,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-notification': testNotification,
   'password-reset': passwordReset,
   'contract-sent': contractSent,
+  'project-report': projectReport,
   'contract-response': contractResponse,
   'offer-sent': offerSent,
   'offer-response': offerResponse,

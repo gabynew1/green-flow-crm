@@ -1,60 +1,71 @@
 ## Goal
 
-Show providers how much of each contracted service they have used vs. what the contract allows, directly on the visit checklist — and make creating a visit a single, simple step.
+Support "one-time project" contracts end to end: mark the checkbox at creation, deliver the work, mark the project **Completed**, send the client a completion report, then generate **one** invoice from the contract. Ad-hoc visits/requests added during the project appear on that invoice in a clearly separated table, with three totals: contract services, ad-hoc services, grand total.
 
----
+## 1. The flag (not yet built)
 
-## Part 0 — Fix the missing contract link (prerequisite)
+The "One-time project" checkbox from the previous request still needs a real home.
 
-Today, service lines on a visit are saved without a reference back to the contract line they came from (`contract_line_item_id` is empty), so any counter would always read 0.
+- Migration: add `contracts.is_one_time_project boolean not null default false`.
+- `ContractNew.tsx`: checkbox under the Start/End date pickers labelled **One-time project** with helper text "Fixed-price project — one visit cycle, billed once." When ticked, Visit frequency is forced to `1 per Contract` and Billing cycle to `Ad hoc` (`ONE_TIME`), both controls greyed out/disabled; unticking restores the editable defaults. The flag is saved on the contract.
+- `ContractDetail.tsx` shows a "One-time project" badge next to the status badge.
 
-- Write `contract_line_item_id` whenever a service line is created from a contract (visit generation, activation seeding, "Generate next 30 days", manual add on the visit page).
-- One-off backfill migration: match existing visit service lines to their contract line by contract + service (and custom name where present). Unmatched lines stay ad-hoc.
+## 2. Project lifecycle (only for one-time contracts)
 
-## Part 1 — Allocation counter on visit service lines
+Lifecycle stays inside the existing `contract_status` enum — no new enum values:
 
-New helper `getContractLifetimeUsage(contractId)`:
+```text
+DRAFT → SENT_TO_CLIENT → SIGNED → ACTIVE → (Mark project completed) → CLOSED
+```
 
-- **allocated** = occurrence limit × number of whole periods in the contract term.
-  - PER_WEEK → whole weeks, PER_MONTH → whole months, PER_YEAR → whole years. Partial periods are floored (no allowance for a partial period).
-  - ONE_TIME / PER_CONTRACT → the limit as-is (1 when empty).
-  - Open-ended contract (no end date) → term runs start → today, minimum 1 period; the counter reads as a running total.
-  - PER_VISIT with no limit (legacy lines) → **no total**, show "3 delivered" only.
-- **consumed** = delivered (checked) service lines across the whole contract term, counting scheduled and in-progress visits too, so a provider can't quietly overbook past the allowance. Canceled visits are excluded.
+On an `ACTIVE` one-time contract, the action bar replaces the recurring-contract actions with:
 
-Existing per-period scope logic (In Scope / Extra badge) stays exactly as-is.
+1. **Mark project completed** — confirmation dialog listing open (non-completed) visits; blocks only if a visit is still `IN_PROGRESS`, otherwise warns. Sets status `CLOSED` and records completion via the existing `close_contract_with_cleanup` path so leftover scheduled visits are cleaned up and logged.
+2. **Send completion report to client** — enabled once completed. Uses the existing Resend pipeline (`sendAppEmail` + `process-email-queue`) with a new `project-report` template registered in `registry.ts` under the `contracts_offers` category. The email summarises the project: contract services delivered (consumed counts), ad-hoc extras, the two subtotals and grand total, plus a link to the contract in the client portal.
+3. **Generate invoice** — enabled once completed; creates (or opens, if it already exists) the single project invoice.
 
-**Visit detail (provider)**
-- Counter reads e.g. `1/2 this month · 20 | 24 total`; badge unchanged.
-- Legacy unlimited lines read e.g. `20 delivered`.
-- Contract services sorted by allocation descending (unlimited last), then by name, so the most frequent tasks sit at the top of the checklist.
+These three appear as a small stepper so the intended order is obvious; each step is enabled by the previous one but the invoice step is not hard-blocked on the report being sent.
 
-**Client visit detail** — same counter, read-only.
+## 3. Invoice generation for a one-time project
 
-## Part 2 — Required Total Contract Allowance on contract lines
+New RPC `fn_generate_invoice_for_project(_contract_id uuid) returns uuid`, SECURITY DEFINER, `search_path = public`, granted to `authenticated` and `service_role`, tenant-checked against the caller's `get_user_tenant_id()`.
 
-In contract create/edit (and the offer → contract path):
+Behaviour:
+- Idempotent: if an invoice already exists for the contract with `source = 'CONTRACT_CYCLE'`, return it.
+- Header: `period_start` = contract start, `period_end` = contract end, `issue_date` = today, `due_date` = +14 days, currency from tenant, status `DRAFT`.
+- **Contract lines**: one line per `contract_line_items` row (description, quantity, unit price) — same as today's cycle function.
+- **Ad-hoc lines**: every `service_order_items` row with `source = 'AD_HOC'`, `is_completed = true`, on `service_orders` for this contract (including visits converted from `visit_requests`) whose status is `COMPLETED`/`APPROVED`/`SENT_TO_CLIENT`. Priced from `service_order_items.unit_price`.
+- Double-billing guard: skip any ad-hoc item whose `service_order_id` already has an `ADHOC` invoice, and make `fn_generate_invoice_for_visit` skip visits belonging to a one-time contract.
+- Existing `trg_line_compute` / `invoice_lines_recompute` triggers keep `line_total`, `subtotal` and `total` correct — no totals maths in the client.
 
-- Each service line gets a required **Total contract allowance** field — "no limit" is no longer allowed.
-- Default auto-calculated from contract cadence and term (6-month contract, 2 visits/month → 12). The provider can type any other number.
-- Saved so the lifetime allocation equals exactly the typed number (stored as a per-contract total).
-- Existing contracts are untouched; they keep the "delivered only" counter until edited.
+To distinguish the two groups on the invoice, add `invoice_line_items.line_group text not null default 'CONTRACT'` (values `CONTRACT` / `ADHOC`).
 
-## Part 3 — Simpler Create Visit
+## 4. Invoice presentation (three totals)
 
-In the create-visit dialog:
+`InvoiceDetail.tsx` (provider), `ClientBilling.tsx` / client invoice view, and `invoice-pdf.ts` all render:
 
-- The service **category** dropdown becomes the only input. Multiple categories allowed as removable chips.
-- Search box, per-service checkbox list and the long "Selected services" list are removed.
-- Picking a category adds only the services in that category that are part of the active contract — never all catalog services.
-- Compact summary line instead of a list: *"Regular Maintenance — 3 contract services will be added"*.
-- Visits with no contract are created empty; the provider adds services on the visit page.
-- Validation changes from "at least one service" to "at least one category".
+```text
+Contract services            [table]
+  Subtotal — contract services            X
+Additional / ad-hoc services [separate table, labelled "Extra work outside the contract"]
+  Subtotal — additional services          Y
+─────────────────────────────────────────
+GRAND TOTAL                              X + Y
+```
 
----
+If there are no ad-hoc lines the second table and its subtotal are hidden and only the grand total shows. Wording is translated in `en`/`ro` locale files. The PDF uses two `autoTable` blocks with the same three-line total block.
 
-### Technical notes
+## 5. Ad-hoc work stays open during the project
 
-- One migration: backfill `contract_line_item_id` on existing visit service lines (no new tables/columns).
-- Counting stays tenant-scoped via existing row-level security on visits and visit service lines.
-- One extra query per visit load, reusing the existing consumption fetch pattern.
+No change to how ad-hoc visits and client visit requests are created against a one-time contract — they continue to work while the contract is `ACTIVE`. Only after **Mark project completed** are they frozen (matching the existing closed-contract behaviour), so the invoice reflects a stable scope.
+
+## Technical summary
+
+- Migration: `contracts.is_one_time_project`, `invoice_line_items.line_group`, new `fn_generate_invoice_for_project`, guard in `fn_generate_invoice_for_visit`.
+- Frontend: `ContractNew.tsx` (checkbox), `ContractDetail.tsx` (badge + 3-step action bar + dialogs), `InvoiceDetail.tsx`, client invoice/billing views, `src/lib/invoice-pdf.ts`, locale JSON.
+- Email: new `project-report` transactional template + registry entry (Resend pipeline only).
+- `TEST_PLAN.md`: add a "One-time project" scenario covering create → deliver → ad-hoc extra → complete → report → invoice with split totals.
+
+## Open assumption
+
+Ad-hoc pricing uses `service_order_items.unit_price`; items with no price are invoiced at 0 and flagged in the completion dialog so you can fill them in before invoicing.

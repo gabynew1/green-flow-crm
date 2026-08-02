@@ -21,6 +21,7 @@ export type PdfLine = {
   quantity: number;
   unit_price: number;
   line_total: number;
+  line_group?: string | null;
 };
 
 export type PdfParty = {
@@ -92,36 +93,56 @@ export function buildInvoicePdf(
   partyBlock(doc, "FURNIZOR", seller, 15, 45);
   partyBlock(doc, "CLIENT", buyer, 115, 45);
 
-  // Line items table
-  autoTable(doc, {
-    startY: 90,
-    head: [["Descriere", "Cant.", "Pret unitar", "Total"]],
-    body: lines.map((l) => [
-      l.description,
-      String(Number(l.quantity)),
-      fmt(Number(l.unit_price)),
-      fmt(Number(l.line_total)),
-    ]),
-    theme: "striped",
-    headStyles: { fillColor: [16, 185, 129], textColor: 255 },
-    columnStyles: {
-      1: { halign: "right", cellWidth: 20 },
-      2: { halign: "right", cellWidth: 35 },
-      3: { halign: "right", cellWidth: 35 },
-    },
-    styles: { fontSize: 9 },
-  });
+  // Line items — contract scope vs extra (ad-hoc) work
+  const adhocLines = lines.filter((l) => l.line_group === "ADHOC");
+  const contractLines = lines.filter((l) => l.line_group !== "ADHOC");
+  const sum = (arr: PdfLine[]) => arr.reduce((s, l) => s + Number(l.line_total || 0), 0);
 
-  const endY = (doc as any).lastAutoTable?.finalY ?? 100;
+  const section = (title: string, rows: PdfLine[], startY: number) => {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, 15, startY);
+    doc.setFont("helvetica", "normal");
+    autoTable(doc, {
+      startY: startY + 3,
+      head: [["Descriere", "Cant.", "Pret unitar", "Total"]],
+      body: rows.map((l) => [
+        l.description,
+        String(Number(l.quantity)),
+        fmt(Number(l.unit_price)),
+        fmt(Number(l.line_total)),
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [16, 185, 129], textColor: 255 },
+      columnStyles: {
+        1: { halign: "right", cellWidth: 20 },
+        2: { halign: "right", cellWidth: 35 },
+        3: { halign: "right", cellWidth: 35 },
+      },
+      styles: { fontSize: 9 },
+    });
+    const y = ((doc as any).lastAutoTable?.finalY ?? startY + 10) + 6;
+    doc.setFontSize(9);
+    doc.text(`Subtotal ${title.toLowerCase()}:`, 130, y);
+    doc.text(fmt(sum(rows)), 195, y, { align: "right" });
+    return y + 8;
+  };
 
-  // Totals
-  doc.setFontSize(10);
-  doc.text("Subtotal:", 140, endY + 10);
-  doc.text(fmt(Number(invoice.subtotal)), 195, endY + 10, { align: "right" });
+  let cursorY = 90;
+  if (adhocLines.length === 0) {
+    cursorY = section("Servicii contract", contractLines, cursorY);
+  } else {
+    if (contractLines.length > 0) cursorY = section("Servicii contract", contractLines, cursorY);
+    cursorY = section("Servicii suplimentare (in afara contractului)", adhocLines, cursorY);
+  }
+
+  const endY = cursorY;
+
+  // Grand total
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
-  doc.text("TOTAL:", 140, endY + 18);
-  doc.text(fmt(Number(invoice.total)), 195, endY + 18, { align: "right" });
+  doc.text("TOTAL GENERAL:", 130, endY + 6);
+  doc.text(fmt(Number(invoice.total)), 195, endY + 6, { align: "right" });
   doc.setFont("helvetica", "normal");
 
   // Notes

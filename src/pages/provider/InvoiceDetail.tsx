@@ -48,6 +48,7 @@ type Line = {
   line_total: number;
   contract_line_item_id: string | null;
   service_order_item_id: string | null;
+  line_group?: string | null;
 };
 
 const STATUS_STYLE: Record<Invoice["status"], string> = {
@@ -86,7 +87,7 @@ export default function InvoiceDetail() {
     setNotes((data as any).notes ?? "");
     const { data: l } = await supabase
       .from("invoice_line_items")
-      .select("id, description, quantity, unit_price, line_total, contract_line_item_id, service_order_item_id")
+      .select("id, description, quantity, unit_price, line_total, contract_line_item_id, service_order_item_id, line_group")
       .eq("invoice_id", invoiceId)
       .order("created_at", { ascending: true });
     setLines((l as any) ?? []);
@@ -246,6 +247,73 @@ export default function InvoiceDetail() {
   }
 
   const fmt = (n: number) => formatCurrency(n, (invoice.currency as any) || currency);
+  const adhocLines = lines.filter((l) => l.line_group === "ADHOC" || (!l.line_group && l.service_order_item_id));
+  const contractLines = lines.filter((l) => !adhocLines.includes(l));
+  const sum = (arr: Line[]) => arr.reduce((s, l) => s + Number(l.line_total || 0), 0);
+
+  const renderLines = (rows: Line[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Descriere</TableHead>
+          <TableHead className="w-24 text-right">Cantitate</TableHead>
+          <TableHead className="w-32 text-right">Preț unitar</TableHead>
+          <TableHead className="w-32 text-right">Total</TableHead>
+          {isDraft && <TableHead className="w-16" />}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((l) => (
+          <TableRow key={l.id}>
+            <TableCell>
+              {isDraft ? (
+                <Input
+                  defaultValue={l.description}
+                  onBlur={(e) => e.target.value !== l.description && updateLine(l.id, { description: e.target.value })}
+                />
+              ) : l.description}
+            </TableCell>
+            <TableCell className="text-right">
+              {isDraft ? (
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="text-right"
+                  defaultValue={l.quantity}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    if (!Number.isNaN(v) && v !== Number(l.quantity)) updateLine(l.id, { quantity: v });
+                  }}
+                />
+              ) : Number(l.quantity)}
+            </TableCell>
+            <TableCell className="text-right">
+              {isDraft ? (
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="text-right"
+                  defaultValue={l.unit_price}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    if (!Number.isNaN(v) && v !== Number(l.unit_price)) updateLine(l.id, { unit_price: v });
+                  }}
+                />
+              ) : fmt(Number(l.unit_price))}
+            </TableCell>
+            <TableCell className="text-right font-semibold">{fmt(Number(l.line_total))}</TableCell>
+            {isDraft && (
+              <TableCell>
+                <Button variant="ghost" size="sm" onClick={() => deleteLine(l.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
 
   return (
     <div className="space-y-6">
@@ -345,71 +413,34 @@ export default function InvoiceDetail() {
           {lines.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nicio linie.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Descriere</TableHead>
-                  <TableHead className="w-24 text-right">Cantitate</TableHead>
-                  <TableHead className="w-32 text-right">Preț unitar</TableHead>
-                  <TableHead className="w-32 text-right">Total</TableHead>
-                  <TableHead>Sursă</TableHead>
-                  {isDraft && <TableHead className="w-16" />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lines.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell>
-                      {isDraft ? (
-                        <Input
-                          defaultValue={l.description}
-                          onBlur={(e) => e.target.value !== l.description && updateLine(l.id, { description: e.target.value })}
-                        />
-                      ) : l.description}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isDraft ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="text-right"
-                          defaultValue={l.quantity}
-                          onBlur={(e) => {
-                            const v = Number(e.target.value);
-                            if (!Number.isNaN(v) && v !== Number(l.quantity)) updateLine(l.id, { quantity: v });
-                          }}
-                        />
-                      ) : Number(l.quantity)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isDraft ? (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="text-right"
-                          defaultValue={l.unit_price}
-                          onBlur={(e) => {
-                            const v = Number(e.target.value);
-                            if (!Number.isNaN(v) && v !== Number(l.unit_price)) updateLine(l.id, { unit_price: v });
-                          }}
-                        />
-                      ) : fmt(Number(l.unit_price))}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">{fmt(Number(l.line_total))}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {l.contract_line_item_id ? "Contract" : l.service_order_item_id ? "Ad-hoc" : "Manual"}
-                    </TableCell>
-                    {isDraft && (
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => deleteLine(l.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-6">
+              {contractLines.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Servicii contract</p>
+                  {renderLines(contractLines)}
+                  {adhocLines.length > 0 && (
+                    <div className="flex justify-end text-sm">
+                      <span className="text-muted-foreground mr-3">Subtotal servicii contract</span>
+                      <span className="font-semibold">{fmt(sum(contractLines))}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {adhocLines.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Servicii suplimentare <span className="text-muted-foreground font-normal">(în afara contractului)</span></p>
+                  {renderLines(adhocLines)}
+                  <div className="flex justify-end text-sm">
+                    <span className="text-muted-foreground mr-3">Subtotal servicii suplimentare</span>
+                    <span className="font-semibold">{fmt(sum(adhocLines))}</span>
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end items-baseline border-t pt-3">
+                <span className="text-muted-foreground mr-3">TOTAL GENERAL</span>
+                <span className="text-xl font-bold text-primary">{fmt(Number(invoice.total))}</span>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

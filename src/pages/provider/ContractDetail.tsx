@@ -31,6 +31,7 @@ import { useTenantCurrency } from "@/hooks/useTenantCurrency";
 import { CloseContractDialog } from "@/components/provider/CloseContractDialog";
 import { CancelContractDialog } from "@/components/provider/CancelContractDialog";
 import { GenerateNext30Dialog } from "@/components/provider/GenerateNext30Dialog";
+import { ProjectCompletionCard } from "@/components/provider/ProjectCompletionCard";
 import { useTranslation } from "react-i18next";
 
 export default function ContractDetail() {
@@ -419,6 +420,7 @@ export default function ContractDetail() {
 
   const editable = !["CLOSED", "REJECTED"].includes(contract.status);
   const canRevert = ["SENT_TO_CLIENT", "SIGNED", "REJECTED"].includes(contract.status);
+  const isOneTimeProject = !!contract.is_one_time_project;
 
   return (
     <div className="space-y-6">
@@ -431,6 +433,7 @@ export default function ContractDetail() {
           </p>
         </div>
         <Badge variant={contract.status === "REJECTED" ? "destructive" : "secondary"}>{contract.status.replace(/_/g, " ")}</Badge>
+        {isOneTimeProject && <Badge variant="outline">One-time project</Badge>}
       </div>
 
       {contract.rejection_comment && contract.status === "REJECTED" && (
@@ -503,7 +506,7 @@ export default function ContractDetail() {
                 {activating ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Scheduling…</> : <><Play className="h-3 w-3 mr-1" /> Activate</>}
               </Button>
             )}
-            {contract.status === "ACTIVE" && (
+            {contract.status === "ACTIVE" && !isOneTimeProject && (
               <>
                 {teams.length > 0 && (
                   <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
@@ -528,9 +531,35 @@ export default function ContractDetail() {
                 <Button size="sm" variant="destructive" onClick={() => setCloseDialogOpen(true)}><XCircle className="h-3 w-3 mr-1" /> Close</Button>
               </>
             )}
+            {contract.status === "ACTIVE" && isOneTimeProject && teams.length > 0 && (
+              <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map(t => (
+                    <SelectItem key={t.id} value={t.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: t.color }} />
+                        {t.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>
+
+      {isOneTimeProject && ["ACTIVE", "CLOSED"].includes(contract.status) && (
+        <ProjectCompletionCard
+          contract={contract}
+          contractId={contractId!}
+          tenantId={tenantId ?? null}
+          onRequestComplete={() => setCloseDialogOpen(true)}
+        />
+      )}
 
       <CloseContractDialog
         contractId={contractId ?? null}
