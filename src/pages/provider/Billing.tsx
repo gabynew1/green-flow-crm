@@ -147,24 +147,24 @@ export default function Billing() {
   };
 
   const invoicePdf = async (inv: Invoice) => {
-    const [invRes, linesRes, tenantRes, customerRes] = await Promise.all([
+    const [invRes, linesRes, sellerInfo, buyerInfo] = await Promise.all([
       supabase.from("invoices").select("*").eq("id", inv.id).maybeSingle(),
       supabase.from("invoice_line_items").select("description, quantity, unit_price, line_total")
         .eq("invoice_id", inv.id).order("created_at", { ascending: true }),
-      supabase.from("tenants").select("company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone").eq("id", tenantId!).maybeSingle(),
-      supabase.from("customers").select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone").eq("id", inv.customer_id).maybeSingle(),
+      fetchSellerParty(tenantId),
+      fetchBuyerParty(inv.customer_id),
     ]);
     if (!invRes.data) { toast.error("Factură negăsită"); return null; }
-    const t: any = tenantRes.data ?? {};
-    const c: any = customerRes.data ?? {};
+    const t: any = sellerInfo;
+    const c: any = buyerInfo;
     const addr = (o: any) => [o.address_street, o.address_number, o.address_city].filter(Boolean).join(", ") || null;
     return buildInvoicePdf(
       invRes.data as any,
       (linesRes.data as any) ?? [],
-      { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.email, phone: t.phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
       {
-        vendorName: t.company_name,
+        vendorName: t.name,
         propertyName: (inv as any).properties?.name ?? null,
         contractName: (inv as any).contracts?.contract_name ?? null,
         isOneTimeProject: (inv as any).contracts?.is_one_time_project ?? false,
