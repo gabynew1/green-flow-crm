@@ -29,6 +29,7 @@ import { ZoneChip } from "@/components/provider/ZoneChip";
 import VisitActionRow from "@/components/visits/VisitActionRow";
 import { buildVisitReportPdf } from "@/lib/visit-report-pdf";
 import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { fetchSellerParty, fetchBuyerParty } from "@/lib/invoice-parties";
 import { shareFile, downloadBlob, canShareFiles } from "@/lib/share-file";
 
 const statusColor = new Proxy({} as Record<string, string>, {
@@ -100,12 +101,8 @@ export default function VisitDetail() {
 
     const visitTenantId = (o?.properties as any)?.tenant_id ?? tenantId;
     if (visitTenantId) {
-      const { data: t } = await supabase
-        .from("tenants")
-        .select("name, company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone")
-        .eq("id", visitTenantId)
-        .maybeSingle();
-      setTenantInfo(t ?? null);
+      const seller = await fetchSellerParty(visitTenantId);
+      setTenantInfo(seller as any);
     }
     const { data: inv } = await supabase
       .from("invoices")
@@ -404,22 +401,20 @@ export default function VisitDetail() {
 
   const makeInvoicePdf = async () => {
     if (!linkedInvoiceId) return null;
-    const [invRes, linesRes, customerRes] = await Promise.all([
+    const [invRes, linesRes, buyerInfo] = await Promise.all([
       supabase.from("invoices").select("*").eq("id", linkedInvoiceId).maybeSingle(),
       supabase.from("invoice_line_items").select("description, quantity, unit_price, line_total")
         .eq("invoice_id", linkedInvoiceId).order("created_at", { ascending: true }),
-      supabase.from("customers")
-        .select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone")
-        .eq("id", (order.properties as any)?.customers?.id).maybeSingle(),
+      fetchBuyerParty((order.properties as any)?.customers?.id),
     ]);
     if (!invRes.data) { toast.error("Factura nu a fost găsită"); return null; }
     const t: any = tenantInfo ?? {};
-    const c: any = customerRes.data ?? {};
+    const c: any = buyerInfo;
     const addr = (o: any) => [o?.address_street, o?.address_number, o?.address_city].filter(Boolean).join(", ") || null;
     return buildInvoicePdf(
       invRes.data as any,
       (linesRes.data as any) ?? [],
-      { name: t.company_name || t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: t.company_name || t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.email ?? t.contact_email, phone: t.phone ?? t.contact_phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
       {
         vendorName: t.company_name || t.name,
