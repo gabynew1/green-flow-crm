@@ -16,6 +16,7 @@ import { Check, FileText, Send, Wallet, AlertCircle, Clock, Download, X, Share2 
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { buildInvoicePdf } from "@/lib/invoice-pdf";
+import { fetchSellerParty, fetchBuyerParty } from "@/lib/invoice-parties";
 import { shareFile, canShareFiles } from "@/lib/share-file";
 
 type Invoice = {
