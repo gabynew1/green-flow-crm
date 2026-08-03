@@ -16,6 +16,7 @@ import { ArrowLeft, Trash2, Plus, Send, Check, RefreshCw, Download, UserCheck, S
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { generateInvoicePdf, buildInvoicePdf } from "@/lib/invoice-pdf";
+import { fetchSellerParty, fetchBuyerParty } from "@/lib/invoice-parties";
 import { shareFile, canShareFiles } from "@/lib/share-file";
 
 type Invoice = {
@@ -115,16 +116,10 @@ export default function InvoiceDetail() {
 
     // Party info for PDF (fetched once)
     if (!tenantInfo && (data as any).tenant_id) {
-      const { data: t } = await supabase.from("tenants")
-        .select("company_name, cui, vat_id, address_city, address_street, address_number, contact_email, contact_phone")
-        .eq("id", (data as any).tenant_id).maybeSingle();
-      setTenantInfo(t);
+      setTenantInfo(await fetchSellerParty((data as any).tenant_id));
     }
     if ((data as any).customer_id) {
-      const { data: c } = await supabase.from("customers")
-        .select("name, company_name, cui, cnp, vat_id, address_city, address_street, address_number, email, phone")
-        .eq("id", (data as any).customer_id).maybeSingle();
-      setCustomerInfo(c);
+      setCustomerInfo(await fetchBuyerParty((data as any).customer_id));
     }
   };
 
@@ -218,13 +213,13 @@ export default function InvoiceDetail() {
     const t = tenantInfo ?? {};
     const c = customerInfo ?? {};
     return {
-      seller: { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      seller: { name: t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.email, phone: t.phone },
       buyer: { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
     };
   };
 
   const pdfMeta = () => ({
-    vendorName: (tenantInfo ?? {}).company_name ?? null,
+    vendorName: (tenantInfo ?? {}).name ?? null,
     propertyName: invoice?.properties?.name ?? null,
     contractName: invoice?.contracts?.contract_name ?? null,
     isOneTimeProject: invoice?.contracts?.is_one_time_project ?? false,
@@ -245,7 +240,7 @@ export default function InvoiceDetail() {
     generateInvoicePdf(
       invoice as any,
       lines as any,
-      { name: t.company_name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.contact_email, phone: t.contact_phone },
+      { name: t.name, cui: t.cui, vat_id: t.vat_id, address: addr(t), email: t.email, phone: t.phone },
       { name: c.company_name || c.name, cui: c.cui, cnp: c.cnp, vat_id: c.vat_id, address: addr(c), email: c.email, phone: c.phone },
       pdfMeta(),
     );
