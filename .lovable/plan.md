@@ -24,3 +24,15 @@ Short system entries ("System performed email log purge for Email Send Log.") st
 6. Cap at two clauses joined by "and"; anything beyond stays available under the existing Details toggle.
 
 All removed detail (raw tier/status transitions, metadata JSON, reason, IDs) remains visible in the per-row Details panel — no data is lost.
+
+## Coverage for future / unknown log types
+
+The rules above only cover the fields we know (tier, status, days, reason). To make it hold for any log written later:
+
+1. Generic fallback stays the default: any action with no recognised fields renders as "<who> <humanised action> <target>." — this is what already produces the good "System performed email log purge for Email Send Log." line, so new action types degrade gracefully instead of showing raw enum text.
+2. Action label humanising is data-driven: snake/upper case is converted to words automatically, so a brand-new action like `TENANT_DATA_EXPORTED` reads as "exported tenant data" style text without a code change.
+3. Metadata is handled generically: known keys (days, reason, amount, count, email, plan) get short phrasings; unknown keys are not forced into the sentence — they show up in the Details panel only. This prevents future metadata from re-creating the long-sentence problem.
+4. Hard length guard: the sentence is capped at two clauses; if more facts exist, it ends with a short "+N more details" hint pointing at the Details toggle.
+5. No silent loss: every field, known or not, is always rendered in the Details drawer, so the summary line can stay short forever.
+
+Known limit: a new action whose meaning depends on custom metadata (for example a refund amount) will read correctly but generically ("… performed refund issued …") until a one-line phrasing entry is added for it. That is a small, additive change per new action type, not a rewrite.
