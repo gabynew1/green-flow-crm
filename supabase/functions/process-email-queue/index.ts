@@ -28,12 +28,13 @@ function applyTenantBranding(payload: Record<string, unknown>): { from: string; 
   return { from, subject }
 }
 
-// Send an email via the Resend connector gateway
+// Send an email via the Resend connector gateway.
+// Returns the Resend email id so the handoff can be traced from the admin activity log.
 async function sendViaResend(
   payload: Record<string, unknown>,
   lovableApiKey: string,
   resendApiKey: string
-): Promise<void> {
+): Promise<string | null> {
   const { from, subject } = applyTenantBranding(payload)
 
   const response = await fetch(`${GATEWAY_URL}/emails`, {
@@ -62,6 +63,14 @@ async function sendViaResend(
       ;(err as any).retryAfterSeconds = parseInt(retryAfter, 10) || 60
     }
     throw err
+  }
+
+  try {
+    const body = await response.json()
+    const id = body?.id ?? body?.data?.id
+    return typeof id === 'string' && id ? id : null
+  } catch {
+    return null
   }
 }
 
@@ -275,7 +284,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendViaResend(payload, lovableApiKey, resendApiKey)
+        const resendId = await sendViaResend(payload, lovableApiKey, resendApiKey)
 
         // Log success
         await supabase.from('email_send_log').insert({
@@ -283,6 +292,8 @@ Deno.serve(async (req) => {
           template_name: payload.label || queue,
           recipient_email: payload.to,
           status: 'sent',
+          tenant_id: payload.tenant_id ?? null,
+          metadata: resendId ? { resend_id: resendId } : null,
         })
 
         // Delete from queue

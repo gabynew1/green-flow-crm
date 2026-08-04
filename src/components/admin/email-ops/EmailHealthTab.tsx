@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { RefreshCw, Loader2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import EmailAlertsBanner from "./EmailAlertsBanner";
 
 export default function EmailHealthTab() {
@@ -25,10 +25,30 @@ export default function EmailHealthTab() {
     );
   }
 
+  if (q.isError) {
+    return (
+      <Card className="border-destructive/40">
+        <CardContent className="p-6 space-y-3">
+          <p className="text-sm text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> Could not load email health.
+          </p>
+          <p className="text-xs text-muted-foreground font-mono break-all">
+            {(q.error as any)?.message ?? String(q.error)}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => q.refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const data = q.data ?? {};
   const queues = data.queues ?? {};
   const throughput = data.throughput ?? {};
   const cron = data.cron_jobs ?? [];
+  const worker = data.worker ?? {};
+  const dlqVelocity = data.dlq_velocity ?? {};
 
   return (
     <div className="space-y-4">
@@ -61,6 +81,34 @@ export default function EmailHealthTab() {
       </div>
 
       {/* Queue depths */}
+      {/* Worker heartbeat + DLQ velocity */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Card><CardContent className="p-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase">Worker heartbeat</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {worker.in_flight ?? 0} message(s) in flight · oldest locked {worker.oldest_locked_sec ?? 0}s
+            </p>
+          </div>
+          {worker.stalled
+            ? <Badge variant="outline" className="bg-red-500/10 text-red-700 border-red-500/30">
+                <XCircle className="h-3 w-3 mr-1" /> Stalled
+              </Badge>
+            : <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30">
+                <CheckCircle2 className="h-3 w-3 mr-1" /> OK
+              </Badge>}
+        </CardContent></Card>
+        <Card><CardContent className="p-4">
+          <p className="text-xs text-muted-foreground uppercase">Dead-letter growth</p>
+          <p className="text-2xl font-bold">
+            {dlqVelocity.today ?? 0}
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              today vs {dlqVelocity.yesterday ?? 0} yesterday
+            </span>
+          </p>
+        </CardContent></Card>
+      </div>
+
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Queue depths</CardTitle></CardHeader>
         <CardContent className="space-y-2">

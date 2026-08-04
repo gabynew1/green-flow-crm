@@ -11,7 +11,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ExternalLink, RefreshCw, RotateCw, Eye, Loader2 } from "lucide-react";
+import { ExternalLink, RefreshCw, RotateCw, Eye, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -21,11 +21,25 @@ const TIME_RANGES = [
   { label: "Last 24h", value: "24h", since: () => new Date(Date.now() - 86_400_000) },
   { label: "Last 7 days", value: "7d", since: () => new Date(Date.now() - 7 * 86_400_000) },
   { label: "Last 30 days", value: "30d", since: () => new Date(Date.now() - 30 * 86_400_000) },
+  { label: "All time", value: "all", since: () => new Date("2000-01-01T00:00:00Z") },
 ];
+
+/** Internal handoff states — we track the journey to Resend, not delivery. */
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Queued",
+  rate_limited: "Processing (throttled)",
+  sent: "Handed to Resend",
+  failed: "Failed (internal)",
+  dlq: "Failed (internal, DLQ)",
+  suppressed: "Suppressed",
+  bounced: "Bounced",
+  complained: "Complained",
+};
 
 const STATUS_COLORS: Record<string, string> = {
   sent: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
   pending: "bg-amber-500/10 text-amber-700 border-amber-500/30",
+  rate_limited: "bg-amber-500/10 text-amber-700 border-amber-500/30",
   failed: "bg-red-500/10 text-red-700 border-red-500/30",
   dlq: "bg-red-500/10 text-red-700 border-red-500/30",
   bounced: "bg-red-500/10 text-red-700 border-red-500/30",
@@ -34,7 +48,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function EmailActivityTab() {
-  const [range, setRange] = useState("7d");
+  const [range, setRange] = useState("30d");
   const [status, setStatus] = useState<string>("all");
   const [template, setTemplate] = useState<string>("all");
   const [recipient, setRecipient] = useState("");
@@ -142,10 +156,10 @@ export default function EmailActivityTab() {
             <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="sent">Sent</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="dlq">DLQ</SelectItem>
+              <SelectItem value="sent">Handed to Resend</SelectItem>
+              <SelectItem value="pending">Queued</SelectItem>
+              <SelectItem value="failed">Failed (internal)</SelectItem>
+              <SelectItem value="dlq">Failed (internal, DLQ)</SelectItem>
               <SelectItem value="suppressed">Suppressed</SelectItem>
               <SelectItem value="bounced">Bounced</SelectItem>
               <SelectItem value="complained">Complained</SelectItem>
@@ -182,34 +196,65 @@ export default function EmailActivityTab() {
               <TableRow>
                 <TableHead>Template</TableHead>
                 <TableHead>Recipient</TableHead>
+                <TableHead>Tenant</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Resend</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {activity.isLoading && (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Loading…
                 </TableCell></TableRow>
               )}
-              {!activity.isLoading && (activity.data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No emails match these filters.
+              {activity.isError && (
+                <TableRow><TableCell colSpan={7} className="py-8 text-center space-y-2">
+                  <p className="text-sm text-destructive flex items-center justify-center gap-2">
+                    <AlertTriangle className="h-4 w-4" /> Could not load the activity log.
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono break-all">
+                    {(activity.error as any)?.message ?? String(activity.error)}
+                  </p>
+                </TableCell></TableRow>
+              )}
+              {!activity.isLoading && !activity.isError && (activity.data ?? []).length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  No emails in this period.
                 </TableCell></TableRow>
               )}
               {(activity.data ?? []).map((row) => (
                 <TableRow key={row.message_id}>
                   <TableCell className="font-mono text-xs">{row.template_name}</TableCell>
                   <TableCell className="text-sm">{row.recipient_email}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {row.tenant_name ?? "—"}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={STATUS_COLORS[row.status] ?? ""}>
-                      {row.status}
+                      {STATUS_LABELS[row.status] ?? row.status}
                     </Badge>
                     {row.error_message && (
                       <p className="text-xs text-red-600 mt-1 max-w-xs truncate" title={row.error_message}>
                         {row.error_message}
                       </p>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {row.resend_id ? (
+                      <a
+                        href={`https://resend.com/emails/${row.resend_id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-primary hover:underline inline-flex items-center gap-1"
+                        title="Open in Resend"
+                      >
+                        {String(row.resend_id).slice(0, 8)}…
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">

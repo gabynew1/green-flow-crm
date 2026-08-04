@@ -9,7 +9,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, RotateCw, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, RotateCw, Trash2, RefreshCw, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -84,9 +84,19 @@ function DLQList({ queue }: { queue: "auth_emails" | "transactional_emails" }) {
                 <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Loading…
               </TableCell></TableRow>
             )}
-            {!q.isLoading && (q.data ?? []).length === 0 && (
+            {q.isError && (
+              <TableRow><TableCell colSpan={6} className="py-8 text-center space-y-2">
+                <p className="text-sm text-destructive flex items-center justify-center gap-2">
+                  <AlertTriangle className="h-4 w-4" /> Could not load the dead-letter queue.
+                </p>
+                <p className="text-xs text-muted-foreground font-mono break-all">
+                  {(q.error as any)?.message ?? String(q.error)}
+                </p>
+              </TableCell></TableRow>
+            )}
+            {!q.isLoading && !q.isError && (q.data ?? []).length === 0 && (
               <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                Dead-letter queue is empty.
+                Nothing here — every email was handed off to Resend.
               </TableCell></TableRow>
             )}
             {(q.data ?? []).map((r) => (
