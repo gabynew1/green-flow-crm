@@ -88,13 +88,6 @@ export default function AuditCompliance() {
     const adminName = (id: string | null) =>
         (id && nameMaps?.admins?.[id]) || (id ? `Admin ${id.slice(0, 8)}` : "System");
 
-    const targetName = (log: { target_type: string | null; target_id: string | null }) => {
-        if (!log.target_id) return log.target_type ? prettyWords(log.target_type) : "—";
-        const resolved = nameMaps?.tenants?.[log.target_id];
-        const type = log.target_type ? prettyWords(log.target_type) : "Record";
-        return resolved ? `${type} “${resolved}”` : `${type} ${log.target_id.slice(0, 8)}`;
-    };
-
     const describe = (log: any): string => {
         const meta = (log.metadata || {}) as Record<string, unknown>;
         const who = adminName(log.admin_user_id);
