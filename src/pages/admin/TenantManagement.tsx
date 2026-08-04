@@ -115,6 +115,7 @@ type TenantRow = {
 };
 
 export default function TenantManagement() {
+    type SortKey = "name" | "subscription_tier" | "status" | "days" | "teamCount" | "providerCount" | "created_at";
     const navigate = useNavigate();
     const [changeTierTenant, setChangeTierTenant] = useState<TenantRow | null>(null);
     const [selectedTier, setSelectedTier] = useState("");
