@@ -527,18 +527,11 @@ Deno.serve(async (req) => {
 
   // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
-
-  // Log pending BEFORE enqueue so we have a record even if enqueue crashes
-  await supabase.from('email_send_log').insert({
-    message_id: messageId,
-    template_name: templateName,
-    recipient_email: effectiveRecipient,
-    status: 'pending',
-    tenant_id: tenantId,
-    category,
-    template_data: templateData,
-  })
-
+  //
+  // SSOT: the queue IS the pending log. We do NOT write a `pending` row here —
+  // email_send_log only records terminal outcomes (sent / failed / dlq /
+  // suppressed). Everything the worker needs to write that row (template name,
+  // tenant, category, template_data for re-sends) travels on the payload.
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
     queue_name: 'transactional_emails',
     payload: {
@@ -554,6 +547,9 @@ Deno.serve(async (req) => {
       idempotency_key: idempotencyKey,
       unsubscribe_token: unsubscribeToken,
       queued_at: new Date().toISOString(),
+      tenant_id: tenantId,
+      category,
+      template_data: templateData,
     },
   })
 

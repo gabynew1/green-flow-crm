@@ -98,6 +98,17 @@ export default function EmailActivityTab() {
     },
   });
 
+  // Live queue depth — the queue itself is the "pending" log (no pending rows).
+  const queueDepth = useQuery({
+    queryKey: ["email-queue-depth"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_email_health");
+      if (error) throw error;
+      return ((data as any)?.pending ?? 0) as number;
+    },
+    refetchInterval: 20_000,
+  });
+
   const totalCount = activity.data?.[0]?.total_count ?? 0;
 
   async function handleResend(messageId: string) {
@@ -119,9 +130,24 @@ export default function EmailActivityTab() {
 
   return (
     <div className="space-y-4">
+      {stats.isError && (
+        <Card className="border-destructive/40">
+          <CardContent className="p-4 flex items-center justify-between gap-3">
+            <p className="text-sm text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Could not load email stats: {(stats.error as any)?.message ?? String(stats.error)}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => stats.refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
+          ["In queue (now)", queueDepth.data ?? 0, "text-amber-600"],
           ["Total", stats.data?.total ?? 0, "text-foreground"],
           ["Sent", stats.data?.sent ?? 0, "text-emerald-600"],
           ["Failed", stats.data?.failed ?? 0, "text-red-600"],
