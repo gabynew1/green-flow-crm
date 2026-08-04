@@ -164,7 +164,7 @@ export default function AuditCompliance() {
                                 <TableCell>
                                     <div className="flex items-center gap-2">
                                         <User className="h-3.5 w-3.5 text-primary" />
-                                        <span className="font-bold text-xs font-mono">{log.admin_user_id.slice(0, 8)}…</span>
+                                        <span className="font-bold text-xs font-mono">{log.admin_user_id ? `${log.admin_user_id.slice(0, 8)}…` : "system"}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell>{getActionBadge(log.action)}</TableCell>
