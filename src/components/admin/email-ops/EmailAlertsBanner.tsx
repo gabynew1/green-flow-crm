@@ -36,6 +36,18 @@ export default function EmailAlertsBanner({ showOkState = false }: Props) {
     );
   }
 
+  if (q.isError) {
+    return (
+      <Alert variant="destructive">
+        <AlertOctagon className="h-4 w-4" />
+        <AlertTitle>Could not load email alerts</AlertTitle>
+        <AlertDescription className="font-mono text-xs break-all">
+          {(q.error as any)?.message ?? String(q.error)}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   const alerts = q.data?.alerts ?? [];
 
   if (alerts.length === 0) {
