@@ -28,7 +28,7 @@ interface Props {
 export function CustomerCombobox({
   value,
   onChange,
-  placeholder = "Select customer",
+  placeholder = "Search customer",
   allowClear = true,
   disabled,
   className,
@@ -53,7 +53,7 @@ export function CustomerCombobox({
 
   const { data: results = [], isFetching } = useQuery({
     queryKey: ["picker-customers", tenantId, debounced],
-    enabled: open && !!tenantId && debounced.trim().length >= 2,
+    enabled: open && !!tenantId && debounced.trim().length >= 3,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
@@ -105,14 +105,14 @@ export function CustomerCombobox({
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search customers…"
+            placeholder="Please type name of customer, minimum 3 characters"
             value={term}
             onValueChange={setTerm}
           />
           <CommandList>
-            {debounced.trim().length < 2 ? (
+            {debounced.trim().length < 3 ? (
               <div className="px-3 py-6 text-xs text-center text-muted-foreground">
-                Type to search…
+                Please type name of customer, minimum 3 characters
               </div>
             ) : isFetching ? (
               <div className="px-3 py-6 flex items-center justify-center text-xs text-muted-foreground gap-2">
