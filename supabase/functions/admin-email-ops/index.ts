@@ -38,6 +38,10 @@ Deno.serve(async (req) => {
     return json({ error: 'Forbidden: super admin required' }, 403)
   }
 
+  // The admin_* email RPCs re-check auth.uid() themselves, so they must be
+  // called with the caller's JWT — the service-role client has no auth.uid().
+  const asCaller = userClient
+
   let body: any
   try {
     body = await req.json()
@@ -91,7 +95,7 @@ Deno.serve(async (req) => {
 
       case 'replay_dlq': {
         const { queue, msg_id } = body
-        const { data, error } = await admin.rpc('admin_replay_dlq', {
+        const { data, error } = await asCaller.rpc('admin_replay_dlq', {
           p_queue: queue,
           p_msg_id: msg_id,
         })
@@ -101,7 +105,7 @@ Deno.serve(async (req) => {
 
       case 'discard_dlq': {
         const { queue, msg_id } = body
-        const { data, error } = await admin.rpc('admin_discard_dlq', {
+        const { data, error } = await asCaller.rpc('admin_discard_dlq', {
           p_queue: queue,
           p_msg_id: msg_id,
         })
@@ -122,7 +126,7 @@ Deno.serve(async (req) => {
         for (const queue of queues) {
           let ids: number[] = Array.isArray(body.msg_ids) ? body.msg_ids : []
           if (ids.length === 0) {
-            const { data: rows, error: listErr } = await admin.rpc(
+            const { data: rows, error: listErr } = await asCaller.rpc(
               'admin_list_dlq',
               { p_queue: queue, p_limit: 500 },
             )
@@ -130,7 +134,7 @@ Deno.serve(async (req) => {
             ids = (rows ?? []).map((r: any) => r.msg_id)
           }
           for (const msgId of ids) {
-            const { error } = await admin.rpc(rpcName, {
+            const { error } = await asCaller.rpc(rpcName, {
               p_queue: queue,
               p_msg_id: msgId,
             })
@@ -142,7 +146,7 @@ Deno.serve(async (req) => {
       }
 
       case 'clear_rate_limit': {
-        const { data, error } = await admin.rpc('admin_clear_email_rate_limit')
+        const { data, error } = await asCaller.rpc('admin_clear_email_rate_limit')
         if (error) return json({ error: error.message }, 400)
         return json(data)
       }
