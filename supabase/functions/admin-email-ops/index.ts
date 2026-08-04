@@ -109,6 +109,105 @@ Deno.serve(async (req) => {
         return json(data)
       }
 
+      case 'replay_dlq_bulk':
+      case 'discard_dlq_bulk': {
+        const rpcName =
+          action === 'replay_dlq_bulk' ? 'admin_replay_dlq' : 'admin_discard_dlq'
+        const queues: string[] = body.queue
+          ? [body.queue]
+          : ['transactional_emails', 'auth_emails']
+        let ok = 0
+        const failures: { msg_id: number; error: string }[] = []
+
+        for (const queue of queues) {
+          let ids: number[] = Array.isArray(body.msg_ids) ? body.msg_ids : []
+          if (ids.length === 0) {
+            const { data: rows, error: listErr } = await admin.rpc(
+              'admin_list_dlq',
+              { p_queue: queue, p_limit: 500 },
+            )
+            if (listErr) return json({ error: listErr.message }, 400)
+            ids = (rows ?? []).map((r: any) => r.msg_id)
+          }
+          for (const msgId of ids) {
+            const { error } = await admin.rpc(rpcName, {
+              p_queue: queue,
+              p_msg_id: msgId,
+            })
+            if (error) failures.push({ msg_id: msgId, error: error.message })
+            else ok++
+          }
+        }
+        return json({ success: failures.length === 0, processed: ok, failures })
+      }
+
+      case 'clear_rate_limit': {
+        const { data, error } = await admin.rpc('admin_clear_email_rate_limit')
+        if (error) return json({ error: error.message }, 400)
+        return json(data)
+      }
+
+      case 'run_dispatcher': {
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/process-email-queue`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              apikey: serviceKey,
+              'Content-Type': 'application/json',
+              'Lovable-Context': 'cron',
+            },
+            body: '{}',
+          },
+        )
+        const out = await res.json().catch(() => ({}))
+        if (!res.ok) return json({ error: 'Dispatcher run failed', details: out }, 502)
+        return json({ success: true, result: out })
+      }
+
+      case 'verify_resend': {
+        const lovableKey = Deno.env.get('LOVABLE_API_KEY')
+        const resendKey = Deno.env.get('RESEND_API_KEY')
+        if (!lovableKey || !resendKey) {
+          return json({
+            status: 'unreachable',
+            message: 'Resend connector is not configured for this project.',
+          })
+        }
+        try {
+          const res = await fetch(
+            'https://connector-gateway.lovable.dev/api/v1/verify_credentials',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${lovableKey}`,
+                'X-Connection-Api-Key': resendKey,
+              },
+            },
+          )
+          const out = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            return json({
+              status: res.status === 401 || res.status === 403 ? 'auth_failed' : 'unreachable',
+              message: `Gateway responded ${res.status}`,
+              details: out,
+            })
+          }
+          const outcome = (out as any)?.outcome
+          return json({
+            status: outcome === 'failed' ? 'auth_failed' : 'ok',
+            message: outcome === 'skipped' ? 'Connector reachable (no verification endpoint).' : 'Resend connector responded.',
+            details: out,
+          })
+        } catch (e) {
+          return json({
+            status: 'unreachable',
+            message: e instanceof Error ? e.message : 'Network error',
+          })
+        }
+      }
+
       default:
         return json({ error: `Unknown action: ${action}` }, 400)
     }
