@@ -5,7 +5,6 @@ Once a customer is selected in Create Visit, the Property field should behave li
 
 ## Behaviour
 - Customer selected: open the field and immediately see the full list of that customer's `active` properties (no search threshold). A search box only appears when the list is long (more than 8 entries).
-- No customer selected: the field is disabled with the hint "Select a customer first".
 - Customer has no active properties: show "No active properties for this customer".
 - Without a customer scope (other pages that use the picker with no `customerId`), keep today's type-to-search behaviour so large tenants don't load every property.
 
