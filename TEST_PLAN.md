@@ -145,3 +145,37 @@ the UI path is blocked. Never destructive.
    buckets into August via `period_start`.
 7. Force an invoice-generation failure → an `activity_log` row of type
    `invoice_generation_failed` appears (no silent failure).
+
+## UAT: Visit → Services → Ad-hoc → Report → Invoice (2026-08-04)
+
+Run once as **Path A** (standalone visit, no contract) and once as **Path B**
+(visit linked to an active recurring maintenance contract).
+
+1. **Create visit** — Provider → Visits → *Create Visit*. Type 3+ characters to
+   find the customer, pick a property from the dropdown (or *No specific
+   location*), choose a date and a preset or custom `HH:MM–HH:MM` slot. Visit
+   appears as SCHEDULED in Day/Week/Month calendar.
+2. **Check in** — open the visit → *Check-In* → confirm. Status IN_PROGRESS and
+   the client gets the check-in email.
+3. **Deliver contract services (Path B)** — tick delivered services; each line
+   shows `consumed | allocation`, sorted by largest allocation. Base-fee lines
+   show 0 cost.
+4. **Add ad-hoc cost** — *Ad-hoc Service* → pick from catalog or custom name,
+   set qty + unit price. Item shows the AD_HOC badge, always counted as
+   delivered; a 0-price item warns it will be invoiced at 0.
+5. **Complete & send report** — status flips to COMPLETED, `performed_date`
+   set, visit read-only (no reopen), report email sent, calendar moves the visit
+   to the performed date.
+6. **PDF / share** — *Download PDF* (and Share on mobile). Filename follows
+   `Vendor_Property_ServiceType_Date`; contract and ad-hoc tables are separate.
+7. **Invoice** — Path A: one DRAFT `ADHOC` invoice linked to the visit,
+   zero-cost lines excluded. Path B: ad-hoc items appended to the existing DRAFT
+   `CONTRACT_CYCLE` invoice — no second invoice; contract vs ad-hoc subtotals
+   plus grand total.
+8. **Payment** — *Mark paid* → no DB error, status PAID, customer dashboard
+   tiles update (Contract value, YTD Revenue, Invoiced, Pending Invoices,
+   Monthly Billing with contract/ad-hoc split and next automatic invoice date).
+
+**Pass criteria:** no visit stuck IN_PROGRESS, exactly one invoice per path,
+contract/ad-hoc amounts always split and summing to the grand total, currency
+CEIL-rounded in tenant currency, all strings in the selected language.
