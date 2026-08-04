@@ -1729,6 +1729,7 @@ export type Database = {
           geo_lat: number | null
           geo_lng: number | null
           id: string
+          is_general: boolean
           name: string
           status: Database["public"]["Enums"]["property_status"]
           tenant_id: string | null
@@ -1745,6 +1746,7 @@ export type Database = {
           geo_lat?: number | null
           geo_lng?: number | null
           id?: string
+          is_general?: boolean
           name: string
           status?: Database["public"]["Enums"]["property_status"]
           tenant_id?: string | null
@@ -1761,6 +1763,7 @@ export type Database = {
           geo_lat?: number | null
           geo_lng?: number | null
           id?: string
+          is_general?: boolean
           name?: string
           status?: Database["public"]["Enums"]["property_status"]
           tenant_id?: string | null
@@ -3188,6 +3191,10 @@ export type Database = {
       }
       fn_generate_invoice_for_visit: {
         Args: { _service_order_id: string }
+        Returns: string
+      }
+      fn_get_or_create_general_property: {
+        Args: { _customer_id: string }
         Returns: string
       }
       fn_get_tenant_entitlements: {
