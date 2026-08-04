@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -10,7 +10,10 @@ import {
     Calendar,
     CreditCard,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown
 } from "lucide-react";
 import {
     Table,
@@ -112,12 +115,24 @@ type TenantRow = {
 };
 
 export default function TenantManagement() {
+    type SortKey = "name" | "subscription_tier" | "status" | "days" | "teamCount" | "providerCount" | "created_at";
     const navigate = useNavigate();
     const [changeTierTenant, setChangeTierTenant] = useState<TenantRow | null>(null);
     const [selectedTier, setSelectedTier] = useState("");
     const [decommissionTenant, setDecommissionTenant] = useState<TenantRow | null>(null);
     const [decommissionConfirm, setDecommissionConfirm] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [sortKey, setSortKey] = useState<SortKey>("created_at");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+    const toggleSort = (key: SortKey) => {
+        if (key === sortKey) {
+            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+            setSortKey(key);
+            setSortDir(key === "name" ? "asc" : "desc");
+        }
+    };
 
     const { data: tenants, isLoading, refetch } = useQuery({
         queryKey: ["admin-tenants"],
@@ -149,6 +164,51 @@ export default function TenantManagement() {
             return enrichedTenants;
         }
     });
+
+    const TIER_ORDER = ["patio", "backyard", "estate", "territory_trial", "territory"];
+
+    const sortedTenants = useMemo(() => {
+        if (!tenants) return tenants;
+        const val = (t: TenantRow): string | number => {
+            switch (sortKey) {
+                case "name": return (t.name || "").toLowerCase();
+                case "subscription_tier": {
+                    const i = TIER_ORDER.indexOf(t.subscription_tier);
+                    return i === -1 ? 99 : i;
+                }
+                case "status": return (t.status || "").toLowerCase();
+                case "days": {
+                    const p = statusDayProgress(t);
+                    return p ? p.day : -1;
+                }
+                case "teamCount": return t.teamCount;
+                case "providerCount": return t.providerCount;
+                case "created_at": return new Date(t.created_at).getTime();
+            }
+        };
+        return [...tenants].sort((a, b) => {
+            const av = val(a), bv = val(b);
+            const cmp = typeof av === "number" && typeof bv === "number"
+                ? av - bv
+                : String(av).localeCompare(String(bv));
+            return sortDir === "asc" ? cmp : -cmp;
+        });
+    }, [tenants, sortKey, sortDir]);
+
+    const SortHeader = ({ label, sortKeyName, className }: { label: string; sortKeyName: SortKey; className?: string }) => (
+        <TableHead className={cn("font-bold", className)}>
+            <button
+                type="button"
+                onClick={() => toggleSort(sortKeyName)}
+                className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+            >
+                {label}
+                {sortKey === sortKeyName
+                    ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+                    : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+            </button>
+        </TableHead>
+    );
 
     const updateStatus = async (id: string, newStatus: string) => {
         const { error } = await supabase
@@ -324,18 +384,18 @@ export default function TenantManagement() {
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
-                            <TableHead className="font-bold">Organization</TableHead>
-                            <TableHead className="font-bold">Tier</TableHead>
-                            <TableHead className="font-bold">Status</TableHead>
-                            <TableHead className="font-bold">Days</TableHead>
-                            <TableHead className="font-bold">Teams</TableHead>
-                            <TableHead className="font-bold">Providers</TableHead>
-                            <TableHead className="font-bold">Created</TableHead>
+                            <SortHeader label="Organization" sortKeyName="name" />
+                            <SortHeader label="Tier" sortKeyName="subscription_tier" />
+                            <SortHeader label="Status" sortKeyName="status" />
+                            <SortHeader label="Days" sortKeyName="days" />
+                            <SortHeader label="Teams" sortKeyName="teamCount" />
+                            <SortHeader label="Providers" sortKeyName="providerCount" />
+                            <SortHeader label="Created" sortKeyName="created_at" />
                             <TableHead className="w-[100px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tenants?.map((tenant) => (
+                        {sortedTenants?.map((tenant) => (
                             <TableRow key={tenant.id} className="group transition-colors hover:bg-primary/5">
                                 <TableCell className="font-medium">
                                     <div className="flex items-center gap-3">
