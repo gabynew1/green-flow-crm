@@ -3041,9 +3041,12 @@ export type Database = {
           message_id: string
           metadata: Json
           recipient_email: string
+          resend_id: string
           status: string
           template_data: Json
           template_name: string
+          tenant_id: string
+          tenant_name: string
           total_count: number
         }[]
       }
