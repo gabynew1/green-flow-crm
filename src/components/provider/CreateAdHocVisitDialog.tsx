@@ -124,14 +124,14 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
 
   const loadData = async () => {
     const [custRes, propRes, svcRes, teamRes] = await Promise.all([
-      Promise.resolve({ data: [] }),
-      Promise.resolve({ data: [] }),
+      tenantId ? supabase.from("customers").select("id, name").eq("tenant_id", tenantId).eq("status", "active").order("name") : Promise.resolve({ data: [] }),
+      tenantId ? supabase.from("properties").select("id, name, customer_id").eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
       tenantId ? supabase.from("service_catalog").select("id, name, code").eq("is_active", true).eq("tenant_id", tenantId).order("name") : Promise.resolve({ data: [] }),
       tenantId ? supabase.from("teams").select("id, name, color").eq("tenant_id", tenantId).order("created_at") : Promise.resolve({ data: [] }),
     ]);
     const loadedTeams = (teamRes.data ?? []) as Team[];
-    setCustomers([]);
-    setProperties([]);
+    setCustomers(custRes.data ?? []);
+    setProperties(propRes.data ?? []);
     setServices(svcRes.data ?? []);
     setTeams(loadedTeams);
     if (loadedTeams.length > 0 && !selectedTeamId) setSelectedTeamId(loadedTeams[0].id);
