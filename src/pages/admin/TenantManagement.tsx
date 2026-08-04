@@ -165,11 +165,52 @@ export default function TenantManagement() {
         }
     });
 
-    const updateStatus = async (id: string, newStatus: string) => {
-        return _updateStatus(id, newStatus);
-    };
+    const TIER_ORDER = ["patio", "backyard", "estate", "territory_trial", "territory"];
 
-    const _updateStatus = async (id: string, newStatus: string) => {
+    const sortedTenants = useMemo(() => {
+        if (!tenants) return tenants;
+        const val = (t: TenantRow): string | number => {
+            switch (sortKey) {
+                case "name": return (t.name || "").toLowerCase();
+                case "subscription_tier": {
+                    const i = TIER_ORDER.indexOf(t.subscription_tier);
+                    return i === -1 ? 99 : i;
+                }
+                case "status": return (t.status || "").toLowerCase();
+                case "days": {
+                    const p = statusDayProgress(t);
+                    return p ? p.day : -1;
+                }
+                case "teamCount": return t.teamCount;
+                case "providerCount": return t.providerCount;
+                case "created_at": return new Date(t.created_at).getTime();
+            }
+        };
+        return [...tenants].sort((a, b) => {
+            const av = val(a), bv = val(b);
+            const cmp = typeof av === "number" && typeof bv === "number"
+                ? av - bv
+                : String(av).localeCompare(String(bv));
+            return sortDir === "asc" ? cmp : -cmp;
+        });
+    }, [tenants, sortKey, sortDir]);
+
+    const SortHeader = ({ label, sortKeyName, className }: { label: string; sortKeyName: SortKey; className?: string }) => (
+        <TableHead className={cn("font-bold", className)}>
+            <button
+                type="button"
+                onClick={() => toggleSort(sortKeyName)}
+                className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+            >
+                {label}
+                {sortKey === sortKeyName
+                    ? (sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+                    : <ArrowUpDown className="h-3 w-3 opacity-40" />}
+            </button>
+        </TableHead>
+    );
+
+    const updateStatus = async (id: string, newStatus: string) => {
         const { error } = await supabase
             .from("tenants")
             .update({ status: newStatus } as any)
