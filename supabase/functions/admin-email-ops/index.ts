@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
         if (!messageId) return json({ error: 'message_id required' }, 400)
 
         // Get template + data via RPC (writes audit row)
-        const { data: resendInfo, error: rErr } = await admin.rpc(
+        const { data: resendInfo, error: rErr } = await asCaller.rpc(
           'admin_resend_email',
           { p_message_id: messageId },
         )
