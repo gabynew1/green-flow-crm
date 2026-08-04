@@ -121,6 +121,17 @@ export default function TenantManagement() {
     const [decommissionTenant, setDecommissionTenant] = useState<TenantRow | null>(null);
     const [decommissionConfirm, setDecommissionConfirm] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [sortKey, setSortKey] = useState<SortKey>("created_at");
+    const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+    const toggleSort = (key: SortKey) => {
+        if (key === sortKey) {
+            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+            setSortKey(key);
+            setSortDir(key === "name" ? "asc" : "desc");
+        }
+    };
 
     const { data: tenants, isLoading, refetch } = useQuery({
         queryKey: ["admin-tenants"],
