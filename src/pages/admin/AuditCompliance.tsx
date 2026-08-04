@@ -115,6 +115,28 @@ export default function AuditCompliance() {
         return `${who} ${verb} for ${what}${reason ? ` — reason: ${reason}` : ""}.`;
     };
 
+    // Short target label: prefer the resolved name alone, fall back to type/id.
+    const shortTarget = (log: { target_type: string | null; target_id: string | null }) => {
+        if (!log.target_id) return log.target_type ? prettyWords(log.target_type) : null;
+        const resolved = nameMaps?.tenants?.[log.target_id];
+        if (resolved) return `“${resolved}”`;
+        const type = log.target_type ? prettyWords(log.target_type) : "Record";
+        return `${type} ${log.target_id.slice(0, 8)}`;
+    };
+
+    // Generic phrasings for known metadata keys. Unknown keys stay in Details only.
+    const metaPhrases = (meta: Record<string, unknown>): string[] => {
+        const out: string[] = [];
+        if (typeof meta.days === "number") out.push(`granted ${meta.days} extra days`);
+        if (typeof meta.amount === "number") out.push(`amount ${meta.amount}`);
+        if (typeof meta.count === "number") out.push(`${meta.count} records affected`);
+        if (typeof meta.email === "string") out.push(`for ${meta.email}`);
+        if (typeof meta.plan === "string") out.push(`plan ${prettyWords(meta.plan)}`);
+        return out;
+    };
+
+    const normalize = (v: unknown) => String(v ?? "").toLowerCase().replace(/[_\s-]+/g, "");
+
     const getActionBadge = (action: string) => {
         if (action.includes("SUSPEND") || action.includes("LOCK")) return <Badge variant="destructive">{action}</Badge>;
         if (action.includes("UPGRADE") || action.includes("ACTIVATE")) return <Badge className="bg-green-600 font-bold">{action}</Badge>;
