@@ -84,7 +84,7 @@ export default function CustomerDetail() {
   const load = async () => {
     const [custRes, propRes, contractRes, profileRes] = await Promise.all([
       supabase.from("customers").select("*").eq("id", customerId!).single(),
-      supabase.from("properties").select("*").eq("customer_id", customerId!).order("name"),
+      supabase.from("properties").select("*").eq("customer_id", customerId!).eq("is_general", false).order("name"),
       supabase.from("contracts").select("*, properties!inner(customer_id, name)").eq("properties.customer_id", customerId!).order("created_at", { ascending: false }),
       supabase.from("profiles").select("unique_client_id").eq("customer_id", customerId!).maybeSingle(),
     ]);
