@@ -166,6 +166,10 @@ export default function TenantManagement() {
     });
 
     const updateStatus = async (id: string, newStatus: string) => {
+        return _updateStatus(id, newStatus);
+    };
+
+    const _updateStatus = async (id: string, newStatus: string) => {
         const { error } = await supabase
             .from("tenants")
             .update({ status: newStatus } as any)
