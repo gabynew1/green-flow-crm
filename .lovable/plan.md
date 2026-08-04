@@ -1,31 +1,43 @@
-# Fix blank Email Operations page (/admin/emails)
+# Email Operations: fix the blank page + rescope to the Resend handoff model
 
-## What the page is supposed to do
+## Validation of the proposed rescoping
 
-Email Operations is the super-admin control room for outgoing email:
+The rescoping is correct and matches how this project actually sends email (own pgmq queue + worker + Resend via the connector gateway). Three points need adjusting before it can be built as written:
 
-- **Alerts banner** — warns about spikes in failures, a growing dead-letter queue, or a stalled queue processor.
-- **Activity tab** — counters (Total / Sent / Failed / DLQ / Suppressed) plus a filterable, paginated log of every email (by time range, status, template, recipient), with per-email payload preview and a Resend action.
-- **Dead-letter Queue tab** — emails that exhausted retries, with Replay and Discard actions.
-- **Health tab** — queue depth, processor status, and sending configuration health.
+1. **The Resend ID is not stored today.** The worker calls Resend, checks only for HTTP errors, and discards the response body — every `sent` row in the email log has empty metadata. So the deep link cannot be built from existing data; the worker must be changed to capture the returned ID and record it. Historic rows (9 sent) will never have a link and must render as "—".
+2. **Bounce/complaint handling already exists and should stay.** There is a suppression webhook and a suppression list that blocks future sends to bad addresses, and the log's status vocabulary already includes bounced/complained. "Do not add columns or UI for delivery status" is right as a *forward-looking* rule, but must not be read as "remove what's there" — suppression is a sending-safety mechanism, not delivery analytics.
+3. **The Health tab already does most of what is asked.** It reports queue depth, oldest/newest message age, and whether the queue-processor job is scheduled. Missing are only the explicit worker heartbeat and DLQ growth today vs yesterday.
 
-## Why it looks blank
+Everything else — Activity as an internal handoff log, DLQ as "never made it to Resend", replay pushing back into the queue, tenant-to-Resend-ID mapping — is already the shape of the system and needs no structural change.
 
-The page renders, but every panel is empty: counters read 0, the activity table stays on "Loading…", and the banner stays on "Checking email alerts…".
+## Why the page is blank
 
-Two separate causes were confirmed:
+Two confirmed causes:
 
-1. **Permission** — the five backend functions the page calls (`admin_email_activity_stats`, `admin_list_email_activity`, `admin_email_alerts`, `admin_email_health`, `admin_list_dlq`, plus the DLQ replay/discard ones) have execute rights only for internal/service roles. Signed-in admins are not granted execute, so every call fails and the queries never resolve — which is why the table hangs on "Loading…" instead of showing an error.
-2. **No recent data** — the email log holds 25 rows, all older than 14 June 2026, so nothing falls inside the default "Last 7 days" window even after permissions are fixed.
+1. **Permission.** The functions the page calls are executable only by internal/service roles, so every call from a signed-in admin fails and the panels never resolve — the table hangs on "Loading…" instead of showing the error.
+2. **No recent data.** The log holds 25 rows, all older than 14 June 2026, so nothing falls in the default "Last 7 days" window even once permissions are fixed.
 
-## Fix
+## Work
 
-1. Migration granting `EXECUTE` on the admin email functions to `authenticated`. Each function is already SECURITY DEFINER and must begin with a super-admin check (`is_super_admin(auth.uid())`, raising on failure) so granting execute cannot expose email data to normal users — add the guard to any function that lacks it in the same migration.
-2. Surface failures instead of hanging: show an inline error state with the message in the Activity table, DLQ table, and alerts banner when a query rejects, plus a proper "No emails in this period" empty state.
-3. Default the Activity time range to a window that shows existing data ("Last 30 days"), and add an "All time" option so historical entries are reachable.
+**A. Unblock the page**
+- Migration granting execute on the admin email functions to signed-in users. Each is already privileged-mode and starts with a super-admin check that raises for anyone else, so no email data becomes reachable by normal users; add the guard to any function missing it in the same migration.
+- Show the actual error inline in the Activity table, DLQ table and alerts banner instead of an endless spinner, plus a real "no emails in this period" empty state.
+- Default the Activity range to Last 30 days and add an "All time" option.
+
+**B. Capture and surface the Resend ID**
+- Worker: read the ID from the Resend response and store it on the send-log row alongside the existing tenant reference.
+- Activity table: new "Resend" column rendering the stored ID as an external link to the Resend dashboard for that email; "—" when absent.
+- Activity states relabelled to the internal journey: Queued → Processing → Handed to Resend → Failed (internal).
+
+**C. Health tab additions**
+- Worker heartbeat derived from the age of the oldest locked/in-flight message, shown as OK / stalled.
+- DLQ growth today vs yesterday.
+
+**D. Guardrail**
+- Nothing that tracks opens, clicks, or delivery outcomes gets added to the schema or the UI. Existing bounce/complaint suppression stays as-is because it protects sending, not because it reports delivery.
 
 ## Technical notes
 
-- Files: new migration under `supabase/migrations/`, `src/components/admin/email-ops/EmailActivityTab.tsx`, `EmailDLQTab.tsx`, `EmailAlertsBanner.tsx`, `EmailHealthTab.tsx`.
-- No change to the sending pipeline, templates, or the `admin-email-ops` function itself.
-- Verification: reload `/admin/emails` as super admin and confirm counters populate, the log lists rows, and the DLQ/Health tabs return data rather than spinners.
+- Migration under `supabase/migrations/`; worker change in `supabase/functions/process-email-queue/index.ts` (redeploy required); UI in `src/components/admin/email-ops/*`; health/alert function bodies updated in the same migration.
+- No change to templates, the sending path itself, or the sender domain.
+- Verification: reload `/admin/emails` as super admin — counters populate, the log lists rows, Health and DLQ return data; then trigger one test send and confirm a Resend link appears on the new row.
