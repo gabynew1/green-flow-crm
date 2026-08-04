@@ -372,7 +372,11 @@ export default function CreateAdHocVisitDialog({ open, onOpenChange, onCreated, 
                 onChange={(id) => setSelectedPropertyId(id || "")}
                 customerId={selectedCustomerId || undefined}
                 allowClear={false}
+                allowGeneral
               />
+              <p className="text-[11px] text-muted-foreground">
+                No site yet? Pick "No specific location" and continue.
+              </p>
             </div>
           )}
 

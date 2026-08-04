@@ -17,6 +17,7 @@ export default function ClientProperties() {
     const { data } = await supabase
       .from("properties")
       .select("*, customers(name), tenants(name)")
+      .eq("is_general", false)
       .order("name");
     setProperties(data ?? []);
   };

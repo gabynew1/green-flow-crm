@@ -170,7 +170,7 @@ export default function ContractNew() {
     setLoading(true);
     Promise.all([
       supabase.from("customers").select("id, name, company_name").eq("tenant_id", tid).order("name"),
-      supabase.from("properties").select("id, name, customer_id, zone_id").eq("tenant_id", tid).order("name"),
+      supabase.from("properties").select("id, name, customer_id, zone_id").eq("tenant_id", tid).eq("is_general", false).order("name"),
       supabase.from("service_catalog").select("*").eq("is_active", true).eq("tenant_id", tid).order("code").order("name"),
     ]).then(([custRes, propRes, svcRes]) => {
       setCustomers(custRes.data ?? []);
