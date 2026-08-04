@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 
 export type EmailOpsAction = {
   code: string;
@@ -19,7 +20,20 @@ export type EmailAlert = {
 
 export async function invokeEmailOps(body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke("admin-email-ops", { body });
-  if (error) throw error;
+  if (error) {
+    // functions.invoke hides the response body behind a generic non-2xx error.
+    if (error instanceof FunctionsHttpError) {
+      const text = await error.context.text().catch(() => "");
+      let detail = text;
+      try {
+        detail = JSON.parse(text)?.error ?? text;
+      } catch {
+        /* keep raw text */
+      }
+      throw new Error(detail || error.message);
+    }
+    throw error;
+  }
   if ((data as any)?.error) throw new Error((data as any).error);
   return data as any;
 }
