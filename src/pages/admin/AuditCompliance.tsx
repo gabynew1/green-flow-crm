@@ -212,10 +212,9 @@ export default function AuditCompliance() {
                     <TableHeader className="bg-muted/50">
                         <TableRow>
                             <TableHead className="font-bold uppercase tracking-widest text-[10px]">Timestamp</TableHead>
-                            <TableHead className="font-bold uppercase tracking-widest text-[10px]">Admin</TableHead>
                             <TableHead className="font-bold uppercase tracking-widest text-[10px]">Action</TableHead>
-                            <TableHead className="font-bold uppercase tracking-widest text-[10px]">Target</TableHead>
-                            <TableHead className="font-bold uppercase tracking-widest text-[10px]">Details</TableHead>
+                            <TableHead className="font-bold uppercase tracking-widest text-[10px]">What happened</TableHead>
+                            <TableHead className="font-bold uppercase tracking-widest text-[10px] w-[110px]">Details</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -224,35 +223,59 @@ export default function AuditCompliance() {
                         ) : logs?.length === 0 ? (
                             <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No audit logs recorded yet. Actions will appear here automatically.</TableCell></TableRow>
                         ) : logs?.map((log) => (
-                            <TableRow key={log.id} className="group hover:bg-muted/30 transition-colors">
-                                <TableCell className="text-[10px] font-bold text-muted-foreground">
-                                    {format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss")}
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        <User className="h-3.5 w-3.5 text-primary" />
-                                        <span className="font-bold text-xs font-mono">{log.admin_user_id ? `${log.admin_user_id.slice(0, 8)}…` : "system"}</span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>{getActionBadge(log.action)}</TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                        <span className="text-xs font-semibold">{log.target_type || "—"}</span>
-                                        {log.target_id && <span className="text-[10px] text-muted-foreground font-mono">{log.target_id.slice(0, 8)}</span>}
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex items-center gap-2">
-                                        <Activity className="h-3.5 w-3.5 text-primary/40" />
-                                        <span className="text-xs text-muted-foreground italic font-medium">
-                                            {log.metadata && Object.keys(log.metadata as object).length > 0
-                                                ? JSON.stringify(log.metadata).slice(0, 60)
-                                                : "—"}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
+                            <Fragment key={log.id}>
+                                <TableRow className="group hover:bg-muted/30 transition-colors">
+                                    <TableCell className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+                                        {format(new Date(log.created_at), "d MMM yyyy, HH:mm")}
+                                    </TableCell>
+                                    <TableCell>{getActionBadge(actionLabel(log.action))}</TableCell>
+                                    <TableCell>
+                                        <div className="flex items-start gap-2">
+                                            <User className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                                            <span className="text-xs font-medium leading-relaxed">{describe(log)}</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 px-2 text-[11px] font-semibold"
+                                            onClick={() => setExpanded(prev => ({ ...prev, [log.id]: !prev[log.id] }))}
+                                        >
+                                            {expanded[log.id]
+                                                ? <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                                                : <ChevronRight className="h-3.5 w-3.5 mr-1" />}
+                                            Details
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                                {expanded[log.id] && (
+                                    <TableRow className="bg-muted/20 hover:bg-muted/20">
+                                        <TableCell colSpan={4} className="py-3">
+                                            <div className="grid gap-2 md:grid-cols-2 text-[11px] font-mono">
+                                                <div><span className="text-muted-foreground">Timestamp: </span>{format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss")}</div>
+                                                <div><span className="text-muted-foreground">Admin user ID: </span>{log.admin_user_id || "system"}</div>
+                                                <div><span className="text-muted-foreground">Raw action: </span>{log.action}</div>
+                                                <div className="flex items-center gap-1">
+                                                    <Building2 className="h-3 w-3 text-muted-foreground" />
+                                                    <span className="text-muted-foreground">Target: </span>{log.target_type || "—"} {log.target_id || ""}
+                                                </div>
+                                                {(log.from_status || log.to_status) && (
+                                                    <div><span className="text-muted-foreground">Status: </span>{log.from_status || "—"} → {log.to_status || "—"}</div>
+                                                )}
+                                                {(log.from_tier || log.to_tier) && (
+                                                    <div><span className="text-muted-foreground">Tier: </span>{log.from_tier || "—"} → {log.to_tier || "—"}</div>
+                                                )}
+                                                {log.reason && <div><span className="text-muted-foreground">Reason: </span>{log.reason}</div>}
+                                                <div className="md:col-span-2">
+                                                    <span className="text-muted-foreground">Metadata: </span>
+                                                    <pre className="mt-1 whitespace-pre-wrap break-all rounded bg-background p-2 border">{JSON.stringify(log.metadata || {}, null, 2)}</pre>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </Fragment>
                         ))}
                     </TableBody>
                 </Table>
