@@ -3005,6 +3005,7 @@ export type Database = {
         Args: { _body: string; _task_id: string }
         Returns: string
       }
+      admin_clear_email_rate_limit: { Args: never; Returns: Json }
       admin_discard_dlq: {
         Args: { p_msg_id: number; p_queue: string }
         Returns: Json
@@ -3019,6 +3020,8 @@ export type Database = {
         Args: { p_limit?: number; p_queue: string }
         Returns: {
           enqueued_at: string
+          last_error: string
+          last_status: string
           message: Json
           msg_id: number
           read_ct: number

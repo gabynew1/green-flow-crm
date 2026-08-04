@@ -5,25 +5,27 @@ import EmailActivityTab from "@/components/admin/email-ops/EmailActivityTab";
 import EmailDLQTab from "@/components/admin/email-ops/EmailDLQTab";
 import EmailHealthTab from "@/components/admin/email-ops/EmailHealthTab";
 import EmailAlertsBanner from "@/components/admin/email-ops/EmailAlertsBanner";
+import EmailStatusPill from "@/components/admin/email-ops/EmailStatusPill";
 
 export default function EmailOperations() {
   const [tab, setTab] = useState("activity");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Mail className="h-5 w-5 text-primary" />
         </div>
-        <div>
+        <div className="flex-1 min-w-[220px]">
           <h1 className="text-2xl font-bold tracking-tight">Email Operations</h1>
           <p className="text-sm text-muted-foreground">
             Monitor delivery, replay failed messages, and check infrastructure health.
           </p>
         </div>
+        <EmailStatusPill onClick={() => setTab("health")} />
       </div>
 
-      <EmailAlertsBanner />
+      <EmailAlertsBanner showOkState onNavigate={(t) => setTab(t)} />
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
