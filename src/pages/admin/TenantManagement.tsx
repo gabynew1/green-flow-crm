@@ -384,18 +384,18 @@ export default function TenantManagement() {
                 <Table>
                     <TableHeader className="bg-muted/50">
                         <TableRow>
-                            <TableHead className="font-bold">Organization</TableHead>
-                            <TableHead className="font-bold">Tier</TableHead>
-                            <TableHead className="font-bold">Status</TableHead>
-                            <TableHead className="font-bold">Days</TableHead>
-                            <TableHead className="font-bold">Teams</TableHead>
-                            <TableHead className="font-bold">Providers</TableHead>
-                            <TableHead className="font-bold">Created</TableHead>
+                            <SortHeader label="Organization" sortKeyName="name" />
+                            <SortHeader label="Tier" sortKeyName="subscription_tier" />
+                            <SortHeader label="Status" sortKeyName="status" />
+                            <SortHeader label="Days" sortKeyName="days" />
+                            <SortHeader label="Teams" sortKeyName="teamCount" />
+                            <SortHeader label="Providers" sortKeyName="providerCount" />
+                            <SortHeader label="Created" sortKeyName="created_at" />
                             <TableHead className="w-[100px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {tenants?.map((tenant) => (
+                        {sortedTenants?.map((tenant) => (
                             <TableRow key={tenant.id} className="group transition-colors hover:bg-primary/5">
                                 <TableCell className="font-medium">
                                     <div className="flex items-center gap-3">
