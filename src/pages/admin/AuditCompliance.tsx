@@ -98,21 +98,38 @@ export default function AuditCompliance() {
     const describe = (log: any): string => {
         const meta = (log.metadata || {}) as Record<string, unknown>;
         const who = adminName(log.admin_user_id);
-        const what = targetName(log);
-        const parts: string[] = [];
+        const what = shortTarget(log);
+        const all: string[] = [];
 
-        if (log.from_tier || log.to_tier) {
-            parts.push(`changed plan${log.from_tier ? ` from ${prettyWords(log.from_tier)}` : ""}${log.to_tier ? ` to ${prettyWords(log.to_tier)}` : ""}`);
+        // Only mention real transitions (skip no-op from === to).
+        if (normalize(log.from_tier) !== normalize(log.to_tier)) {
+            if (log.from_tier && log.to_tier) all.push(`changed plan from ${prettyWords(log.from_tier)} to ${prettyWords(log.to_tier)}`);
+            else if (log.to_tier) all.push(`set plan to ${prettyWords(log.to_tier)}`);
+            else if (log.from_tier) all.push(`removed plan ${prettyWords(log.from_tier)}`);
         }
-        if (log.from_status || log.to_status) {
-            parts.push(`changed status${log.from_status ? ` from ${prettyWords(log.from_status)}` : ""}${log.to_status ? ` to ${prettyWords(log.to_status)}` : ""}`);
+        if (normalize(log.from_status) !== normalize(log.to_status)) {
+            if (log.from_status && log.to_status) all.push(`changed status from ${prettyWords(log.from_status)} to ${prettyWords(log.to_status)}`);
+            else if (log.to_status) all.push(`set status to ${prettyWords(log.to_status)}`);
+            else if (log.from_status) all.push(`cleared status ${prettyWords(log.from_status)}`);
         }
-        if (typeof meta.days === "number") parts.push(`granted ${meta.days} extra days`);
+        all.push(...metaPhrases(meta));
+
+        // Cap the sentence at two clauses; the rest lives behind Details.
+        const parts = all.slice(0, 2);
+        const overflow = all.length - parts.length;
 
         const verb = parts.length ? parts.join(" and ") : `performed ${actionLabel(log.action).toLowerCase()}`;
-        const reason = (log.reason as string) || (typeof meta.reason === "string" ? prettyWords(meta.reason) : null);
 
-        return `${who} ${verb} for ${what}${reason ? ` — reason: ${reason}` : ""}.`;
+        const rawReason = (log.reason as string) || (typeof meta.reason === "string" ? meta.reason : null);
+        const reasonKey = normalize(rawReason);
+        const redundant = !rawReason
+            || normalize(log.action).includes(reasonKey)
+            || reasonKey.includes(normalize(log.action))
+            || parts.some(p => normalize(p).includes(reasonKey))
+            || (reasonKey.includes("trial") && normalize(verb).includes("extradays"));
+        const reason = redundant ? null : prettyWords(String(rawReason));
+
+        return `${who} ${verb}${what ? ` ${parts.length ? "to" : "for"} ${what}` : ""}${reason ? ` — reason: ${reason}` : ""}.${overflow > 0 ? ` +${overflow} more details` : ""}`;
     };
 
     // Short target label: prefer the resolved name alone, fall back to type/id.
