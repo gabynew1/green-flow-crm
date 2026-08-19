@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { HoneypotField, useFormGuard } from "@/components/auth/HoneypotField";
 import {
   Building2,
   Users,
@@ -269,6 +270,7 @@ export default function AdminOnboard() {
   const [acceptedTos, setAcceptedTos] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const formGuard = useFormGuard();
 
   // Capture attribution at first render (UTM + referrer + landing path)
   const signupMetadata = useMemo(() => {
@@ -395,6 +397,7 @@ export default function AdminOnboard() {
           acceptedPrivacy,
           tosVersion: TOS_VERSION,
           marketingOptIn,
+          ...formGuard.payload(),
         });
       }
 
@@ -936,6 +939,8 @@ export default function AdminOnboard() {
                   </label>
                 </div>
               )}
+
+              {isPublic && <HoneypotField guard={formGuard} />}
 
               <Button
                 onClick={handleManualSubmit}

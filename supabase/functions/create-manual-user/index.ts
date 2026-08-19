@@ -1,4 +1,12 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  checkLimits,
+  clientIp,
+  hashIdentifier,
+  logAbuseBlock,
+  tooManyRequests,
+} from "../_shared/ratelimit.ts";
+import { checkFormGuard } from "../_shared/form-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +32,40 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { type, data, source, signupMetadata, acceptedTos, acceptedPrivacy, tosVersion, marketingOptIn } = body;
     const isPublic = source === "public";
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // --- Abuse guards for the public self-serve path only (admin-created
+    // users go through a super-admin check further down). ---
+    if (isPublic) {
+      const guard = checkFormGuard(body);
+      if (!guard.ok) {
+        void logAbuseBlock(SUPABASE_URL, SERVICE_KEY, {
+          reason: guard.reason,
+          endpoint: "create-manual-user",
+        });
+        return new Response(JSON.stringify({ error: "Invalid submission." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const ip = clientIp(req);
+      const ipKey = ip ? await hashIdentifier(ip) : "unknown";
+      const burst = checkLimits([
+        { key: `signup:ip:${ipKey}`, limit: 5, windowSeconds: 3600 },
+        { key: `signup:ip:day:${ipKey}`, limit: 20, windowSeconds: 86400 },
+      ]);
+      if (!burst.allowed) {
+        void logAbuseBlock(SUPABASE_URL, SERVICE_KEY, {
+          reason: "rate_limited",
+          endpoint: "create-manual-user",
+          bucket: burst.key,
+        });
+        return tooManyRequests(burst.retryAfterSeconds, corsHeaders);
+      }
+    }
 
     // Capture request-side attribution (truncated IP /24, country, UA)
     const rawIp =
@@ -59,10 +101,7 @@ Deno.serve(async (req) => {
     if (tosVersion) consentPatch.tos_version = String(tosVersion);
 
     // Service role client for admin operations
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const adminClient = createClient(SUPABASE_URL, SERVICE_KEY);
 
     let callerUserId: string | null = null;
 

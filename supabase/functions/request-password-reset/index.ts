@@ -1,4 +1,12 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import {
+  checkLimits,
+  clientIp,
+  hashIdentifier,
+  logAbuseBlock,
+  tooManyRequests,
+} from '../_shared/ratelimit.ts'
+import { checkFormGuard } from '../_shared/form-guard.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,14 +51,50 @@ Deno.serve(async (req) => {
   }
 
   let email: string
+  let rawBody: unknown
   try {
     const body = await req.json()
+    rawBody = body
     email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : ''
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  const requestedIp = clientIp(req)
+
+  // --- Abuse guards: cheapest first, all before any database work ---
+  const guard = checkFormGuard(rawBody)
+  if (!guard.ok) {
+    void logAbuseBlock(supabaseUrl, serviceKey, {
+      reason: guard.reason,
+      endpoint: 'request-password-reset',
+    })
+    // Enumeration-safe: look identical to a successful request.
+    return new Response(JSON.stringify(GENERIC_RESPONSE), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const ipKey = requestedIp ? await hashIdentifier(requestedIp) : 'unknown'
+  const emailKey = email ? await hashIdentifier(email) : 'none'
+  const burst = checkLimits([
+    { key: `pwreset:ip:${ipKey}`, limit: 5, windowSeconds: 3600 },
+    { key: `pwreset:email:${emailKey}`, limit: 3, windowSeconds: 3600 },
+  ])
+  if (!burst.allowed) {
+    void logAbuseBlock(supabaseUrl, serviceKey, {
+      reason: 'rate_limited',
+      endpoint: 'request-password-reset',
+      bucket: burst.key,
+    })
+    return tooManyRequests(burst.retryAfterSeconds, corsHeaders)
   }
 
   // Basic email validation; never leak whether it exists.
@@ -61,16 +105,9 @@ Deno.serve(async (req) => {
     })
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
-
-  const requestedIp =
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    req.headers.get('cf-connecting-ip') ||
-    null
 
   try {
     // Look up the user by email via admin API.

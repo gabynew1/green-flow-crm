@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import {
+  checkLimits,
+  hashIdentifier,
+  logAbuseBlock,
+  tooManyRequests,
+} from "../_shared/ratelimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -416,6 +422,19 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Burst limit BEFORE the Postgres role/scope reads, so a looping script
+    // is rejected without touching the database or the AI gateway.
+    const userKey = await hashIdentifier(userId);
+    const burst = checkLimits([{ key: `ai:user:${userKey}`, limit: 10, windowSeconds: 60 }]);
+    if (!burst.allowed) {
+      void logAbuseBlock(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        reason: "rate_limited",
+        endpoint: "ai-assistant",
+        bucket: burst.key,
+      });
+      return tooManyRequests(burst.retryAfterSeconds, corsHeaders);
+    }
+
     // Resolve real role + tenant/customer scope from user_roles + profiles
     const [{ data: roleRows }, { data: profileRow }] = await Promise.all([
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
@@ -441,6 +460,23 @@ serve(async (req) => {
       tenantId: (profileRow as any)?.tenant_id ?? null,
       customerId: (profileRow as any)?.customer_id ?? null,
     };
+
+    // Per-tenant burst limit — one workspace cannot be driven into the ground
+    // by several of its own accounts looping in parallel.
+    if (caller.tenantId) {
+      const tenantKey = await hashIdentifier(caller.tenantId);
+      const tenantBurst = checkLimits([
+        { key: `ai:tenant:${tenantKey}`, limit: 60, windowSeconds: 60 },
+      ]);
+      if (!tenantBurst.allowed) {
+        void logAbuseBlock(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          reason: "rate_limited",
+          endpoint: "ai-assistant",
+          bucket: tenantBurst.key,
+        });
+        return tooManyRequests(tenantBurst.retryAfterSeconds, corsHeaders);
+      }
+    }
 
     const { messages, context, user, properties } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

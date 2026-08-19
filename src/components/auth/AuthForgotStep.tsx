@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { HoneypotField, useFormGuard } from "@/components/auth/HoneypotField";
 
 interface AuthForgotStepProps {
   initialEmail: string;
@@ -18,6 +19,7 @@ interface AuthForgotStepProps {
 export default function AuthForgotStep({ initialEmail, onBack, onMessage }: AuthForgotStepProps) {
   const [email, setEmail] = useState(initialEmail);
   const [isLoading, setIsLoading] = useState(false);
+  const formGuard = useFormGuard();
 
   const handleSubmit = async () => {
     const trimmed = email.trim();
@@ -29,7 +31,7 @@ export default function AuthForgotStep({ initialEmail, onBack, onMessage }: Auth
     setIsLoading(true);
     try {
       await supabase.functions.invoke('request-password-reset', {
-        body: { email: trimmed },
+        body: { email: trimmed, ...formGuard.payload() },
       });
       // SECURITY: Always show the same success message — never reveal
       // whether the email exists in the system.
@@ -63,7 +65,9 @@ export default function AuthForgotStep({ initialEmail, onBack, onMessage }: Auth
           aria-label="Email for password reset"
         />
       </div>
-      {/* CAPTCHA integration point: Add hCaptcha/Turnstile widget here */}
+      {/* Phase 1 bot friction: honeypot + minimum fill time.
+          Phase 2 replaces this with a Cloudflare Turnstile widget. */}
+      <HoneypotField guard={formGuard} />
       <Button onClick={handleSubmit} className="w-full h-11" disabled={isLoading}>
         {isLoading ? (
           <>
