@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { TIERS, TIER_ORDER, type TierId } from "@/lib/tiers";
 import AcquisitionPanel from "@/components/admin/AcquisitionPanel";
+import AbusePanel from "@/components/admin/AbusePanel";
 
 // Monthly price in EUR (excl. VAT) per tier — single source of truth for revenue math.
 const TIER_PRICE_EUR: Record<TierId, number> = {
@@ -199,6 +200,8 @@ export default function AdminDashboard() {
             </div>
 
             <AcquisitionPanel />
+
+            <AbusePanel />
 
             <Card className="border-primary/10">
                 <CardHeader>
