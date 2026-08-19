@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { HoneypotField, useFormGuard } from "@/components/auth/HoneypotField";
 import {
   Building2,
   Users,
