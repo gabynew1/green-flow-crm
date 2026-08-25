@@ -69,18 +69,34 @@ Deno.serve(async (req) => {
   const requestedIp = clientIp(req)
 
   // --- Abuse guards: cheapest first, all before any database work ---
-  const guard = checkFormGuard(rawBody)
+  // Reset has a single, usually prefilled field, so 2s is too aggressive here.
+  const guard = checkFormGuard(rawBody, { minFillMs: 1_000 })
   if (!guard.ok) {
     void logAbuseBlock(supabaseUrl, serviceKey, {
       reason: guard.reason,
       endpoint: 'request-password-reset',
     })
-    // Enumeration-safe: look identical to a successful request.
-    return new Response(JSON.stringify(GENERIC_RESPONSE), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    if (guard.reason === 'honeypot') {
+      // Bot trap: look identical to a successful request.
+      return new Response(JSON.stringify(GENERIC_RESPONSE), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    // Timing rejection: tell the human the truth. This depends only on timing,
+    // never on whether the email exists, so it leaks nothing.
+    return new Response(
+      JSON.stringify({
+        error: 'Please wait a moment and try again.',
+        retryAfterSeconds: 2,
+      }),
+      {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '2' },
+      },
+    )
   }
+
 
   const ipKey = requestedIp ? await hashIdentifier(requestedIp) : 'unknown'
   const emailKey = email ? await hashIdentifier(email) : 'none'
