@@ -48,7 +48,7 @@ BEGIN
       (coalesce(t.status, 'active') <> 'active') AS tenant_paused,
       coalesce(tes.cat_onboarding_enabled, true) AS cat_onboarding_enabled,
       coalesce((SELECT count(*) FROM public.customers c WHERE c.tenant_id = p.tenant_id), 0)::int AS customers_count,
-      coalesce((SELECT count(*) FROM public.visits   v WHERE v.tenant_id = p.tenant_id), 0)::int AS visits_count,
+      coalesce((SELECT count(*) FROM public.service_orders v WHERE v.tenant_id = p.tenant_id), 0)::int AS visits_count,
       coalesce((SELECT count(*) FROM public.offers   o WHERE o.tenant_id = p.tenant_id), 0)::int AS offers_count
     FROM public.profiles p
     LEFT JOIN public.tenants t ON t.id = p.tenant_id

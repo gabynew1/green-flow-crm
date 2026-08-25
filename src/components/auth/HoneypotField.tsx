@@ -12,22 +12,28 @@ import { useEffect, useRef, useState } from "react";
  *   <HoneypotField guard={guard} />
  *   ...invoke(fn, { body: { ...payload, ...guard.payload() } })
  */
-export function useFormGuard() {
+export function useFormGuard(minFillMs = 2000) {
   const mountedAt = useRef<number>(Date.now());
   const [trap, setTrap] = useState("");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     mountedAt.current = Date.now();
-  }, []);
+    setReady(false);
+    const t = setTimeout(() => setReady(true), minFillMs);
+    return () => clearTimeout(t);
+  }, [minFillMs]);
 
   return {
     trap,
     setTrap,
+    ready,
     payload: () => ({ hp_field: trap, form_started_at: mountedAt.current }),
   };
 }
 
 export type FormGuard = ReturnType<typeof useFormGuard>;
+
 
 export function HoneypotField({ guard }: { guard: FormGuard }) {
   return (

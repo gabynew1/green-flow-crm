@@ -16,12 +16,16 @@
  * and CGNAT means banning a subnet can ban an entire office or mobile carrier).
  */
 
-const MIN_FILL_MS = 2_000;
+const DEFAULT_MIN_FILL_MS = 2_000;
 const MAX_FORM_AGE_MS = 6 * 60 * 60 * 1000; // 6h — generous for a slow signup
 
 export type FormGuardResult = { ok: true } | { ok: false; reason: "honeypot" | "too_fast" };
 
-export function checkFormGuard(body: unknown): FormGuardResult {
+export function checkFormGuard(
+  body: unknown,
+  opts: { minFillMs?: number } = {},
+): FormGuardResult {
+  const minFillMs = opts.minFillMs ?? DEFAULT_MIN_FILL_MS;
   const payload = (body ?? {}) as Record<string, unknown>;
 
   // 1. Honeypot
@@ -35,14 +39,15 @@ export function checkFormGuard(body: unknown): FormGuardResult {
   const startedAt = Number(payload.form_started_at);
   if (Number.isFinite(startedAt) && startedAt > 0) {
     const elapsed = Date.now() - startedAt;
-    if (elapsed >= 0 && elapsed < MIN_FILL_MS) {
+    if (elapsed >= 0 && elapsed < minFillMs) {
       return { ok: false, reason: "too_fast" };
     }
-    if (elapsed < -MIN_FILL_MS || elapsed > MAX_FORM_AGE_MS) {
+    if (elapsed < -minFillMs || elapsed > MAX_FORM_AGE_MS) {
       // Clock skew or a replayed/forged value — treat as scripted.
       return { ok: false, reason: "too_fast" };
     }
   }
+
 
   return { ok: true };
 }

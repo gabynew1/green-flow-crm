@@ -147,7 +147,11 @@ export default function EmailActivityTab() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {[
-          ["In queue (now)", queueDepth.data ?? 0, "text-amber-600"],
+          [
+            "In queue (now)",
+            queueDepth.isError ? "—" : queueDepth.data ?? 0,
+            queueDepth.isError ? "text-muted-foreground" : "text-amber-600",
+          ],
           ["Total", stats.data?.total ?? 0, "text-foreground"],
           ["Sent", stats.data?.sent ?? 0, "text-emerald-600"],
           ["Failed", stats.data?.failed ?? 0, "text-red-600"],
@@ -157,11 +161,15 @@ export default function EmailActivityTab() {
           <Card key={label as string}>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-              <p className={`text-2xl font-bold ${cls}`}>{value as number}</p>
+              <p className={`text-2xl font-bold ${cls}`}>{value as string | number}</p>
+              {label === "In queue (now)" && queueDepth.isError && (
+                <p className="text-[11px] text-muted-foreground mt-1">Unavailable</p>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
+
 
       {/* Filters */}
       <Card>
