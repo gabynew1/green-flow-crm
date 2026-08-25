@@ -161,7 +161,7 @@ export default function EmailActivityTab() {
           <Card key={label as string}>
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-              <p className={`text-2xl font-bold ${cls}`}>{value as React.ReactNode}</p>
+              <p className={`text-2xl font-bold ${cls}`}>{value as string | number}</p>
               {label === "In queue (now)" && queueDepth.isError && (
                 <p className="text-[11px] text-muted-foreground mt-1">Unavailable</p>
               )}
