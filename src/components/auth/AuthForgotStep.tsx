@@ -74,15 +74,22 @@ export default function AuthForgotStep({ initialEmail, onBack, onMessage }: Auth
       {/* Phase 1 bot friction: honeypot + minimum fill time.
           Phase 2 replaces this with a Cloudflare Turnstile widget. */}
       <HoneypotField guard={formGuard} />
-      <Button onClick={handleSubmit} className="w-full h-11" disabled={isLoading}>
+      <Button
+        onClick={handleSubmit}
+        className="w-full h-11"
+        disabled={isLoading || !formGuard.ready}
+      >
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…
           </>
+        ) : !formGuard.ready ? (
+          "One moment…"
         ) : (
           "Send Reset Link"
         )}
       </Button>
+
       <button
         type="button"
         onClick={onBack}
