@@ -19,7 +19,8 @@ interface AuthForgotStepProps {
 export default function AuthForgotStep({ initialEmail, onBack, onMessage }: AuthForgotStepProps) {
   const [email, setEmail] = useState(initialEmail);
   const [isLoading, setIsLoading] = useState(false);
-  const formGuard = useFormGuard();
+  // Reset form has one (usually prefilled) field — 1s matches the server guard.
+  const formGuard = useFormGuard(1000);
 
   const handleSubmit = async () => {
     const trimmed = email.trim();
@@ -30,9 +31,13 @@ export default function AuthForgotStep({ initialEmail, onBack, onMessage }: Auth
 
     setIsLoading(true);
     try {
-      await supabase.functions.invoke('request-password-reset', {
+      const { error } = await supabase.functions.invoke('request-password-reset', {
         body: { email: trimmed, ...formGuard.payload() },
       });
+      if (error) {
+        onMessage({ type: "error", text: "Please wait a moment and try again." });
+        return;
+      }
       // SECURITY: Always show the same success message — never reveal
       // whether the email exists in the system.
       onMessage({
@@ -46,6 +51,7 @@ export default function AuthForgotStep({ initialEmail, onBack, onMessage }: Auth
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-4">
