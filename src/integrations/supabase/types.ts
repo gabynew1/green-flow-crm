@@ -3388,6 +3388,7 @@ export type Database = {
       sync_lifecycle_login_timestamps: { Args: never; Returns: Json }
       touch_customer_client_login: { Args: { _user_id: string }; Returns: Json }
       touch_tenant_admin_login: { Args: { _user_id: string }; Returns: Json }
+      verify_email_queue_key: { Args: { _token: string }; Returns: boolean }
     }
     Enums: {
       action_task_event_type:
