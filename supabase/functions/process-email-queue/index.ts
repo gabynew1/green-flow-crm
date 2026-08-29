@@ -168,19 +168,35 @@ Deno.serve(async (req) => {
   }
 
   // Only genuine internal callers (cron / admin ops) may run the dispatcher.
-  // The bearer token must be the actual service-role key — decoding JWT claims
-  // is NOT enough, since unsigned tokens can claim any role.
+  // The bearer token must be the actual service-role key or the stored internal
+  // cron key — decoding JWT claims is NOT enough, since an unsigned token can
+  // claim any role.
   const token = authHeader.slice('Bearer '.length).trim()
   const internalKey = req.headers.get('x-internal-service-key')?.trim() ?? ''
-  if (!secretsMatch(token, supabaseServiceKey) && !secretsMatch(internalKey, supabaseServiceKey)) {
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  let authorized =
+    secretsMatch(token, supabaseServiceKey) || secretsMatch(internalKey, supabaseServiceKey)
+
+  if (!authorized) {
+    for (const candidate of [token, internalKey]) {
+      if (!candidate) continue
+      const { data } = await supabase.rpc('verify_email_queue_key', { _token: candidate })
+      if (data === true) {
+        authorized = true
+        break
+      }
+    }
+  }
+
+  if (!authorized) {
     return new Response(
       JSON.stringify({ error: 'Forbidden' }),
       { status: 403, headers: { 'Content-Type': 'application/json' } }
     )
   }
 
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // 1. Check rate-limit cooldown and read queue config
   const { data: state } = await supabase
