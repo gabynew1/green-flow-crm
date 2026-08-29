@@ -167,14 +167,18 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Only genuine internal callers (cron / admin ops) may run the dispatcher.
+  // The bearer token must be the actual service-role key — decoding JWT claims
+  // is NOT enough, since unsigned tokens can claim any role.
   const token = authHeader.slice('Bearer '.length).trim()
-  const claims = parseJwtClaims(token)
-  if (claims?.role !== 'service_role') {
+  const internalKey = req.headers.get('x-internal-service-key')?.trim() ?? ''
+  if (!secretsMatch(token, supabaseServiceKey) && !secretsMatch(internalKey, supabaseServiceKey)) {
     return new Response(
       JSON.stringify({ error: 'Forbidden' }),
       { status: 403, headers: { 'Content-Type': 'application/json' } }
     )
   }
+
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
