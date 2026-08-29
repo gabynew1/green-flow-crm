@@ -37,6 +37,19 @@ async function sendViaResend(
 ): Promise<string | null> {
   const { from, subject } = applyTenantBranding(payload)
 
+  // The Resend connector gateway requires `to` as a plain string.
+  // Normalize any shape (string, array, nested array) down to one recipient.
+  const rawTo: unknown = payload.to
+  let to = rawTo
+  while (Array.isArray(to)) to = to[0]
+  if (typeof to !== 'string' || !to.trim()) {
+    const err = new Error(
+      `Invalid recipient in email payload: ${JSON.stringify(rawTo)}`
+    )
+    ;(err as any).status = 422
+    throw err
+  }
+
   const response = await fetch(`${GATEWAY_URL}/emails`, {
     method: 'POST',
     headers: {
@@ -46,7 +59,7 @@ async function sendViaResend(
     },
     body: JSON.stringify({
       from,
-      to: [payload.to as string],
+      to: to.trim(),
       subject,
       html: payload.html as string,
       ...(payload.text ? { text: payload.text as string } : {}),
